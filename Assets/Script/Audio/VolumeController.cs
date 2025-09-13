@@ -492,15 +492,14 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// </summary>
     public VolumeSettings GetCurrentSettings()
     {
-        return new VolumeSettings
-        {
-            masterVolume = currentMasterVolume,
-            bgmVolume = currentBGMVolume,
-            effectVolume = currentEffectVolume,
-            masterMuted = isMasterMuted,
-            bgmMuted = isBGMMuted,
-            effectMuted = isEffectMuted
-        };
+        return new VolumeSettings(
+            currentMasterVolume,
+            currentBGMVolume,
+            currentEffectVolume,
+            isMasterMuted,
+            isBGMMuted,
+            isEffectMuted
+        );
     }
     
     /// <summary>

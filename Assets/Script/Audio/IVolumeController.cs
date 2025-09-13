@@ -106,6 +106,18 @@ public interface IVolumeController
     void ResetToDefault();
     
     /// <summary>
+    /// 현재 볼륨 설정 정보 반환
+    /// </summary>
+    /// <returns>현재 볼륨 설정</returns>
+    VolumeSettings GetCurrentSettings();
+    
+    /// <summary>
+    /// 볼륨 설정 일괄 적용
+    /// </summary>
+    /// <param name="settings">적용할 볼륨 설정</param>
+    void ApplySettings(VolumeSettings settings);
+    
+    /// <summary>
     /// 볼륨 변경 이벤트
     /// </summary>
     event Action<VolumeType, float> OnVolumeChanged;

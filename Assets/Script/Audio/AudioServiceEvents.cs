@@ -54,7 +54,7 @@ public struct AudioFadeInfo
 /// 볼륨 설정 정보 구조체
 /// </summary>
 [Serializable]
-public struct VolumeSettings
+public struct VolumeSettings : System.IEquatable<VolumeSettings>
 {
     public float masterVolume;
     public float bgmVolume;
@@ -62,6 +62,16 @@ public struct VolumeSettings
     public bool masterMuted;
     public bool bgmMuted;
     public bool effectMuted;
+    
+    public VolumeSettings(float master, float bgm, float effect, bool masterMute = false, bool bgmMute = false, bool effectMute = false)
+    {
+        masterVolume = master;
+        bgmVolume = bgm;
+        effectVolume = effect;
+        masterMuted = masterMute;
+        bgmMuted = bgmMute;
+        effectMuted = effectMute;
+    }
     
     public static VolumeSettings Default => new VolumeSettings
     {
@@ -72,6 +82,36 @@ public struct VolumeSettings
         bgmMuted = false,
         effectMuted = false
     };
+    
+    public bool Equals(VolumeSettings other)
+    {
+        return Mathf.Approximately(masterVolume, other.masterVolume) &&
+               Mathf.Approximately(bgmVolume, other.bgmVolume) &&
+               Mathf.Approximately(effectVolume, other.effectVolume) &&
+               masterMuted == other.masterMuted &&
+               bgmMuted == other.bgmMuted &&
+               effectMuted == other.effectMuted;
+    }
+    
+    public override bool Equals(object obj)
+    {
+        return obj is VolumeSettings other && Equals(other);
+    }
+    
+    public override int GetHashCode()
+    {
+        return System.HashCode.Combine(masterVolume, bgmVolume, effectVolume, masterMuted, bgmMuted, effectMuted);
+    }
+    
+    public static bool operator ==(VolumeSettings left, VolumeSettings right)
+    {
+        return left.Equals(right);
+    }
+    
+    public static bool operator !=(VolumeSettings left, VolumeSettings right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 /// <summary>

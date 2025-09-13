@@ -97,8 +97,10 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         DontDestroyOnLoad(gameObject);
         
         // 서비스 팩토리 초기화
-        serviceFactory = new AudioServiceFactory();
-        
+        if (serviceFactory == null)
+        {
+            serviceFactory = new AudioServiceFactory();
+        }
         // Repository 자동 설정 (존재하는 경우)
         var existingRepository = FindObjectOfType<AudioClipRepository>();
         if (existingRepository != null)
@@ -434,9 +436,12 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     {
         try
         {
+            if(serviceFactory == null)
+            {
+                serviceFactory = new AudioServiceFactory();
+            }
             // Factory를 통해 Container 자체에 VolumeController 추가
             var createdVolumeController = serviceFactory.CreateVolumeControllerOnGameObject(audioMixer, gameObject);
-            
             // RegisterVolumeController를 통해 등록
             if (createdVolumeController != null)
             {
