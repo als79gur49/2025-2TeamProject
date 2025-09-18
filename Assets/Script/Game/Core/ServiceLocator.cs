@@ -204,6 +204,14 @@ using UnityEngine;
         }
 
         /// <summary>
+        /// 모든 서비스 등록 해제 (Phase 3 호환성)
+        /// </summary>
+        public static void UnregisterAll()
+        {
+            Clear();
+        }
+
+        /// <summary>
         /// 초기화 여부 확인
         /// </summary>
         public static bool IsInitialized => isInitialized;

@@ -31,7 +31,12 @@ public class UnitTest : MonoBehaviour
         {
             testUnit2.TakeDamage(30);
         }
-        
+
+        if(Input.GetKeyDown(KeyCode.Alpha3) && testUnit1 != null)
+        {
+            testUnit1.OnTurnStart();
+        }
+
         if (Input.GetKeyDown(KeyCode.H))
         {
             if (testUnit1 != null) testUnit1.Heal(15);

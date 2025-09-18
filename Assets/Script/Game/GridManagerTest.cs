@@ -1,21 +1,57 @@
 using UnityEngine;
+using Game.Interfaces;
+using Game.Core;
 
 public class GridManagerTest : MonoBehaviour
 {
-    private GridManager gridManager;
+    // Phase 2: Interface-based dependencies
+    [Inject(Required = false)]
+    private IGridManager gridManager;
+    
+    [Inject(Required = false)]
+    private IGridServices gridServices;
+    
+    private GridManager legacyGridManager; // 호환성을 위해 유지
     private Unit testUnit;
     
     void Start()
     {
-        gridManager = FindObjectOfType<GridManager>();
-        if (gridManager == null)
-        {
-            GameObject gridObj = new GameObject("GridManager");
-            gridManager = gridObj.AddComponent<GridManager>();
-        }
-        
+        InitializeDependencies();
         TestGridGeneration();
         CreateTestUnit();
+    }
+    
+    /// <summary>
+    /// Phase 2: ServiceLocator 기반 의존성 주입
+    /// </summary>
+    private void InitializeDependencies()
+    {
+        // ServiceLocator를 통한 의존성 주입
+        this.InjectDependencies();
+        
+        // Fallback: 서비스 로케이터에서 직접 조회
+        if (gridManager == null)
+        {
+            gridManager = ServiceLocator.Get<IGridManager>();
+        }
+        
+        if (gridServices == null)
+        {
+            gridServices = ServiceLocator.Get<IGridServices>();
+        }
+        
+        // 레거시 그리드 매니저 참조 (테스트용)
+        legacyGridManager = FindObjectOfType<GridManager>();
+        if (legacyGridManager == null && gridManager == null)
+        {
+            GameObject gridObj = new GameObject("GridManager");
+            legacyGridManager = gridObj.AddComponent<GridManager>();
+            
+            // 새로 생성된 GridManager는 IGridManager도 구현하므로
+            gridManager = legacyGridManager;
+        }
+        
+        Debug.Log($"[GridManagerTest] Dependencies initialized - GridManager: {gridManager != null}, GridServices: {gridServices != null}");
     }
     
     void Update()
@@ -25,27 +61,53 @@ public class GridManagerTest : MonoBehaviour
     
     private void TestGridGeneration()
     {
-        Debug.Log("=== Grid Manager Test Started ===");
-        Debug.Log($"Grid Size: {gridManager.Width}x{gridManager.Height}");
+        Debug.Log("=== Grid Manager Phase 2 Test Started ===");
         
-        for (int x = 0; x < gridManager.Width; x++)
+        // Phase 2: Interface-based testing
+        if (gridManager != null)
         {
-            for (int y = 0; y < gridManager.Height; y++)
+            var gridSize = gridManager.GridSize;
+            Debug.Log($"Grid Size (Interface): {gridSize.x}x{gridSize.y}");
+            
+            // Test interface methods
+            for (int x = 0; x < gridSize.x; x++)
             {
-                Tile tile = gridManager.GetTile(x, y);
-                if (tile == null)
+                for (int y = 0; y < gridSize.y; y++)
                 {
-                    Debug.LogError($"Tile at ({x}, {y}) is null!");
+                    var position = new Vector2Int(x, y);
+                    if (!gridManager.IsValidPosition(position))
+                    {
+                        Debug.LogError($"Position ({x}, {y}) is not valid according to interface!");
+                    }
+                }
+            }
+        }
+        
+        // Legacy system testing for comparison
+        if (legacyGridManager != null)
+        {
+            Debug.Log($"Grid Size (Legacy): {legacyGridManager.Width}x{legacyGridManager.Height}");
+            
+            for (int x = 0; x < legacyGridManager.Width; x++)
+            {
+                for (int y = 0; y < legacyGridManager.Height; y++)
+                {
+                    Tile tile = legacyGridManager.GetTile(x, y);
+                    if (tile == null)
+                    {
+                        Debug.LogError($"Tile at ({x}, {y}) is null in legacy system!");
+                    }
                 }
             }
         }
         
         Debug.Log("Grid generation test completed");
-        Debug.Log("Controls:");
-        Debug.Log("- Q: Place test unit at (2,2)");
-        Debug.Log("- W: Move test unit to (4,3)");
-        Debug.Log("- E: Remove test unit");
-        Debug.Log("- R: Test invalid positions");
+        Debug.Log("Phase 2 Controls:");
+        Debug.Log("- Q: Place test unit at (2,2) using interface");
+        Debug.Log("- W: Move test unit to (4,3) using interface");
+        Debug.Log("- E: Remove test unit using interface");
+        Debug.Log("- R: Test invalid positions using interface");
+        Debug.Log("- T: Test GridServices functionality");
     }
     
     private void CreateTestUnit()

@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Interfaces;
+using Game.Core;
 
 public class HandManager : MonoBehaviour
 {
@@ -7,7 +9,13 @@ public class HandManager : MonoBehaviour
     [SerializeField] private Button cardButton;
     [SerializeField] private Canvas uiCanvas;
     
-    private GridManager gridManager;
+    // Phase 2: Interface-based dependencies
+    [Inject(Required = false)]
+    private IGridManager gridManager;
+    
+    [Inject(Required = false)]
+    private IGridServices gridServices;
+    
     private InputManager inputManager;
     private TurnManager turnManager;
     
@@ -24,7 +32,9 @@ public class HandManager : MonoBehaviour
     
     private void Initialize()
     {
-        gridManager = FindObjectOfType<GridManager>();
+        // Phase 2: ServiceLocator-based dependency injection
+        InitializeDependencies();
+        
         inputManager = FindObjectOfType<InputManager>();
         turnManager = FindObjectOfType<TurnManager>();
         
@@ -33,6 +43,35 @@ public class HandManager : MonoBehaviour
             GameObject inputObj = new GameObject("InputManager");
             inputManager = inputObj.AddComponent<InputManager>();
         }
+    }
+    
+    /// <summary>
+    /// Phase 2: ServiceLocator 기반 의존성 주입
+    /// </summary>
+    private void InitializeDependencies()
+    {
+        // ServiceLocator를 통한 의존성 주입
+        this.InjectDependencies();
+        
+        // Fallback: 서비스 로케이터에서 직접 조회
+        if (gridManager == null)
+        {
+            gridManager = ServiceLocator.Get<IGridManager>();
+            if (gridManager == null)
+            {
+                Debug.LogWarning($"[HandManager] IGridManager not found in ServiceLocator. Falling back to FindObjectOfType.");
+                var legacyGridManager = FindObjectOfType<GridManager>();
+                gridManager = legacyGridManager;
+            }
+        }
+        
+        // Grid services 조회
+        if (gridServices == null)
+        {
+            gridServices = ServiceLocator.Get<IGridServices>();
+        }
+        
+        Debug.Log($"[HandManager] Dependencies initialized - GridManager: {gridManager != null}, GridServices: {gridServices != null}");
     }
     
     private void CreateUI()

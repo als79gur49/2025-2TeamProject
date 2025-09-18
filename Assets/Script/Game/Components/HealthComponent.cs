@@ -328,7 +328,8 @@ namespace Game.Components
             if (finalDamage > 0)
             {
                 currentHealth = Mathf.Max(0, currentHealth - finalDamage);
-                
+                Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
+
                 OnDamageTaken?.Invoke(finalDamage, currentHealth);
                 OnHealthChanged?.Invoke(currentHealth);
 
@@ -345,6 +346,7 @@ namespace Game.Components
             enableRegeneration = false; // 사망 시 재생 중단
             ClearAllStatusEffects(); // 상태 이상 제거
             
+            Debug.Log($"Death");
             OnDeath?.Invoke();
         }
 

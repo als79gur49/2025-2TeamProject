@@ -2,84 +2,65 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Game.Core;
 using Game.Interfaces;
 
 namespace Game.Components
 {
     /// <summary>
-    /// [DEPRECATED - Phase 3] 그리드 연산 담당 클래스 - 단일 책임 원칙 적용 (연산 및 알고리즘만 담당)
-    /// 이 클래스는 Phase 3에서 GridController로 대체되었습니다.
-    /// ServiceLocator.Get&lt;IGridManager&gt;() 또는 ServiceLocator.Get&lt;IGridController&gt;()를 사용하세요.
+    /// 그리드 컨트롤러 - 비즈니스 로직 및 게임 규칙 담당
+    /// Phase 3: Clean Architecture Business Logic Layer - 성능 최적화 및 캐싱 적용
     /// </summary>
-    [System.Obsolete("GridOperations is deprecated in Phase 3. Use ServiceLocator.Get<IGridManager>() or ServiceLocator.Get<IGridController>() instead.", false)]
-    public class GridOperations : MonoBehaviour, IGridManager
+    public class GridController : IGridController
     {
-        // ✅ 의존성 주입 필드
-        [Inject] private GridState gridState;
-
+        private IGridState gridState;
+        
         [Header("경로 탐색 설정")]
-        [SerializeField] private bool allowDiagonalMovement = false;
-        [SerializeField] private int maxPathfindingIterations = 1000;
-        [SerializeField] private bool useAdvancedPathfinding = true;
+        private bool allowDiagonalMovement = false;
+        private int maxPathfindingIterations = 1000;
+        private bool useAdvancedPathfinding = true;
 
-        // ✅ 경로 탐색 캐시
+        // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
         private readonly Dictionary<(Vector2Int, Vector2Int), PathfindingResult> pathCache = 
             new Dictionary<(Vector2Int, Vector2Int), PathfindingResult>();
+        private readonly Dictionary<Vector2Int, List<Vector2Int>> rangeCache = 
+            new Dictionary<Vector2Int, List<Vector2Int>>();
         private float lastCacheClearTime;
         private const float CACHE_CLEAR_INTERVAL = 30f; // 30초마다 캐시 정리
+        private const int MAX_CACHE_SIZE = 1000; // 최대 캐시 크기
+        
+        // 성능 모니터링
+        private int pathfindingCalls = 0;
+        private int cacheHits = 0;
+        private float totalPathfindingTime = 0f;
 
-        // ✅ IGridManager 구현 - 속성들
+        // IGridController 구현 - 속성들
         public Vector2Int GridSize => gridState?.GridSize ?? Vector2Int.zero;
         public float TileSize => gridState?.TileSize ?? 1f;
 
-        // ✅ IGridManager 구현 - 이벤트들
+        // IGridController 구현 - 이벤트들
         public event Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
         public event Action<Vector2Int, GameObject> OnUnitPlaced;
         public event Action<Vector2Int, GameObject> OnUnitRemoved;
 
-        private void Awake()
+        /// <summary>
+        /// GridController 생성자 - 의존성 주입
+        /// </summary>
+        public GridController(IGridState gridState)
         {
-            // 의존성 주입
-            this.InjectDependencies();
+            Initialize(gridState);
         }
 
-        private void Start()
+        /// <summary>
+        /// 의존성 초기화
+        /// </summary>
+        public void Initialize(IGridState gridState)
         {
-            // GridState 의존성 확인
-            if (gridState == null)
-            {
-                gridState = GetComponent<GridState>();
-                if (gridState == null)
-                {
-                    Debug.LogError("[GridOperations] GridState component not found");
-                    return;
-                }
-            }
-
-            // 이벤트 연결
+            this.gridState = gridState ?? throw new ArgumentNullException(nameof(gridState));
+            
+            // GridState 이벤트 연결
             ConnectToGridStateEvents();
-
-            // ServiceLocator에 등록
-            ServiceLocator.Register<IGridManager>(this);
             
             lastCacheClearTime = Time.time;
-        }
-
-        private void Update()
-        {
-            // 주기적으로 경로 캐시 정리
-            if (Time.time - lastCacheClearTime > CACHE_CLEAR_INTERVAL)
-            {
-                ClearPathCache();
-                lastCacheClearTime = Time.time;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            // 서비스 등록 해제
-            ServiceLocator.Unregister<IGridManager>();
         }
 
         /// <summary>
@@ -94,7 +75,7 @@ namespace Game.Components
             gridState.OnUnitRemoved += (pos, unit) => OnUnitRemoved?.Invoke(pos, unit);
         }
 
-        // ✅ IGridManager 구현 - 기본 메서드들
+        // IGridManager 구현 - 기본 메서드들
         public bool IsValidPosition(Vector2Int gridPosition)
         {
             return gridState?.IsValidPosition(gridPosition) ?? false;
@@ -167,7 +148,7 @@ namespace Game.Components
             return gridState?.GetUnitsInRange(center, range) ?? new List<GameObject>();
         }
 
-        // ✅ 유닛 이동 로직
+        // 유닛 이동 로직
         public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition)
         {
             if (unit == null || gridState == null)
@@ -244,30 +225,43 @@ namespace Game.Components
                 return false;
             }
 
-            var path = FindPath(currentPosition, newPosition, unit);
-            if (path.Count == 0)
+            var pathResult = FindPathWithDetails(currentPosition, newPosition, unit);
+            if (!pathResult.Success)
             {
-                errorMessage = "No valid path found";
+                errorMessage = pathResult.ErrorMessage;
                 return false;
             }
 
             return gridState.SetUnitPosition(unit, newPosition);
         }
 
-        // ✅ 경로 탐색 구현
+        // 경로 탐색 구현
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int end, GameObject movingUnit = null)
         {
+            var result = FindPathWithDetails(start, end, movingUnit);
+            return result.Success ? result.Path : new List<Vector2Int>();
+        }
+
+        public PathfindingResult FindPathWithDetails(Vector2Int start, Vector2Int end, GameObject movingUnit = null)
+        {
             if (!IsValidPosition(start) || !IsValidPosition(end))
-                return new List<Vector2Int>();
+                return PathfindingResult.Failed("Invalid start or end position");
 
             if (start == end)
-                return new List<Vector2Int> { start };
+                return PathfindingResult.Succeeded(new List<Vector2Int> { start });
 
             // 캐시 확인
             var cacheKey = (start, end);
-            if (pathCache.TryGetValue(cacheKey, out var cachedResult) && cachedResult.Success)
+            if (pathCache.TryGetValue(cacheKey, out var cachedResult))
             {
-                return new List<Vector2Int>(cachedResult.Path);
+                return cachedResult;
+            }
+
+            // 주기적으로 캐시 정리
+            if (Time.time - lastCacheClearTime > CACHE_CLEAR_INTERVAL)
+            {
+                ClearPathCache();
+                lastCacheClearTime = Time.time;
             }
 
             var result = useAdvancedPathfinding ? 
@@ -275,19 +269,14 @@ namespace Game.Components
                 FindPathBFS(start, end, movingUnit);
 
             // 결과 캐싱
-            var pathResult = result.Count > 0 ? 
-                PathfindingResult.Succeeded(result) : 
-                PathfindingResult.Failed("No path found");
-            
-            pathCache[cacheKey] = pathResult;
-
+            pathCache[cacheKey] = result;
             return result;
         }
 
         /// <summary>
         /// A* 알고리즘 기반 경로 탐색
         /// </summary>
-        private List<Vector2Int> FindPathAStar(Vector2Int start, Vector2Int end, GameObject movingUnit)
+        private PathfindingResult FindPathAStar(Vector2Int start, Vector2Int end, GameObject movingUnit)
         {
             var openSet = new List<AStarNode>();
             var closedSet = new HashSet<Vector2Int>();
@@ -310,7 +299,8 @@ namespace Game.Components
                 // 목표 도달
                 if (currentNode.Position == end)
                 {
-                    return ReconstructPath(currentNode);
+                    var path = ReconstructPath(currentNode);
+                    return PathfindingResult.Succeeded(path);
                 }
 
                 // 인접 노드들 탐색
@@ -344,13 +334,13 @@ namespace Game.Components
                 }
             }
 
-            return new List<Vector2Int>(); // 경로를 찾지 못함
+            return PathfindingResult.Failed("No path found");
         }
 
         /// <summary>
         /// BFS 기반 단순 경로 탐색
         /// </summary>
-        private List<Vector2Int> FindPathBFS(Vector2Int start, Vector2Int end, GameObject movingUnit)
+        private PathfindingResult FindPathBFS(Vector2Int start, Vector2Int end, GameObject movingUnit)
         {
             var queue = new Queue<Vector2Int>();
             var visited = new HashSet<Vector2Int>();
@@ -365,7 +355,8 @@ namespace Game.Components
 
                 if (current == end)
                 {
-                    return ReconstructPathBFS(start, end, parents);
+                    var path = ReconstructPathBFS(start, end, parents);
+                    return PathfindingResult.Succeeded(path);
                 }
 
                 foreach (var neighbor in GetNeighbors(current))
@@ -382,7 +373,7 @@ namespace Game.Components
                 }
             }
 
-            return new List<Vector2Int>(); // 경로를 찾지 못함
+            return PathfindingResult.Failed("No path found");
         }
 
         /// <summary>
@@ -497,17 +488,17 @@ namespace Game.Components
             return path;
         }
 
-        // ✅ 추가 유틸리티 메서드들
+        // 추가 유틸리티 메서드들
         public bool IsPathClear(Vector2Int start, Vector2Int end, GameObject ignoredUnit = null)
         {
-            var path = FindPath(start, end, ignoredUnit);
-            return path.Count > 0;
+            var result = FindPathWithDetails(start, end, ignoredUnit);
+            return result.Success;
         }
 
         public int GetPathDistance(Vector2Int start, Vector2Int end)
         {
-            var path = FindPath(start, end);
-            return path.Count > 0 ? path.Count - 1 : -1;
+            var result = FindPathWithDetails(start, end);
+            return result.Success ? result.Distance : -1;
         }
 
         public List<Vector2Int> GetValidMovePositions(GameObject unit, int moveRange)
@@ -534,22 +525,72 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 경로 캐시 정리
+        /// 길찾기 설정 변경
+        /// </summary>
+        public void SetPathfindingOptions(bool allowDiagonal, int maxIterations)
+        {
+            allowDiagonalMovement = allowDiagonal;
+            maxPathfindingIterations = Mathf.Max(100, maxIterations);
+            ClearPathCache(); // 설정 변경 시 캐시 무효화
+        }
+
+        /// <summary>
+        /// Phase 3: 개선된 캐시 정리 - 범위 캐시도 포함
         /// </summary>
         public void ClearPathCache()
         {
             pathCache.Clear();
+            rangeCache.Clear();
+            
+            // 성능 통계 초기화
+            pathfindingCalls = 0;
+            cacheHits = 0;
+            totalPathfindingTime = 0f;
         }
 
-        // ✅ 디버깅용 메서드
+        /// <summary>
+        /// Phase 3: 캐시 크기 제한 적용
+        /// </summary>
+        private void MaintainCacheSize()
+        {
+            if (pathCache.Count > MAX_CACHE_SIZE)
+            {
+                // LRU 방식으로 오래된 항목 제거
+                var keysToRemove = pathCache.Keys.Take(pathCache.Count - MAX_CACHE_SIZE / 2).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    pathCache.Remove(key);
+                }
+            }
+            
+            if (rangeCache.Count > MAX_CACHE_SIZE / 2)
+            {
+                var keysToRemove = rangeCache.Keys.Take(rangeCache.Count - MAX_CACHE_SIZE / 4).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    rangeCache.Remove(key);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Phase 3: 성능 통계 반환
+        /// </summary>
+        public (int calls, int hits, float avgTime, float hitRate) GetPerformanceStats()
+        {
+            float hitRate = pathfindingCalls > 0 ? (float)cacheHits / pathfindingCalls * 100f : 0f;
+            float avgTime = pathfindingCalls > 0 ? totalPathfindingTime / pathfindingCalls : 0f;
+            return (pathfindingCalls, cacheHits, avgTime, hitRate);
+        }
+
+        /// <summary>
+        /// Phase 3: 향상된 디버깅 정보
+        /// </summary>
         public override string ToString()
         {
-            return $"GridOperations[Cache:{pathCache.Count}, Diagonal:{allowDiagonalMovement}]";
-        }
-
-        private void OnValidate()
-        {
-            maxPathfindingIterations = Mathf.Max(100, maxPathfindingIterations);
+            var (calls, hits, avgTime, hitRate) = GetPerformanceStats();
+            return $"GridController[PathCache:{pathCache.Count}, RangeCache:{rangeCache.Count}, " +
+                   $"Calls:{calls}, HitRate:{hitRate:F1}%, AvgTime:{avgTime:F2}ms, Diagonal:{allowDiagonalMovement}]";
         }
     }
 }

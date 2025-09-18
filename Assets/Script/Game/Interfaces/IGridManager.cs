@@ -5,7 +5,55 @@ using UnityEngine;
 namespace Game.Interfaces
 {
     /// <summary>
-    /// 그리드 관리 인터페이스 - 의존성 역전 원칙 적용
+    /// 읽기 전용 그리드 상태 인터페이스 - 데이터 조회만 가능
+    /// </summary>
+    public interface IReadOnlyGridState
+    {
+        // 그리드 속성
+        Vector2Int GridSize { get; }
+        float TileSize { get; }
+        Vector3 GridOrigin { get; }
+        
+        // 위치 검증
+        bool IsValidPosition(Vector2Int position);
+        bool IsPositionOccupied(Vector2Int position);
+        bool IsPositionBlocked(Vector2Int position);
+        
+        // 유닛 조회
+        GameObject GetUnitAtPosition(Vector2Int position);
+        Vector2Int GetUnitPosition(GameObject unit);
+        bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        
+        // 좌표 변환
+        Vector3 GridToWorldPosition(Vector2Int gridPosition);
+        Vector2Int WorldToGridPosition(Vector3 worldPosition);
+        
+        // 범위 검색
+        List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true);
+        List<GameObject> GetUnitsInRange(Vector2Int center, int range);
+        
+        // 상태 변경 이벤트
+        event Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
+        event Action<Vector2Int, GameObject> OnUnitPlaced;
+        event Action<Vector2Int, GameObject> OnUnitRemoved;
+        event Action<Vector2Int, bool> OnTileBlockedChanged;
+    }
+
+    /// <summary>
+    /// 완전한 그리드 상태 인터페이스 - 상태 변경 가능
+    /// </summary>
+    public interface IGridState : IReadOnlyGridState
+    {
+        // 상태 변경 연산
+        bool SetUnitPosition(GameObject unit, Vector2Int newPosition);
+        bool RemoveUnit(GameObject unit);
+        void SetTileBlocked(Vector2Int position, bool blocked);
+        void ResizeGrid(Vector2Int newSize);
+        void ClearAllState();
+    }
+
+    /// <summary>
+    /// 그리드 관리 인터페이스 - 의존성 역전 원칙 적용 (기존 호환성 유지)
     /// </summary>
     public interface IGridManager
     {
@@ -54,6 +102,63 @@ namespace Game.Interfaces
     }
 
     /// <summary>
+    /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
+    /// </summary>
+    public interface IGridController : IGridManager
+    {
+        // 의존성 초기화
+        void Initialize(IGridState gridState);
+        
+        // 길찾기 고급 기능
+        PathfindingResult FindPathWithDetails(Vector2Int start, Vector2Int end, GameObject movingUnit = null);
+        
+        // 고급 설정
+        void SetPathfindingOptions(bool allowDiagonal, int maxIterations);
+        void ClearPathCache();
+    }
+
+    /// <summary>
+    /// 그리드 렌더러 인터페이스 - 시각적 표현 담당
+    /// </summary>
+    public interface IGridRenderer
+    {
+        // 초기화
+        void Initialize(IReadOnlyGridState gridState, GameObject tilePrefab);
+        
+        // 시각적 효과
+        void SetTileHighlight(Vector2Int position, Color highlightColor);
+        void SetMultipleTileHighlights(IEnumerable<Vector2Int> positions, Color color);
+        void ClearAllHighlights();
+        void ClearHighlight(Vector2Int position);
+        
+        // 타일 접근
+        GameObject GetTileGameObject(Vector2Int position);
+        bool TryGetTileGameObject(Vector2Int position, out GameObject tile);
+        
+        // 시각 효과
+        void PlayTileEffect(Vector2Int position, string effectName);
+        void SetTileTransparency(Vector2Int position, float alpha);
+    }
+
+    /// <summary>
+    /// 그리드 서비스 통합 인터페이스
+    /// </summary>
+    public interface IGridServices
+    {
+        IGridState GridState { get; }
+        IGridController GridController { get; }
+        IGridRenderer GridRenderer { get; }
+    }
+
+    /// <summary>
+    /// 그리드 의존성을 가지는 컴포넌트를 위한 인터페이스
+    /// </summary>
+    public interface IGridDependent
+    {
+        void Initialize(IGridServices gridServices);
+    }
+
+    /// <summary>
     /// 그리드 타일 인터페이스
     /// </summary>
     public interface IGridTile
@@ -68,6 +173,16 @@ namespace Game.Interfaces
         void SetBlocked(bool blocked);
         void SetHighlight(Color color);
         void ClearHighlight();
+    }
+
+    /// <summary>
+    /// 통일된 그리드 유닛 인터페이스
+    /// </summary>
+    public interface IGridUnit
+    {
+        GameObject GameObject { get; }
+        Vector2Int GridPosition { get; set; }
+        bool CanOccupyTile(Vector2Int position);
     }
 
     /// <summary>

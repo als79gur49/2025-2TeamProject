@@ -8,7 +8,7 @@ namespace Game.Components
     /// <summary>
     /// 그리드 상태 관리 클래스 - 단일 책임 원칙 적용 (상태 관리만 담당)
     /// </summary>
-    public class GridState : MonoBehaviour
+    public class GridState : MonoBehaviour, IGridState
     {
         [Header("그리드 설정")]
         [SerializeField] private Vector2Int gridSize = new Vector2Int(10, 10);
