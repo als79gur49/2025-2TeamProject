@@ -209,8 +209,8 @@ namespace Game.Components
                     movementCost = CalculatePathCost(path);
                 }
 
-                // 이동 실행
-                if (gridManager.MoveUnit(gameObject, targetPosition))
+                // 이동 실행 - fromPosition과 toPosition을 명시적으로 전달
+                if (gridManager.MoveUnit(gameObject, startPosition, targetPosition))
                 {
                     if (useMovementPoints)
                     {

@@ -19,6 +19,9 @@ namespace Game.Components
         private bool allowDiagonalMovement = false;
         private int maxPathfindingIterations = 1000;
         private bool useAdvancedPathfinding = true;
+        
+        [Header("유닛 배치 설정")]
+        [SerializeField] private Vector3 unitOffset = Vector3.up * 0.5f;
 
         // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
         private readonly Dictionary<(Vector2Int, Vector2Int), PathfindingResult> pathCache = 
@@ -601,6 +604,70 @@ namespace Game.Components
             var (calls, hits, avgTime, hitRate) = GetPerformanceStats();
             return $"GridController[PathCache:{pathCache.Count}, RangeCache:{rangeCache.Count}, " +
                    $"Calls:{calls}, HitRate:{hitRate:F1}%, AvgTime:{avgTime:F2}ms, Diagonal:{allowDiagonalMovement}]";
+        }
+
+        // ✅ Clean Architecture: Unit Positioning Methods - Business Logic Layer Responsibility
+        
+        /// <summary>
+        /// Move unit from one position to another with full business logic validation
+        /// </summary>
+        public bool MoveUnit(GameObject unit, Vector2Int fromPosition, Vector2Int toPosition)
+        {
+            if (unit == null || !IsValidPosition(toPosition))
+                return false;
+                
+            // Business validation
+            if (!CanMoveUnit(unit, toPosition))
+                return false;
+                
+            // Update state through data layer
+            if (!gridState.SetUnitPosition(unit, toPosition))
+                return false;
+                
+            // Handle positioning (Business Logic responsibility)
+            SetUnitWorldPosition(unit, toPosition);
+            
+            // Notify presentation layer through events (already handled by gridState.SetUnitPosition)
+            return true;
+        }
+        
+        /// <summary>
+        /// Set unit's world position based on grid position (Business Logic responsibility)
+        /// </summary>
+        public void SetUnitWorldPosition(GameObject unit, Vector2Int gridPosition)
+        {
+            if (unit == null || !IsValidPosition(gridPosition))
+                return;
+                
+            var worldPos = CalculateUnitWorldPosition(gridPosition);
+            unit.transform.position = worldPos;
+        }
+        
+        /// <summary>
+        /// Calculate world position for unit placement including offset
+        /// </summary>
+        public Vector3 CalculateUnitWorldPosition(Vector2Int gridPosition)
+        {
+            return gridState.GridToWorldPosition(gridPosition) + GetUnitOffset();
+        }
+        
+        /// <summary>
+        /// Get the standard unit offset (e.g., Vector3.up * 0.5f)
+        /// </summary>
+        public Vector3 GetUnitOffset()
+        {
+            return unitOffset;
+        }
+        
+        /// <summary>
+        /// Validate and execute unit movement with comprehensive checks
+        /// </summary>
+        public bool ValidateAndExecuteUnitMovement(GameObject unit, Vector2Int targetPosition)
+        {
+            if (!TryGetUnitPosition(unit, out var currentPosition))
+                return false;
+                
+            return MoveUnit(unit, currentPosition, targetPosition);
         }
     }
 }

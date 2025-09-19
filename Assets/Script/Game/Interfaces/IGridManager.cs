@@ -74,6 +74,7 @@ namespace Game.Interfaces
         // ✅ 유닛 이동
         bool CanMoveUnit(GameObject unit, Vector2Int targetPosition);
         bool MoveUnit(GameObject unit, Vector2Int newPosition);
+        bool MoveUnit(GameObject unit, Vector2Int startPosition, Vector2Int endPosition);
         bool TryMoveUnit(GameObject unit, Vector2Int newPosition, out string errorMessage);
         
         // ✅ 경로 탐색
@@ -115,6 +116,32 @@ namespace Game.Interfaces
         // 고급 설정
         void SetPathfindingOptions(bool allowDiagonal, int maxIterations);
         void ClearPathCache();
+        
+        // ✅ Clean Architecture: Unit positioning methods (Business Logic Layer responsibility)
+        /// <summary>
+        /// Move unit from one position to another with full business logic validation
+        /// </summary>
+        bool MoveUnit(GameObject unit, Vector2Int fromPosition, Vector2Int toPosition);
+        
+        /// <summary>
+        /// Set unit's world position based on grid position (Business Logic responsibility)
+        /// </summary>
+        void SetUnitWorldPosition(GameObject unit, Vector2Int gridPosition);
+        
+        /// <summary>
+        /// Calculate world position for unit placement including offset
+        /// </summary>
+        Vector3 CalculateUnitWorldPosition(Vector2Int gridPosition);
+        
+        /// <summary>
+        /// Get the standard unit offset (e.g., Vector3.up * 0.5f)
+        /// </summary>
+        Vector3 GetUnitOffset();
+        
+        /// <summary>
+        /// Validate and execute unit movement with comprehensive checks
+        /// </summary>
+        bool ValidateAndExecuteUnitMovement(GameObject unit, Vector2Int targetPosition);
     }
 
     /// <summary>

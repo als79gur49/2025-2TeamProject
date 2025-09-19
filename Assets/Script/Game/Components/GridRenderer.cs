@@ -133,36 +133,35 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 유닛 이동 처리
+        /// 유닛 이동 처리 - Clean Architecture: 시각적 표현만 담당
         /// </summary>
         private void HandleUnitMoved(GameObject unit, Vector2Int oldPos, Vector2Int newPos)
         {
-            // 이전 위치 시각적 업데이트
+            // ✅ Keep: Visual tile updates only
             UpdateTileVisual(oldPos);
-            
-            // 새 위치 시각적 업데이트  
             UpdateTileVisual(newPos);
             
-            // 유닛 위치 업데이트
-            if (unit != null)
-            {
-                var worldPos = gridState.GridToWorldPosition(newPos);
-                unit.transform.position = worldPos + Vector3.up * 0.5f;
-            }
+            // ❌ Removed: Unit positioning logic
+            // Business Logic Layer (GridController) now handles unit.transform.position
+            
+            // ✅ Optional: Enhanced visual feedback
+            PlayMovementEffect(oldPos, newPos);
+            TriggerTileChangeAnimation(oldPos);
+            TriggerTileChangeAnimation(newPos);
         }
 
         /// <summary>
-        /// 유닛 배치 처리
+        /// 유닛 배치 처리 - Clean Architecture: 시각적 표현만 담당
         /// </summary>
         private void HandleUnitPlaced(Vector2Int position, GameObject unit)
         {
             UpdateTileVisual(position);
             
-            if (unit != null)
-            {
-                var worldPos = gridState.GridToWorldPosition(position);
-                unit.transform.position = worldPos + Vector3.up * 0.5f;
-            }
+            // ❌ Removed: Unit positioning logic
+            // GridController now handles unit.transform.position during placement
+            
+            // ✅ Optional: Placement visual effects
+            PlayPlacementEffect(position);
         }
 
         /// <summary>
@@ -367,6 +366,43 @@ namespace Game.Components
         public override string ToString()
         {
             return $"GridRenderer[Tiles:{tileObjects.Count}, Highlights:{currentHighlights.Count}]";
+        }
+
+        // ✅ Clean Architecture: Enhanced visual methods (Presentation Layer only)
+        
+        /// <summary>
+        /// 이동 이펙트 재생
+        /// </summary>
+        private void PlayMovementEffect(Vector2Int from, Vector2Int to)
+        {
+            // Visual effect implementation for movement
+            Debug.Log($"[GridRenderer] Playing movement effect from {from} to {to}");
+            
+            // TODO: Implement actual visual effects (particles, animations, etc.)
+        }
+        
+        /// <summary>
+        /// 타일 변경 애니메이션 트리거
+        /// </summary>
+        private void TriggerTileChangeAnimation(Vector2Int position)
+        {
+            // Tile animation implementation  
+            if (TryGetTileGameObject(position, out var tile))
+            {
+                // TODO: Trigger animation on tile (scale pulse, color flash, etc.)
+                Debug.Log($"[GridRenderer] Triggering tile change animation at {position}");
+            }
+        }
+        
+        /// <summary>
+        /// 배치 이펙트 재생
+        /// </summary>
+        private void PlayPlacementEffect(Vector2Int position)
+        {
+            // Visual effect implementation for unit placement
+            Debug.Log($"[GridRenderer] Playing placement effect at {position}");
+            
+            // TODO: Implement actual placement effects
         }
 
         /// <summary>
