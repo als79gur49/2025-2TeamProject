@@ -3,7 +3,7 @@ using Game.Interfaces;
 using Game.Components;
 using Game.Data;
 
-public class Unit : MonoBehaviour
+public class Unit : MonoBehaviour, IGridDependent
 {
     [Header("Legacy Configuration (for Inspector compatibility)")]
     [SerializeField] private int health = 100;
@@ -28,13 +28,13 @@ public class Unit : MonoBehaviour
     // Legacy system support
     private int legacyMaxHealth;
     
-    // Phase 2: Interface-based dependencies (ServiceLocator pattern)
-    [Inject(Required = false)]
+    // Phase 3: Clean Architecture - ServiceLocator pattern with IGridDependent
     private IGridManager gridManager;
-    
-    [Inject(Required = false)]
     private IGridServices gridServices;
-    
+    private IReadOnlyGridState gridState;
+    private IGridRenderer gridRenderer;
+
+    [SerializeField]
     private Tile currentTile;
     
     // Public properties with component delegation
@@ -46,76 +46,88 @@ public class Unit : MonoBehaviour
     public bool IsPlayerUnit => useComponentSystem && teamComponent != null ? teamComponent.Team == TeamType.Player : isPlayerUnit;
     public Tile CurrentTile => currentTile;
     
-    // Legacy position properties for backward compatibility with GridDataBridge
-    public int X => currentTile?.X ?? 0;
-    public int Y => currentTile?.Y ?? 0;
+    // Legacy grid position properties
+    public int X => CurrentTile?.X ?? (gridState != null ? gridState.GetUnitPosition(gameObject).x : -1);
+    public int Y => CurrentTile?.Y ?? (gridState != null ? gridState.GetUnitPosition(gameObject).y : -1);
     
     private void Awake()
     {
         // Initialize component system
         InitializeComponents();
         
-        // Phase 2: Dependency injection via ServiceLocator
-        InitializeDependencies();
-        
         // Legacy system fallback
         legacyMaxHealth = health;
     }
     
-    /// <summary>
-    /// Phase 2: ServiceLocator 기반 의존성 주입
-    /// </summary>
-    private void InitializeDependencies()
+    private void Start()
     {
-        // ServiceLocator를 통한 의존성 주입
-        this.InjectDependencies();
-        
-        // Fallback: 서비스 로케이터에서 직접 조회
-        if (gridManager == null)
-        {
-            gridManager = ServiceLocator.Get<IGridManager>();
-            if (gridManager == null)
-            {
-                Debug.LogWarning($"[Unit] IGridManager not found in ServiceLocator. Falling back to FindObjectOfType.");
-                var legacyGridManager = FindObjectOfType<GridManager>();
-                if (legacyGridManager != null)
-                {
-                    gridManager = legacyGridManager.GetComponent<IGridManager>();
-                }
-            }
-        }
-        
-        // Grid services 조회
-        if (gridServices == null)
-        {
-            gridServices = ServiceLocator.Get<IGridServices>();
-        }
-        
-        // Phase 2: 이벤트 기반 통신 설정
-        SetupEventSubscriptions();
-        
-        Debug.Log($"[Unit] Dependencies initialized - GridManager: {gridManager != null}, GridServices: {gridServices != null}");
+        // Phase 3: Auto-initialize grid dependencies
+        GridMigrationHelper.InitializeGridDependencies(this);
     }
     
     /// <summary>
-    /// Phase 2: 이벤트 기반 통신 설정 - 결합도 감소
+    /// Phase 3: IGridDependent 인터페이스 구현 - Clean Architecture 패턴
+    /// </summary>
+    public void Initialize(IGridServices gridServices)
+    {
+        if (gridServices == null)
+        {
+            Debug.LogError($"[Unit] GridServices is null for {gameObject.name}");
+            return;
+        }
+        
+        // Phase 3: 인터페이스 기반 의존성 할당
+        this.gridServices = gridServices;
+        this.gridManager = gridServices.GridController;
+        this.gridState = gridServices.GridState;
+        this.gridRenderer = gridServices.GridRenderer;
+        
+        // Phase 3: 이벤트 기반 통신 설정
+        SetupEventSubscriptions();
+        
+        // 초기화 시 현재 위치에서 currentTile 설정 시도
+        InitializeCurrentTile();
+        
+        Debug.Log($"[Unit] Phase 3 initialization complete for {gameObject.name}");
+    }
+    
+    /// <summary>
+    /// 초기화 시 currentTile 설정 - 이미 그리드에 배치된 유닛을 위한 처리
+    /// </summary>
+    private void InitializeCurrentTile()
+    {
+        if (gridState == null) return;
+        
+        // currentTile이 이미 설정되어 있으면 스킵
+        if (currentTile != null) return;
+        
+        // GridState에서 현재 유닛의 위치 확인
+        if (gridState.TryGetUnitPosition(gameObject, out Vector2Int currentPosition))
+        {
+            Debug.Log($"[Unit] Found {gameObject.name} at position ({currentPosition.x}, {currentPosition.y}) during initialization");
+            UpdateCurrentTile(currentPosition);
+        }
+        else
+        {
+            Debug.Log($"[Unit] {gameObject.name} not found in GridState during initialization - currentTile will be set when placed");
+        }
+    }
+    
+    /// <summary>
+    /// Phase 3: 이벤트 기반 통신 설정 - Clean Architecture
     /// </summary>
     private void SetupEventSubscriptions()
     {
-        // GridState 이벤트 구독
-        if (gridServices?.GridState != null)
+        // Phase 3: GridState 이벤트 구독 (단일 진실 공급원)
+        if (gridState != null)
         {
-            gridServices.GridState.OnUnitMoved += OnUnitMovedInGrid;
-            gridServices.GridState.OnUnitPlaced += OnUnitPlacedInGrid;
-            gridServices.GridState.OnUnitRemoved += OnUnitRemovedFromGrid;
+            gridState.OnUnitMoved += OnUnitMovedInGrid;
+            gridState.OnUnitPlaced += OnUnitPlacedInGrid;
+            gridState.OnUnitRemoved += OnUnitRemovedFromGrid;
         }
-        
-        // GridManager 이벤트 구독 (fallback)
-        if (gridManager != null)
+        else
         {
-            gridManager.OnUnitMoved += OnUnitMovedInGrid;
-            gridManager.OnUnitPlaced += OnUnitPlacedInGrid;
-            gridManager.OnUnitRemoved += OnUnitRemovedFromGrid;
+            Debug.LogWarning($"[Unit] GridState not available for {gameObject.name} - event subscriptions skipped");
         }
     }
     
@@ -128,7 +140,7 @@ public class Unit : MonoBehaviour
         if (movedUnit == gameObject)
         {
             Debug.Log($"[Unit] {gameObject.name} moved from {oldPos} to {newPos} via event");
-            // 타일 정보 업데이트는 그리드 시스템에서 처리하므로 여기서는 로깅만
+            UpdateCurrentTile(newPos);
         }
     }
     
@@ -140,6 +152,7 @@ public class Unit : MonoBehaviour
         if (placedUnit == gameObject)
         {
             Debug.Log($"[Unit] {gameObject.name} placed at {position} via event");
+            UpdateCurrentTile(position);
         }
     }
     
@@ -151,7 +164,96 @@ public class Unit : MonoBehaviour
         if (removedUnit == gameObject)
         {
             Debug.Log($"[Unit] {gameObject.name} removed from {position} via event");
+            currentTile = null; // Clear current tile when removed
         }
+    }
+    
+    /// <summary>
+    /// 지정된 그리드 위치의 Tile 컴포넌트를 찾아서 currentTile을 업데이트
+    /// </summary>
+    private void UpdateCurrentTile(Vector2Int gridPosition)
+    {
+        if (gridState == null)
+        {
+            Debug.LogWarning($"[Unit] Cannot update currentTile for {gameObject.name} - gridState is null");
+            return;
+        }
+
+        // 월드 위치로 변환
+        Vector3 worldPosition = gridState.GridToWorldPosition(gridPosition);
+        
+        // 해당 위치 근처에서 Tile 컴포넌트를 찾기
+        Tile foundTile = FindTileAtPosition(worldPosition, gridPosition);
+        
+        if (foundTile != null)
+        {
+            currentTile = foundTile;
+            Debug.Log($"[Unit] {gameObject.name} currentTile updated to {foundTile.name} at ({gridPosition.x}, {gridPosition.y})");
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] Could not find Tile component at grid position ({gridPosition.x}, {gridPosition.y}) for {gameObject.name}");
+            
+            // Fallback: Create a virtual tile data if no physical tile is found
+            CreateVirtualTile(gridPosition);
+        }
+    }
+    
+    /// <summary>
+    /// 지정된 위치에서 Tile 컴포넌트를 찾기
+    /// </summary>
+    private Tile FindTileAtPosition(Vector3 worldPosition, Vector2Int gridPosition)
+    {
+        // Method 1: 반경 내에서 Tile 검색
+        Collider[] colliders = Physics.OverlapSphere(worldPosition, gridState.TileSize * 0.6f);
+        foreach (var collider in colliders)
+        {
+            Tile tile = collider.GetComponent<Tile>();
+            if (tile != null && tile.X == gridPosition.x && tile.Y == gridPosition.y)
+            {
+                return tile;
+            }
+        }
+        
+        // Method 2: 이름으로 검색 (GridRenderer가 생성한 타일들)
+        GameObject tileObject = GameObject.Find($"Tile_{gridPosition.x}_{gridPosition.y}");
+        if (tileObject != null)
+        {
+            Tile tile = tileObject.GetComponent<Tile>();
+            if (tile != null)
+            {
+                return tile;
+            }
+        }
+        
+        // Method 3: 모든 Tile에서 위치 매칭 검색
+        Tile[] allTiles = FindObjectsOfType<Tile>();
+        foreach (var tile in allTiles)
+        {
+            if (tile.X == gridPosition.x && tile.Y == gridPosition.y)
+            {
+                return tile;
+            }
+        }
+        
+        return null;
+    }
+    
+    /// <summary>
+    /// 물리적 타일이 없을 때 가상 타일 생성
+    /// </summary>
+    private void CreateVirtualTile(Vector2Int gridPosition)
+    {
+        // 임시 GameObject 생성하여 Tile 컴포넌트 추가
+        GameObject virtualTileObject = new GameObject($"VirtualTile_{gridPosition.x}_{gridPosition.y}");
+        virtualTileObject.transform.position = gridState.GridToWorldPosition(gridPosition);
+        
+        Tile virtualTile = virtualTileObject.AddComponent<Tile>();
+        virtualTile.Initialize(gridPosition.x, gridPosition.y);
+        
+        currentTile = virtualTile;
+        
+        Debug.Log($"[Unit] Created virtual tile for {gameObject.name} at ({gridPosition.x}, {gridPosition.y})");
     }
     
     private void InitializeComponents()
@@ -263,12 +365,26 @@ public class Unit : MonoBehaviour
     {
         if (!IsAlive) return;
         
+        // Ensure currentTile is set before acting
+        if (currentTile == null)
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} OnTurnStart called but currentTile is null - attempting to initialize");
+            InitializeCurrentTile();
+            
+            if (currentTile == null)
+            {
+                Debug.LogError($"[Unit] {gameObject.name} cannot act - currentTile is still null after initialization attempt");
+                return;
+            }
+        }
+        
         // Initialize turn for components
         if (useComponentSystem && movementComponent != null)
         {
             movementComponent.StartTurn();
         }
         
+        Debug.Log($"[Unit] {gameObject.name} OnTurnStart - currentTile: {currentTile?.name} at ({currentTile?.X}, {currentTile?.Y})");
         Act();
     }
     
@@ -290,7 +406,7 @@ public class Unit : MonoBehaviour
     
     private Unit SearchForNearbyEnemies()
     {
-        if (currentTile == null || gridManager == null) return null;
+        if (currentTile == null || gridState == null) return null;
         
         int[] dx = { -1, 1, 0, 0 };
         int[] dy = { 0, 0, -1, 1 };
@@ -300,35 +416,15 @@ public class Unit : MonoBehaviour
             int newX = currentTile.X + dx[i];
             int newY = currentTile.Y + dy[i];
             
-            // Phase 2: Use interface-based grid access
-            if (gridServices?.GridState != null)
+            // Phase 3: Clean interface-based grid access
+            var adjacentPos = new Vector2Int(newX, newY);
+            var adjacentUnit = gridState.GetUnitAtPosition(adjacentPos);
+            if (adjacentUnit != null)
             {
-                var adjacentPos = new Vector2Int(newX, newY);
-                var adjacentUnit = gridServices.GridState.GetUnitAtPosition(adjacentPos);
-                if (adjacentUnit != null)
+                var unit = adjacentUnit.GetComponent<Unit>();
+                if (unit != null && unit.IsPlayerUnit != this.IsPlayerUnit)
                 {
-                    var unit = adjacentUnit.GetComponent<Unit>();
-                    if (unit != null && unit.IsPlayerUnit != this.IsPlayerUnit)
-                    {
-                        return unit;
-                    }
-                }
-            }
-            else
-            {
-                // Fallback to legacy system
-                var legacyGridManager = gridManager as GridManager;
-                if (legacyGridManager != null)
-                {
-                    Tile adjacentTile = legacyGridManager.GetTile(newX, newY);
-                    if (adjacentTile != null && adjacentTile.IsOccupied)
-                    {
-                        Unit adjacentUnit = adjacentTile.OccupyingUnit;
-                        if (adjacentUnit != null && adjacentUnit.IsPlayerUnit != this.IsPlayerUnit)
-                        {
-                            return adjacentUnit;
-                        }
-                    }
+                    return unit;
                 }
             }
         }
@@ -363,9 +459,8 @@ public class Unit : MonoBehaviour
     
     private void MoveForward()
     {
-        Debug.Log("MoveForward1");
         if (currentTile == null || gridManager == null) return;
-        Debug.Log("MoveForward2");
+        
         if (useComponentSystem && movementComponent != null)
         {
             // Use advanced movement system
@@ -376,7 +471,6 @@ public class Unit : MonoBehaviour
             if (result.Success)
             {
                 Debug.Log($"{gameObject.name} moved to ({targetPosition.x}, {targetPosition.y})");
-                // Note: Tile management should be handled by the grid system integration
             }
             else
             {
@@ -385,36 +479,21 @@ public class Unit : MonoBehaviour
         }
         else
         {
-            // Legacy movement system
-            // Phase 2: Try interface-based movement first
+            // Phase 3: Clean interface-based movement
             int targetX = currentTile.X;
             int targetY = currentTile.Y + (isPlayerUnit ? movementRange : -movementRange);
             var targetPos = new Vector2Int(targetX, targetY);
             
-            if (gridManager != null && gridManager.CanMoveUnit(gameObject, targetPos))
+            if (gridManager.CanMoveUnit(gameObject, targetPos))
             {
                 var result = gridManager.MoveUnit(gameObject, targetPos);
                 if (result)
                 {
-                    Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY}) using interface");
-                    // Note: Tile management should be handled by the grid system integration
-                    return;
+                    Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY})");
                 }
-            }
-            
-            // Fallback to legacy system
-            var legacyGridManager = gridManager as GridManager;
-            if (legacyGridManager != null && legacyGridManager.CanPlaceUnitAt(targetX, targetY))
-            {
-                Tile targetTile = legacyGridManager.GetTile(targetX, targetY);
-                if (targetTile != null)
+                else
                 {
-                    currentTile.RemoveUnit();
-                    
-                    targetTile.PlaceUnit(this);
-                    SetCurrentTile(targetTile);
-                    
-                    Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY}) using legacy system");
+                    Debug.Log($"{gameObject.name} movement failed");
                 }
             }
             else
@@ -503,24 +582,6 @@ public class Unit : MonoBehaviour
     public IMovementSystem GetMovementComponent() => movementComponent;
     public ITeamComponent GetTeamComponent() => teamComponent;
     
-    // Legacy methods for backward compatibility with GridDataBridge
-    public void SetPosition(int x, int y)
-    {
-        // This method is used by the GridDataBridge to update unit position
-        // The actual position is managed by the grid system, this is just for legacy compatibility
-        Debug.Log($"[Unit] Legacy SetPosition called: ({x}, {y}) for {gameObject.name}");
-        
-        // If we have a movement component, try to use it
-        if (useComponentSystem && movementComponent != null)
-        {
-            var result = movementComponent.MoveTo(new Vector2Int(x, y));
-            if (!result.Success)
-            {
-                Debug.LogWarning($"[Unit] SetPosition failed: {result.Message}");
-            }
-        }
-        // Legacy system relies on grid manager to handle the actual movement
-    }
     
     public bool CanMoveTo(int x, int y)
     {
@@ -529,23 +590,30 @@ public class Unit : MonoBehaviour
         {
             return movementComponent.CanMoveTo(new Vector2Int(x, y));
         }
-        else
+        else if (gridManager != null)
         {
-            // Phase 2: Use interface-based check first
-            if (gridManager != null)
-            {
-                return gridManager.CanMoveUnit(gameObject, new Vector2Int(x, y));
-            }
-            
-            // Fallback to legacy system  
-            var legacyGridManager = gridManager as GridManager;
-            if (legacyGridManager != null)
-            {
-                return legacyGridManager.CanPlaceUnitAt(x, y);
-            }
+            // Phase 3: Clean interface-based check
+            return gridManager.CanMoveUnit(gameObject, new Vector2Int(x, y));
         }
         
         return false;
+    }
+    
+    /// <summary>
+    /// Legacy position setter for backward compatibility
+    /// </summary>
+    public void SetPosition(int x, int y)
+    {
+        if (gridManager != null)
+        {
+            var targetPos = new Vector2Int(x, y);
+            gridManager.MoveUnit(gameObject, targetPos);
+        }
+        else if (currentTile != null)
+        {
+            // Fallback: just update current tile reference if available
+            Debug.LogWarning($"[Unit] SetPosition called without GridManager - position update may not be complete");
+        }
     }
 
     // Inspector utility methods
@@ -575,6 +643,29 @@ public class Unit : MonoBehaviour
         Debug.Log($"Team Component: {teamComponent != null} ({teamComponent?.GetType().Name})");
         Debug.Log($"Current Stats - Health: {Health}/{MaxHealth}, Attack: {AttackPower}, Movement: {MovementRange}");
         Debug.Log($"Team: {(teamComponent?.Team.ToString() ?? "Legacy")} | Player Unit: {IsPlayerUnit}");
+        Debug.Log($"Current Tile: {(currentTile != null ? $"{currentTile.name} ({currentTile.X}, {currentTile.Y})" : "NULL")}");
+        Debug.Log($"Grid Position: ({X}, {Y})");
+    }
+    
+    [ContextMenu("Force Update Current Tile")]
+    private void ForceUpdateCurrentTile()
+    {
+        if (gridState != null && gridState.TryGetUnitPosition(gameObject, out Vector2Int position))
+        {
+            Debug.Log($"[Unit] Forcing currentTile update for {gameObject.name} at position ({position.x}, {position.y})");
+            UpdateCurrentTile(position);
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] Cannot force update currentTile for {gameObject.name} - not found in GridState");
+        }
+    }
+    
+    [ContextMenu("Test OnTurnStart")]
+    private void TestOnTurnStart()
+    {
+        Debug.Log($"[Unit] Testing OnTurnStart for {gameObject.name}");
+        OnTurnStart();
     }
     
     /// <summary>
@@ -586,24 +677,16 @@ public class Unit : MonoBehaviour
     }
     
     /// <summary>
-    /// 이벤트 구독 정리
+    /// Phase 3: 이벤트 구독 정리 - Clean Architecture
     /// </summary>
     private void CleanupEventSubscriptions()
     {
-        // GridState 이벤트 구독 해제
-        if (gridServices?.GridState != null)
+        // Phase 3: GridState 이벤트 구독 해제
+        if (gridState != null)
         {
-            gridServices.GridState.OnUnitMoved -= OnUnitMovedInGrid;
-            gridServices.GridState.OnUnitPlaced -= OnUnitPlacedInGrid;
-            gridServices.GridState.OnUnitRemoved -= OnUnitRemovedFromGrid;
-        }
-        
-        // GridManager 이벤트 구독 해제 (fallback)
-        if (gridManager != null)
-        {
-            gridManager.OnUnitMoved -= OnUnitMovedInGrid;
-            gridManager.OnUnitPlaced -= OnUnitPlacedInGrid;
-            gridManager.OnUnitRemoved -= OnUnitRemovedFromGrid;
+            gridState.OnUnitMoved -= OnUnitMovedInGrid;
+            gridState.OnUnitPlaced -= OnUnitPlacedInGrid;
+            gridState.OnUnitRemoved -= OnUnitRemovedFromGrid;
         }
     }
     

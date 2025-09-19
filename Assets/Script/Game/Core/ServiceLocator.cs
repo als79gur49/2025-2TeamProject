@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace Game.Core
+{
     /// <summary>
     /// 개선된 서비스 로케이터 - 의존성 주입을 위한 중앙 서비스 관리
     /// FindObjectOfType를 대체하여 성능과 결합도를 개선
@@ -357,3 +359,4 @@ using UnityEngine;
             Required = required;
         }
     }
+}

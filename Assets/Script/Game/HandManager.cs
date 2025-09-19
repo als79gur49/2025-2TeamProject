@@ -9,7 +9,7 @@ public class HandManager : MonoBehaviour
     [SerializeField] private Button cardButton;
     [SerializeField] private Canvas uiCanvas;
     
-    // Phase 2: Interface-based dependencies
+    // Phase 3: Interface-based dependencies (Clean Architecture)
     [Inject(Required = false)]
     private IGridManager gridManager;
     
@@ -46,22 +46,21 @@ public class HandManager : MonoBehaviour
     }
     
     /// <summary>
-    /// Phase 2: ServiceLocator 기반 의존성 주입
+    /// Phase 3: ServiceLocator 기반 의존성 주입 (Clean Architecture)
     /// </summary>
     private void InitializeDependencies()
     {
         // ServiceLocator를 통한 의존성 주입
         this.InjectDependencies();
         
-        // Fallback: 서비스 로케이터에서 직접 조회
+        // 현재 Phase 3 방식: ServiceLocator에서 직접 조회
         if (gridManager == null)
         {
             gridManager = ServiceLocator.Get<IGridManager>();
             if (gridManager == null)
             {
-                Debug.LogWarning($"[HandManager] IGridManager not found in ServiceLocator. Falling back to FindObjectOfType.");
-                var legacyGridManager = FindObjectOfType<GridManager>();
-                gridManager = legacyGridManager;
+                Debug.LogError($"[HandManager] IGridManager not found in ServiceLocator. Please ensure GridManager is initialized first.");
+                Debug.LogError($"[HandManager] GridManager should register itself through ServiceLocator.Register<IGridManager>() in Awake().");
             }
         }
         
@@ -69,9 +68,13 @@ public class HandManager : MonoBehaviour
         if (gridServices == null)
         {
             gridServices = ServiceLocator.Get<IGridServices>();
+            if (gridServices == null)
+            {
+                Debug.LogError($"[HandManager] IGridServices not found in ServiceLocator. Please ensure GridManager is initialized first.");
+            }
         }
         
-        Debug.Log($"[HandManager] Dependencies initialized - GridManager: {gridManager != null}, GridServices: {gridServices != null}");
+        Debug.Log($"[HandManager] Dependencies initialized (Phase 3) - GridManager: {gridManager != null}, GridServices: {gridServices != null}");
     }
     
     private void CreateUI()

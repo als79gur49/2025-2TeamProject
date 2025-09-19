@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using System;
 
 public class TestScript : MonoBehaviour
 {
@@ -21,3 +22,15 @@ public class TestScript : MonoBehaviour
         n++;
     }
 }
+
+public interface TestInterface
+{
+    event Action<int> TestActionInt;
+}
+
+public class TestSubClass : TestInterface
+{
+    public event Action<int> TestActionInt;
+}
+
+

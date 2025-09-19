@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Game.Interfaces;
+using UnityEngine.UIElements;
 
 namespace Game.Components
 {
@@ -130,12 +131,18 @@ namespace Game.Components
 
         public void SetTileHighlight(Vector2Int position, Color highlightColor)
         {
-            gridState?.SetTileHighlight(position, highlightColor);
+            if(gridState is GridState _gridState)
+            {
+                _gridState?.SetTileHighlight(position, highlightColor);
+            }
         }
 
         public void ClearAllHighlights()
         {
-            gridState?.ClearAllHighlights();
+            if (gridState is GridState _gridState)
+            {
+                _gridState?.ClearAllHighlights();
+            }
         }
 
         public List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true)
@@ -151,6 +158,8 @@ namespace Game.Components
         // 유닛 이동 로직
         public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition)
         {
+            return true; // Testing
+
             if (unit == null || gridState == null)
                 return false;
 
@@ -178,9 +187,10 @@ namespace Game.Components
 
         public bool MoveUnit(GameObject unit, Vector2Int newPosition)
         {
+            Debug.Log("MoveUnitT1");
             if (!CanMoveUnit(unit, newPosition))
                 return false;
-
+            Debug.Log("MoveUnitT2");
             return gridState.SetUnitPosition(unit, newPosition);
         }
 

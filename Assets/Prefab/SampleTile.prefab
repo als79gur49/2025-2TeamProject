@@ -12,8 +12,9 @@ GameObject:
   - component: {fileID: 8513495180907429418}
   - component: {fileID: 2654133230719236656}
   - component: {fileID: 3391280208991244304}
+  - component: {fileID: 2241584607519728195}
   m_Layer: 0
-  m_Name: SampleTime
+  m_Name: SampleTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -105,3 +106,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 20.000008, y: 0, z: 9.999981}
   m_Center: {x: 0.00000047683716, y: 0, z: 4.9999886}
+--- !u!114 &2241584607519728195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9055745435785402388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90f95d1991de35347bcf78ab9cfa3fb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  x: 0
+  y: 0
+  occupyingUnit: {fileID: 0}
