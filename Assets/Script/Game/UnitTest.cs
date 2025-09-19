@@ -1,7 +1,11 @@
+using Game.Core;
+using Game.Interfaces;
 using UnityEngine;
 
 public class UnitTest : MonoBehaviour
 {
+    [SerializeField]
+    private GridManager gridManager;
     [SerializeField] private GameObject unitPrefab;
     private Unit testUnit1;
     private Unit testUnit2;
@@ -46,23 +50,33 @@ public class UnitTest : MonoBehaviour
     
     private void CreateTestUnits()
     {
+        
         GameObject unit1Obj = new GameObject("TestUnit1");
-        unit1Obj.transform.position = new Vector3(-2, 0, 0);
+        //unit1Obj.transform.position = new Vector3(-2, 0, 0);
+        //IGridController gridGridController = gridManager.GetGridServices().GridController;
+        //gridGridController.MoveUnit(unit1Obj,new Vector2Int(4, 0));
         testUnit1 = unit1Obj.AddComponent<Unit>();
         
+
+
         GameObject unit2Obj = new GameObject("TestUnit2");
-        unit2Obj.transform.position = new Vector3(2, 0, 0);
         testUnit2 = unit2Obj.AddComponent<Unit>();
+        unit2Obj.transform.position = new Vector3(2, 0, 0);
         
         AddVisualCubes();
     }
     
     private void InstantiateTestUnits()
     {
+        Debug.Log("-------------------TestUnitMove-----------------");
         GameObject unit1Obj = Instantiate(unitPrefab, new Vector3(-2, 0, 0), Quaternion.identity);
         unit1Obj.name = "TestUnit1";
         testUnit1 = unit1Obj.GetComponent<Unit>();
-        
+
+        IGridController gridGridController = gridManager.GetGridServices()?.GridController;
+        //ServiceLocator.Get
+        gridGridController?.MoveUnit(unit1Obj, new Vector2Int(4, 0));
+
         GameObject unit2Obj = Instantiate(unitPrefab, new Vector3(2, 0, 0), Quaternion.identity);
         unit2Obj.name = "TestUnit2";
         testUnit2 = unit2Obj.GetComponent<Unit>();

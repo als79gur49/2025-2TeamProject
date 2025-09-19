@@ -4,7 +4,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(git add:*)",
       "Read(//mnt/c/Users/user/**)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": [],
     "ask": []
