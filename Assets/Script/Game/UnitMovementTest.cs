@@ -107,7 +107,7 @@ public class UnitMovementTest : MonoBehaviour
             // 2. 초기 위치 설정
             SetupInitialPosition();
             yield return new WaitForSeconds(0.5f);
-            
+
             // 3. 연속 이동 테스트
             for (int step = 1; step <= testSteps; step++)
             {

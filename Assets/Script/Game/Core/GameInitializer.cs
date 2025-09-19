@@ -9,10 +9,8 @@ using Game.Components;
     /// </summary>
     public class GameInitializer : MonoBehaviour
     {
-        // Todo: GridOperations -> GridController로 변경. GameInit에서 GridOperations관련 내용 삭제, Phase3_Implementation_Summary내용 따라 이행.
         [Header("서비스 참조")]
         [SerializeField] private GridState gridState;
-        [SerializeField] private GridOperations gridOperations;
         
         [Header("초기화 설정")]
         [SerializeField] private bool autoInitializeOnStart = true;
@@ -71,15 +69,17 @@ using Game.Components;
         {
             Log("Registering core services...");
 
-            // GridManager 서비스 등록
-            if (gridOperations != null)
+            // GridController와 GridServices를 통한 Grid 서비스 등록
+            if (gridState != null)
             {
-                ServiceLocator.Register<IGridManager>(gridOperations);
-                Log("✅ IGridManager registered");
+                var gridController = new GridController(gridState);
+                ServiceLocator.Register<IGridController>(gridController);
+                ServiceLocator.Register<IGridManager>(gridController);
+                Log("✅ IGridController and IGridManager registered via GridController");
             }
             else
             {
-                LogError("❌ GridOperations not found - IGridManager not registered");
+                LogError("❌ GridState not found - Grid services not registered");
             }
 
             // 추가 핵심 서비스들을 여기에 등록할 수 있습니다
@@ -117,12 +117,6 @@ using Game.Components;
                 Log($"✅ ActionValidator dependencies injected: {validator.gameObject.name}");
             }
 
-            // GridOperations 의존성 주입
-            if (gridOperations != null)
-            {
-                gridOperations.InjectDependencies();
-                Log("✅ GridOperations dependencies injected");
-            }
         }
 
         /// <summary>
@@ -144,6 +138,11 @@ using Game.Components;
             if (!ServiceLocator.IsRegistered<IGridManager>())
             {
                 LogError("❌ Critical service missing: IGridManager");
+            }
+            
+            if (!ServiceLocator.IsRegistered<IGridController>())
+            {
+                LogError("❌ Critical service missing: IGridController");
             }
 
             // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)
