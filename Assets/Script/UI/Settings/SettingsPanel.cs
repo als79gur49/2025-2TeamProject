@@ -22,7 +22,12 @@ public class SettingsPanel : UIPanel
     [SerializeField] private Toggle masterMuteToggle;
     [SerializeField] private Toggle bgmMuteToggle;
     [SerializeField] private Toggle effectMuteToggle;
-    
+
+    [Header("음소거 토글 텍스트")]
+    [SerializeField] private TextMeshProUGUI masterMuteToggleText;
+    [SerializeField] private TextMeshProUGUI bgmMuteToggleText;
+    [SerializeField] private TextMeshProUGUI effectMuteToggleText;
+
     [Header("UI 사운드 설정")]
     [SerializeField] private Toggle buttonSoundsToggle;
     [SerializeField] private Toggle panelSoundsToggle;
@@ -274,7 +279,12 @@ public class SettingsPanel : UIPanel
         if (volumeController == null) return;
         
         volumeController.IsMasterMuted = isMuted;
-        
+
+        if(masterMuteToggleText != null)
+        {
+            masterMuteToggleText.text = isMuted ? "On" : "Off";
+        }
+
         if (autoApplyChanges)
             volumeController.SaveVolumeSettings();
     }
@@ -287,7 +297,12 @@ public class SettingsPanel : UIPanel
         if (volumeController == null) return;
         
         volumeController.IsBGMMuted = isMuted;
-        
+
+        if (bgmMuteToggleText != null)
+        {
+            bgmMuteToggleText.text = isMuted ? "On" : "Off";
+        }
+
         if (autoApplyChanges)
             volumeController.SaveVolumeSettings();
     }
@@ -300,7 +315,12 @@ public class SettingsPanel : UIPanel
         if (volumeController == null) return;
         
         volumeController.IsEffectMuted = isMuted;
-        
+
+        if (effectMuteToggleText != null)
+        {
+            effectMuteToggleText.text = isMuted ? "On" : "Off";
+        }
+
         if (autoApplyChanges)
             volumeController.SaveVolumeSettings();
     }

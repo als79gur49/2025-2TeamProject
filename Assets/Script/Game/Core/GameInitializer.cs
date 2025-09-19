@@ -9,6 +9,7 @@ using Game.Components;
     /// </summary>
     public class GameInitializer : MonoBehaviour
     {
+        // Todo: GridOperations -> GridController로 변경. GameInit에서 GridOperations관련 내용 삭제, Phase3_Implementation_Summary내용 따라 이행.
         [Header("서비스 참조")]
         [SerializeField] private GridState gridState;
         [SerializeField] private GridOperations gridOperations;
