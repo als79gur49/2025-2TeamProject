@@ -194,7 +194,15 @@ namespace Game.Components
             if (!CanMoveUnit(unit, newPosition))
                 return false;
             Debug.Log("MoveUnitT2");
-            return gridState.SetUnitPosition(unit, newPosition);
+            
+            // Update state through data layer
+            if (!gridState.SetUnitPosition(unit, newPosition))
+                return false;
+                
+            // Handle positioning (Business Logic responsibility) - 필수 추가
+            SetUnitWorldPosition(unit, newPosition);
+            
+            return true;
         }
 
         public bool TryMoveUnit(GameObject unit, Vector2Int newPosition, out string errorMessage)
