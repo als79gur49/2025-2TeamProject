@@ -11,7 +11,10 @@ public class UIPanelManager : MonoBehaviour
     [Header("UI Panel Manager Settings")]
     [SerializeField] private bool initializeOnStart = true;
     [SerializeField] private bool debugMode = false;
-    
+
+    [Header("인스펙터에서 UI연결")]
+    [SerializeField]
+    private List<IUIPanel> panels;
     // 패널 관리
     private readonly Dictionary<string, IUIPanel> registeredPanels = new Dictionary<string, IUIPanel>();
     private readonly Dictionary<Type, IUIPanel> typedPanels = new Dictionary<Type, IUIPanel>();
@@ -69,6 +72,8 @@ public class UIPanelManager : MonoBehaviour
         if (initializeOnStart)
         {
             InitializeAllPanels();
+
+            AutoRegisterAllPanels();
         }
     }
     
@@ -168,6 +173,8 @@ public class UIPanelManager : MonoBehaviour
             {
                 RegisterPanel(panel);
                 registeredCount++;
+
+                Debug.Log($"등록된 패널:{panel.GetType()} / ID: {panel.PanelID}");
             }
         }
         

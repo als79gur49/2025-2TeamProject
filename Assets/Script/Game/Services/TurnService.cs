@@ -17,14 +17,12 @@ namespace Game.Services
         
         private void Awake()
         {
-            Debug.Log("[TurnService] Awake() called - Registration handled by GameInitializer");
         }
         
         public void StartGame()
         {
             isPlayerTurn = true;
             turnCount = 0;
-            Debug.Log("[TurnService] Game Started - Player Turn");
             OnTurnChanged?.Invoke(isPlayerTurn);
             OnTurnCountChanged?.Invoke(turnCount);
         }

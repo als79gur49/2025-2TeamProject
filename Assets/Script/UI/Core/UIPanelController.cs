@@ -42,4 +42,14 @@ public class UIPanelController : MonoBehaviour
         instance = this;
         DontDestroyOnLoad(gameObject);
     }
+
+
+    public void OpenSettingPanel()
+    {
+        UIPanelManager.Instance.ShowPanel<SettingsPanel>();
+    }
+    public void CloseSettingPanel()
+    {
+        UIPanelManager.Instance.HidePanel<SettingsPanel>();
+    }
 }

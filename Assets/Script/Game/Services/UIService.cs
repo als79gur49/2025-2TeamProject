@@ -5,17 +5,27 @@ using Game.Services;
 
 namespace Game.Services
 {
+    /// <summary>
+    /// Refactored UIService - UI management without ServiceLocator dependencies
+    /// Focuses on UI creation, updates, and user interaction handling
+    /// </summary>
     public class UIService : MonoBehaviour, IUIService
     {
+        [Header("UI Elements")]
         [SerializeField] private Button endTurnButton;
         [SerializeField] private Text turnStatusText;
         [SerializeField] private Canvas gameCanvas;
         
+        // 💉 Injected Dependencies - No more ServiceLocator
         private ITurnService turnService;
         private IUnitService unitService;
         
+        // 📡 Events
         public event System.Action OnEndTurnRequested;
         public event System.Action OnRestartRequested;
+        
+        // 🔧 Dependency injection state
+        private bool dependenciesInjected = false;
         
         private void Awake()
         {
@@ -27,26 +37,55 @@ namespace Game.Services
             Initialize();
         }
         
+        /// <summary>
+        /// Injects required dependencies - Called by GameServiceManager
+        /// </summary>
+        public void InjectDependencies(ITurnService turnService, IUnitService unitService)
+        {
+            this.turnService = turnService;
+            this.unitService = unitService;
+            
+            dependenciesInjected = true;
+            Debug.Log("[UIService] Dependencies injected successfully");
+        }
+        
         public void Initialize()
         {
-            // Get dependencies from ServiceLocator
-            turnService = ServiceLocator.Get<ITurnService>();
-            unitService = ServiceLocator.Get<IUnitService>();
+            if (!dependenciesInjected)
+            {
+                Debug.LogError("[UIService] Cannot initialize - Dependencies not injected!");
+                return;
+            }
             
+            ValidateDependencies();
+            SubscribeToServiceEvents();
+            CreateUIElements();
+            UpdateDisplay();
+            
+            Debug.Log("[UIService] Initialized successfully");
+        }
+        
+        /// <summary>
+        /// Validates that all required dependencies are available
+        /// </summary>
+        private void ValidateDependencies()
+        {
             if (turnService == null)
-                Debug.LogError("[UIService] ITurnService not found in ServiceLocator");
+                Debug.LogError("[UIService] ITurnService is null after injection");
             if (unitService == null)
-                Debug.LogError("[UIService] IUnitService not found in ServiceLocator");
-            
-            // Subscribe to events
+                Debug.LogError("[UIService] IUnitService is null after injection");
+        }
+        
+        /// <summary>
+        /// Subscribes to service events for UI updates
+        /// </summary>
+        private void SubscribeToServiceEvents()
+        {
             if (turnService != null)
             {
                 turnService.OnTurnChanged += HandleTurnChanged;
                 turnService.OnTurnCountChanged += HandleTurnCountChanged;
             }
-            
-            CreateUIElements();
-            UpdateDisplay();
         }
         
         private void CreateUIElements()
@@ -91,6 +130,34 @@ namespace Game.Services
             if (endTurnButton != null)
                 endTurnButton.interactable = enabled;
         }
+        
+        /// <summary>
+        /// Triggers the end turn request event - Used for test input
+        /// </summary>
+        public void TriggerEndTurnRequest()
+        {
+            OnEndTurnRequested?.Invoke();
+        }
+        
+        #region Test Support Methods
+        
+        /// <summary>
+        /// Test method to trigger end turn request for unit testing
+        /// </summary>
+        public void TestEndTurnRequest()
+        {
+            OnEndTurnRequested?.Invoke();
+        }
+        
+        /// <summary>
+        /// Test method to trigger restart request for unit testing
+        /// </summary>
+        public void TestRestartRequest()
+        {
+            OnRestartRequested?.Invoke();
+        }
+        
+        #endregion
         
         private void HandleTurnChanged(bool isPlayerTurn)
         {
@@ -188,6 +255,23 @@ namespace Game.Services
             
             backgroundObj.transform.SetSiblingIndex(0);
         }
+        
+        
+        #region Event Cleanup
+        
+        /// <summary>
+        /// Clean up event subscriptions on destroy
+        /// </summary>
+        private void OnDestroy()
+        {
+            if (turnService != null)
+            {
+                turnService.OnTurnChanged -= HandleTurnChanged;
+                turnService.OnTurnCountChanged -= HandleTurnCountChanged;
+            }
+        }
+        
+        #endregion
         
         private void UpdateTurnStatusText()
         {
