@@ -855,6 +855,7 @@ GameObject:
   - component: {fileID: 1042126522}
   - component: {fileID: 1042126521}
   - component: {fileID: 1042126520}
+  - component: {fileID: 1042126523}
   m_Layer: 0
   m_Name: Button
   m_TagString: Untagged
@@ -976,6 +977,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1042126518}
   m_CullTransparentMesh: 1
+--- !u!114 &1042126523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042126518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a2173843b18fea42b15b82f5d0fe7e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clickSoundName: ButtonClick
+  volume: 1
+  pitch: 1
+  buttonType: 0
+  autoRegisterOnStart: 1
+  enableHoverSound: 0
+  hoverSoundName: ButtonHover
 --- !u!1 &1138902624
 GameObject:
   m_ObjectHideFlags: 0
@@ -1197,7 +1217,7 @@ MonoBehaviour:
   clipDataArray:
   - clipName: ButtonClick
     clip: {fileID: 8300000, guid: 6c0d04dbaa58a8143953da70e24bd4ef, type: 3}
-    defaultVolume: 0
+    defaultVolume: 1
     defaultPitch: 0
     defaultLoop: 0
     audioType: 1

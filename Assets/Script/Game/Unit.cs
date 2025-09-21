@@ -2,8 +2,8 @@ using UnityEngine;
 using Game.Interfaces;
 using Game.Components;
 using Game.Data;
-
-public class Unit : MonoBehaviour, IGridDependent
+using Game.Core;
+public class Unit : MonoBehaviour
 {
     [Header("Legacy Configuration (for Inspector compatibility)")]
     [SerializeField] private int health = 100;
@@ -28,11 +28,8 @@ public class Unit : MonoBehaviour, IGridDependent
     // Legacy system support
     private int legacyMaxHealth;
     
-    // Phase 3: Clean Architecture - ServiceLocator pattern with IGridDependent
+    // Phase 3: Clean Architecture - ServiceLocator pattern  
     private IGridManager gridManager;
-    private IGridServices gridServices;
-    private IReadOnlyGridState gridState;
-    private IGridRenderer gridRenderer;
 
     [SerializeField]
     private Tile currentTile;
@@ -47,8 +44,8 @@ public class Unit : MonoBehaviour, IGridDependent
     public Tile CurrentTile => currentTile;
     
     // Legacy grid position properties
-    public int X => CurrentTile?.X ?? (gridState != null ? gridState.GetUnitPosition(gameObject).x : -1);
-    public int Y => CurrentTile?.Y ?? (gridState != null ? gridState.GetUnitPosition(gameObject).y : -1);
+    public int X => CurrentTile?.X ?? (gridManager != null ? gridManager.GetUnitPosition(gameObject).x : -1);
+    public int Y => CurrentTile?.Y ?? (gridManager != null ? gridManager.GetUnitPosition(gameObject).y : -1);
     
     private void Awake()
     {
@@ -61,73 +58,71 @@ public class Unit : MonoBehaviour, IGridDependent
     
     private void Start()
     {
-        // Phase 3: Auto-initialize grid dependencies
-        GridMigrationHelper.InitializeGridDependencies(this);
+        // Phase 3: ServiceLocator를 통한 직접 GridManager 접근
+        InitializeGridManager();
+    }
+
+    /// <summary>
+    /// ServiceLocator를 통한 직접 GridManager 초기화
+    /// </summary>
+    private void InitializeGridManager()
+    {
+        gridManager = ServiceLocator.Get<IGridManager>();
+        if (gridManager != null)
+        {
+            Debug.Log($"[Unit] GridManager initialized directly for {gameObject.name}");
+            
+            // GridManager를 통해 필요한 하위 서비스들에 접근
+            // GridManager가 하위 서비스들을 관리하므로 이것만으로 충분
+            SetupEventSubscriptions();
+            InitializeCurrentTile();
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] Failed to initialize GridManager for {gameObject.name} - IGridManager not available in ServiceLocator");
+        }
     }
     
-    /// <summary>
-    /// Phase 3: IGridDependent 인터페이스 구현 - Clean Architecture 패턴
-    /// </summary>
-    public void Initialize(IGridServices gridServices)
-    {
-        if (gridServices == null)
-        {
-            Debug.LogError($"[Unit] GridServices is null for {gameObject.name}");
-            return;
-        }
-        
-        // Phase 3: 인터페이스 기반 의존성 할당
-        this.gridServices = gridServices;
-        this.gridManager = gridServices.GridController;
-        this.gridState = gridServices.GridState;
-        this.gridRenderer = gridServices.GridRenderer;
-        
-        // Phase 3: 이벤트 기반 통신 설정
-        SetupEventSubscriptions();
-        
-        // 초기화 시 현재 위치에서 currentTile 설정 시도
-        InitializeCurrentTile();
-        
-        Debug.Log($"[Unit] Phase 3 initialization complete for {gameObject.name}");
-    }
     
     /// <summary>
     /// 초기화 시 currentTile 설정 - 이미 그리드에 배치된 유닛을 위한 처리
     /// </summary>
     private void InitializeCurrentTile()
     {
-        if (gridState == null) return;
+        if (gridManager == null)
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} InitializeCurrentTile called but gridManager is null");
+            return;
+        }
         
         // currentTile이 이미 설정되어 있으면 스킵
         if (currentTile != null) return;
         
-        // GridState에서 현재 유닛의 위치 확인
-        if (gridState.TryGetUnitPosition(gameObject, out Vector2Int currentPosition))
+        // GridManager에서 현재 유닛의 위치 확인
+        if (gridManager.TryGetUnitPosition(gameObject, out Vector2Int currentPosition))
         {
             Debug.Log($"[Unit] Found {gameObject.name} at position ({currentPosition.x}, {currentPosition.y}) during initialization");
             UpdateCurrentTile(currentPosition);
         }
         else
         {
-            Debug.Log($"[Unit] {gameObject.name} not found in GridState during initialization - currentTile will be set when placed");
+            Debug.Log($"[Unit] {gameObject.name} not found in GridManager during initialization - currentTile will be set when placed");
         }
     }
     
     /// <summary>
-    /// Phase 3: 이벤트 기반 통신 설정 - Clean Architecture
+    /// Phase 3: 이벤트 기반 통신 설정 - GridManager 이벤트 구독
     /// </summary>
     private void SetupEventSubscriptions()
     {
-        // Phase 3: GridState 이벤트 구독 (단일 진실 공급원)
-        if (gridState != null)
+        // GridManager 이벤트 구독
+        if (gridManager != null)
         {
-            gridState.OnUnitMoved += OnUnitMovedInGrid;
-            gridState.OnUnitPlaced += OnUnitPlacedInGrid;
-            gridState.OnUnitRemoved += OnUnitRemovedFromGrid;
+            gridManager.OnUnitMoved += OnUnitMovedInGrid;
         }
         else
         {
-            Debug.LogWarning($"[Unit] GridState not available for {gameObject.name} - event subscriptions skipped");
+            Debug.LogWarning($"[Unit] GridManager not available for {gameObject.name} - event subscriptions skipped");
         }
     }
     
@@ -144,43 +139,20 @@ public class Unit : MonoBehaviour, IGridDependent
         }
     }
     
-    /// <summary>
-    /// 그리드에서 유닛이 배치되었을 때 호출되는 이벤트 핸들러
-    /// </summary>
-    private void OnUnitPlacedInGrid(Vector2Int position, GameObject placedUnit)
-    {
-        if (placedUnit == gameObject)
-        {
-            Debug.Log($"[Unit] {gameObject.name} placed at {position} via event");
-            UpdateCurrentTile(position);
-        }
-    }
-    
-    /// <summary>
-    /// 그리드에서 유닛이 제거되었을 때 호출되는 이벤트 핸들러
-    /// </summary>
-    private void OnUnitRemovedFromGrid(Vector2Int position, GameObject removedUnit)
-    {
-        if (removedUnit == gameObject)
-        {
-            Debug.Log($"[Unit] {gameObject.name} removed from {position} via event");
-            currentTile = null; // Clear current tile when removed
-        }
-    }
     
     /// <summary>
     /// 지정된 그리드 위치의 Tile 컴포넌트를 찾아서 currentTile을 업데이트
     /// </summary>
     private void UpdateCurrentTile(Vector2Int gridPosition)
     {
-        if (gridState == null)
+        if (gridManager == null)
         {
-            Debug.LogWarning($"[Unit] Cannot update currentTile for {gameObject.name} - gridState is null");
+            Debug.LogWarning($"[Unit] Cannot update currentTile for {gameObject.name} - gridManager is null");
             return;
         }
 
         // 월드 위치로 변환
-        Vector3 worldPosition = gridState.GridToWorldPosition(gridPosition);
+        Vector3 worldPosition = gridManager.GridToWorldPosition(gridPosition);
         
         // 해당 위치 근처에서 Tile 컴포넌트를 찾기
         Tile foundTile = FindTileAtPosition(worldPosition, gridPosition);
@@ -205,7 +177,7 @@ public class Unit : MonoBehaviour, IGridDependent
     private Tile FindTileAtPosition(Vector3 worldPosition, Vector2Int gridPosition)
     {
         // Method 1: 반경 내에서 Tile 검색
-        Collider[] colliders = Physics.OverlapSphere(worldPosition, gridState.TileSize * 0.6f);
+        Collider[] colliders = Physics.OverlapSphere(worldPosition, gridManager.TileSize * 0.6f);
         foreach (var collider in colliders)
         {
             Tile tile = collider.GetComponent<Tile>();
@@ -246,7 +218,7 @@ public class Unit : MonoBehaviour, IGridDependent
     {
         // 임시 GameObject 생성하여 Tile 컴포넌트 추가
         GameObject virtualTileObject = new GameObject($"VirtualTile_{gridPosition.x}_{gridPosition.y}");
-        virtualTileObject.transform.position = gridState.GridToWorldPosition(gridPosition);
+        virtualTileObject.transform.position = gridManager.GridToWorldPosition(gridPosition);
         
         Tile virtualTile = virtualTileObject.AddComponent<Tile>();
         virtualTile.Initialize(gridPosition.x, gridPosition.y);
@@ -406,7 +378,7 @@ public class Unit : MonoBehaviour, IGridDependent
     
     private Unit SearchForNearbyEnemies()
     {
-        if (currentTile == null || gridState == null) return null;
+        if (currentTile == null || gridManager == null) return null;
         
         int[] dx = { -1, 1, 0, 0 };
         int[] dy = { 0, 0, -1, 1 };
@@ -418,7 +390,7 @@ public class Unit : MonoBehaviour, IGridDependent
             
             // Phase 3: Clean interface-based grid access
             var adjacentPos = new Vector2Int(newX, newY);
-            var adjacentUnit = gridState.GetUnitAtPosition(adjacentPos);
+            var adjacentUnit = gridManager.GetUnitAtPosition(adjacentPos);
             if (adjacentUnit != null)
             {
                 var unit = adjacentUnit.GetComponent<Unit>();
@@ -650,14 +622,14 @@ public class Unit : MonoBehaviour, IGridDependent
     [ContextMenu("Force Update Current Tile")]
     private void ForceUpdateCurrentTile()
     {
-        if (gridState != null && gridState.TryGetUnitPosition(gameObject, out Vector2Int position))
+        if (gridManager != null && gridManager.TryGetUnitPosition(gameObject, out Vector2Int position))
         {
             Debug.Log($"[Unit] Forcing currentTile update for {gameObject.name} at position ({position.x}, {position.y})");
             UpdateCurrentTile(position);
         }
         else
         {
-            Debug.LogWarning($"[Unit] Cannot force update currentTile for {gameObject.name} - not found in GridState");
+            Debug.LogWarning($"[Unit] Cannot force update currentTile for {gameObject.name} - not found in GridManager");
         }
     }
     
@@ -681,12 +653,10 @@ public class Unit : MonoBehaviour, IGridDependent
     /// </summary>
     private void CleanupEventSubscriptions()
     {
-        // Phase 3: GridState 이벤트 구독 해제
-        if (gridState != null)
+        // GridManager 이벤트 구독 해제
+        if (gridManager != null)
         {
-            gridState.OnUnitMoved -= OnUnitMovedInGrid;
-            gridState.OnUnitPlaced -= OnUnitPlacedInGrid;
-            gridState.OnUnitRemoved -= OnUnitRemovedFromGrid;
+            gridManager.OnUnitMoved -= OnUnitMovedInGrid;
         }
     }
     

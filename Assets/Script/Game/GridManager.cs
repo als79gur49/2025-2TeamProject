@@ -11,7 +11,7 @@ using Game.Core;
 /// - Business Logic Layer: GridController  
 /// - Data Layer: GridState
 /// </summary>
-public class GridManager : MonoBehaviour
+public class GridManager : MonoBehaviour, IGridManager
 {
     [Header("Grid Configuration")]
     [SerializeField] private Vector2Int gridSize = new(10, 10);
@@ -39,13 +39,14 @@ public class GridManager : MonoBehaviour
         if (enablePerformanceLogging)
             initializationTimer = System.Diagnostics.Stopwatch.StartNew();
             
+        // 중앙집중형 구조: 서비스 등록은 GameInitializer에서 처리
+        // 그리드 시스템만 초기화
         InitializeGridSystem();
-        RegisterServices();
         
         if (enablePerformanceLogging)
         {
             initializationTimer.Stop();
-            Debug.Log($"[GridManager] Initialization completed in {initializationTimer.ElapsedMilliseconds}ms");
+            Debug.Log($"[GridManager] Grid system initialization completed in {initializationTimer.ElapsedMilliseconds}ms");
         }
     }
 
@@ -187,37 +188,33 @@ public class GridManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 서비스 등록 - 의존성 주입 컨테이너에 등록
+    /// GameInitializer에서 호출할 초기화 메서드 - 중앙집중형 구조
     /// </summary>
-    private void RegisterServices()
+    public void InitializeForServiceLocator()
     {
-        var services = new GridServices(gridState, gridController, gridRenderer);
+        // 그리드 시스템이 아직 초기화되지 않았다면 초기화
+        if (gridState == null || gridController == null || gridRenderer == null)
+        {
+            InitializeGridSystem();
+        }
         
-        // 인터페이스별로 적절한 서비스 등록
-        ServiceLocator.Register<IGridServices>(services);
-        ServiceLocator.Register<IGridManager>(gridController);
-        ServiceLocator.Register<IGridController>(gridController);
-        ServiceLocator.Register<IReadOnlyGridState>(gridState);
-        ServiceLocator.Register<IGridState>(gridState);
-        ServiceLocator.Register<IGridRenderer>(gridRenderer);
-        
-        // 서비스 로케이터 초기화 완료 마킹
-        ServiceLocator.MarkAsInitialized();
-        
-        Debug.Log("[GridManager] All services registered successfully");
+        Debug.Log("[GridManager] Grid system prepared for centralized service registration");
     }
     
     private void OnDestroy()
     {
-        // 서비스 등록 해제
+        // 중앙집중형 구조: 서비스 해제는 GameInitializer에서 처리
+        // GridManager는 자체 리소스만 정리
         try
         {
-            ServiceLocator.UnregisterAll();
-            Debug.Log("[GridManager] Services unregistered successfully");
+            // 그리드 관련 리소스 정리
+            gridController?.ClearPathCache();
+            
+            Debug.Log("[GridManager] GridManager resources cleaned up successfully");
         }
         catch (System.Exception ex)
         {
-            Debug.LogWarning($"[GridManager] Error during service cleanup: {ex.Message}");
+            Debug.LogWarning($"[GridManager] Error during GridManager cleanup: {ex.Message}");
         }
     }
 
@@ -307,29 +304,6 @@ public class GridManager : MonoBehaviour
         return $"✓ {component.GetType().Name}";
     }
 
-    /// <summary>
-    /// 에디터 전용 - 강제 시스템 재초기화
-    /// </summary>
-    [ContextMenu("Force System Reinitialize")]
-    private void ForceSystemReinitialize()
-    {
-        Debug.Log("[GridManager] Force reinitializing system...");
-        
-        // 기존 시스템 정리
-        OnDestroy();
-        
-        // 자식 오브젝트 정리
-        for (int i = transform.childCount - 1; i >= 0; i--)
-        {
-            DestroyImmediate(transform.GetChild(i).gameObject);
-        }
-        
-        // 새 시스템 초기화
-        InitializeGridSystem();
-        RegisterServices();
-        
-        Debug.Log("[GridManager] System reinitialized successfully");
-    }
 
     /// <summary>
     /// 에디터 전용 - 성능 테스트
@@ -365,25 +339,6 @@ public class GridManager : MonoBehaviour
         Debug.Log($"  Grid size: {gridSize.x}x{gridSize.y} ({gridSize.x * gridSize.y} tiles)");
     }
 
-    // ============================================================================
-    // Public API - 외부에서 시스템 접근 (필요한 경우에만)
-    // ============================================================================
-
-    /// <summary>
-    /// 그리드 서비스 접근자 (권장: ServiceLocator 사용)
-    /// </summary>
-    public IGridServices GetGridServices()
-    {
-        return ServiceLocator.Get<IGridServices>();
-    }
-    
-    /// <summary>
-    /// 그리드 관리자 접근자 (권장: ServiceLocator 사용)
-    /// </summary>
-    public IGridManager GetGridManager()
-    {
-        return ServiceLocator.Get<IGridManager>();
-    }
 
     // Unity Inspector에서 실시간 설정 변경을 위한 OnValidate
     private void OnValidate()
@@ -399,4 +354,79 @@ public class GridManager : MonoBehaviour
             UpdatePathfindingSettings(allowDiagonalMovement, maxPathfindingIterations);
         }
     }
+
+    // ============================================================================
+    // IGridManager 인터페이스 구현 - GridController로 위임
+    // ============================================================================
+
+    public Vector2Int GridSize => gridController?.GridSize ?? Vector2Int.zero;
+    public float TileSize => gridController?.TileSize ?? 1f;
+
+    public bool IsValidPosition(Vector2Int gridPosition) => gridController?.IsValidPosition(gridPosition) ?? false;
+    public bool IsPositionOccupied(Vector2Int gridPosition) => gridController?.IsPositionOccupied(gridPosition) ?? false;
+    public bool IsPositionBlocked(Vector2Int gridPosition) => gridController?.IsPositionBlocked(gridPosition) ?? false;
+
+    public GameObject GetUnitAtPosition(Vector2Int gridPosition) => gridController?.GetUnitAtPosition(gridPosition);
+    public Vector2Int GetUnitPosition(GameObject unit) => gridController?.GetUnitPosition(unit) ?? new Vector2Int(-1, -1);
+    public bool TryGetUnitPosition(GameObject unit, out Vector2Int position)
+    {
+        if (gridController != null)
+            return gridController.TryGetUnitPosition(unit, out position);
+        
+        position = new Vector2Int(-1, -1);
+        return false;
+    }
+
+    public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition) => gridController?.CanMoveUnit(unit, targetPosition) ?? false;
+    public bool MoveUnit(GameObject unit, Vector2Int newPosition) => gridController?.MoveUnit(unit, newPosition) ?? false;
+    public bool MoveUnit(GameObject unit, Vector2Int startPosition, Vector2Int endPosition) => gridController?.MoveUnit(unit, startPosition, endPosition) ?? false;
+    public bool TryMoveUnit(GameObject unit, Vector2Int newPosition, out string errorMessage)
+    {
+        if (gridController != null)
+            return gridController.TryMoveUnit(unit, newPosition, out errorMessage);
+        
+        errorMessage = "GridController not initialized";
+        return false;
+    }
+
+    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int end, GameObject movingUnit = null) => gridController?.FindPath(start, end, movingUnit) ?? new List<Vector2Int>();
+    public bool IsPathClear(Vector2Int start, Vector2Int end, GameObject ignoredUnit = null) => gridController?.IsPathClear(start, end, ignoredUnit) ?? false;
+    public int GetPathDistance(Vector2Int start, Vector2Int end) => gridController?.GetPathDistance(start, end) ?? -1;
+
+    public List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true) => gridController?.GetPositionsInRange(center, range, includeOccupied) ?? new List<Vector2Int>();
+    public List<GameObject> GetUnitsInRange(Vector2Int center, int range) => gridController?.GetUnitsInRange(center, range) ?? new List<GameObject>();
+    public List<Vector2Int> GetValidMovePositions(GameObject unit, int moveRange) => gridController?.GetValidMovePositions(unit, moveRange) ?? new List<Vector2Int>();
+
+    public Vector3 GridToWorldPosition(Vector2Int gridPosition) => gridController?.GridToWorldPosition(gridPosition) ?? Vector3.zero;
+    public Vector2Int WorldToGridPosition(Vector3 worldPosition) => gridController?.WorldToGridPosition(worldPosition) ?? Vector2Int.zero;
+
+    public void SetTileBlocked(Vector2Int position, bool blocked) => gridController?.SetTileBlocked(position, blocked);
+    public void SetTileHighlight(Vector2Int position, Color highlightColor) => gridController?.SetTileHighlight(position, highlightColor);
+    public void ClearAllHighlights() => gridController?.ClearAllHighlights();
+
+    // IGridManager 이벤트들 - GridController의 이벤트를 중계
+    public event System.Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved
+    {
+        add { if (gridController != null) gridController.OnUnitMoved += value; }
+        remove { if (gridController != null) gridController.OnUnitMoved -= value; }
+    }
+
+    public event System.Action<Vector2Int, GameObject> OnUnitPlaced
+    {
+        add { if (gridController != null) gridController.OnUnitPlaced += value; }
+        remove { if (gridController != null) gridController.OnUnitPlaced -= value; }
+    }
+
+    public event System.Action<Vector2Int, GameObject> OnUnitRemoved
+    {
+        add { if (gridController != null) gridController.OnUnitRemoved += value; }
+        remove { if (gridController != null) gridController.OnUnitRemoved -= value; }
+    }
+
+    /// <summary>
+    /// GridController와 GridState, GridRenderer에 대한 접근 제공
+    /// </summary>
+    public IGridController GetGridController() => gridController;
+    public IGridState GetGridState() => gridState;
+    public IGridRenderer GetGridRenderer() => gridRenderer;
 }

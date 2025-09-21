@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Game.Core
@@ -45,10 +46,18 @@ namespace Game.Core
 
             lock (lockObject)
             {
+                Debug.Log($"[ServiceLocator] Registering - Type: {serviceType.Name}, Hash: {serviceType.GetHashCode()}, Assembly: {serviceType.Assembly.FullName}");
+                Debug.Log($"[ServiceLocator] Implementation: {implementation.GetType().Name}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                Debug.Log($"[ServiceLocator] Services dictionary hash: {services.GetHashCode()}, Count before: {services.Count}");
+                
                 services[serviceType] = implementation;
                 OnServiceRegistered?.Invoke(serviceType, implementation);
                 
-                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}");
+                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}, Count after: {services.Count}");
+                
+                // 즉시 확인 테스트
+                var immediateTest = services.TryGetValue(serviceType, out var testService);
+                Debug.Log($"[ServiceLocator] Immediate verification: {immediateTest}, Service: {testService?.GetType().Name ?? "null"}");
             }
         }
 
@@ -103,7 +112,7 @@ namespace Game.Core
                 throw new ArgumentNullException(nameof(serviceType));
 
             lock (lockObject)
-            {
+            {           
                 if (services.TryGetValue(serviceType, out var service))
                 {
                     // MonoBehaviour 싱글톤이 파괴되었는지 확인
@@ -115,10 +124,11 @@ namespace Game.Core
                         return null;
                     }
                     
+                    Debug.Log($"[ServiceLocator] Service {serviceType.Name} found successfully");
                     return service;
                 }
 
-                Debug.LogWarning($"[ServiceLocator] Service {serviceType.Name} not found. Available services: {string.Join(", ", services.Keys)}");
+                Debug.LogWarning($"[ServiceLocator] Service {serviceType.Name} not found. Available services: {string.Join(", ", services.Keys.Select(k => k.Name))}");
                 return null;
             }
         }
@@ -197,6 +207,10 @@ namespace Game.Core
         {
             lock (lockObject)
             {
+                Debug.Log($"[ServiceLocator] Clear() called - Services count before clear: {services.Count}");
+                var stackTrace = UnityEngine.StackTraceUtility.ExtractStackTrace();
+                Debug.Log($"[ServiceLocator] Clear() stack trace: {stackTrace}");
+                
                 services.Clear();
                 singletonInstances.Clear();
                 isInitialized = false;
@@ -284,6 +298,7 @@ namespace Game.Core
         private static void ResetStaticData()
         {
             // 도메인 재로드 시 정적 데이터 초기화 (Unity Editor용)
+            Debug.Log("[ServiceLocator] ResetStaticData() called - Domain reload detected");
             Clear();
         }
     }
