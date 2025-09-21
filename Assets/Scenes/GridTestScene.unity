@@ -399,7 +399,6 @@ GameObject:
   m_Component:
   - component: {fileID: 587330868}
   - component: {fileID: 587330867}
-  - component: {fileID: 587330869}
   m_Layer: 0
   m_Name: GridManager
   m_TagString: Untagged
@@ -442,21 +441,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &587330869
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 587330866}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79f571e2c86af1d4181868a15bf25b99, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gridSize: {x: 10, y: 10}
-  tileSize: 1
-  gridOrigin: {x: 0, y: 0, z: 0}
 --- !u!1 &790127256
 GameObject:
   m_ObjectHideFlags: 0
@@ -821,7 +805,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c740c59e80c54eb42908844c5efcda28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridState: {fileID: 587330869}
+  gridManager: {fileID: 587330867}
   turnService: {fileID: 933723236}
   unitService: {fileID: 933723237}
   uiService: {fileID: 933723239}
@@ -882,6 +866,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: SampleUnit
+      objectReference: {fileID: 0}
+    - target: {fileID: 4673968368137477462, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7296753483109280954, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
         type: 3}
@@ -962,10 +951,15 @@ PrefabInstance:
       propertyPath: m_Name
       value: SampleEnemyUnit
       objectReference: {fileID: 0}
+    - target: {fileID: 4673968368137477462, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7296753483109280954, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.03
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 7296753483109280954, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
         type: 3}
