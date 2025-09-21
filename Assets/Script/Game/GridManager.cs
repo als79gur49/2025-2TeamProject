@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Game.Interfaces;
 using Game.Components;
 using Game.Core;
@@ -66,8 +67,6 @@ public class GridManager : MonoBehaviour, IGridManager
             
             // 3. 프레젠테이션 계층 생성 (데이터에 의존)
             CreatePresentationLayer();
-            
-            Debug.Log("[GridManager] Phase 3 Clean Architecture initialized successfully");
         }
         catch (System.Exception ex)
         {
@@ -356,53 +355,75 @@ public class GridManager : MonoBehaviour, IGridManager
     }
 
     // ============================================================================
-    // IGridManager 인터페이스 구현 - GridController로 위임
+    // IGridManager 인터페이스 구현 - 최적화된 GridController 위임
     // ============================================================================
 
-    public Vector2Int GridSize => gridController?.GridSize ?? Vector2Int.zero;
-    public float TileSize => gridController?.TileSize ?? 1f;
+    /// <summary>
+    /// GridController에 대한 안전한 접근을 제공하는 내부 메서드
+    /// </summary>
+    private IGridController GetController()
+    {
+        if (gridController == null)
+        {
+            Debug.LogWarning("[GridManager] GridController not initialized. Call InitializeGridSystem() first.");
+        }
+        return gridController;
+    }
 
-    public bool IsValidPosition(Vector2Int gridPosition) => gridController?.IsValidPosition(gridPosition) ?? false;
-    public bool IsPositionOccupied(Vector2Int gridPosition) => gridController?.IsPositionOccupied(gridPosition) ?? false;
-    public bool IsPositionBlocked(Vector2Int gridPosition) => gridController?.IsPositionBlocked(gridPosition) ?? false;
+    // 기본 속성들
+    public Vector2Int GridSize => GetController()?.GridSize ?? Vector2Int.zero;
+    public float TileSize => GetController()?.TileSize ?? 1f;
 
-    public GameObject GetUnitAtPosition(Vector2Int gridPosition) => gridController?.GetUnitAtPosition(gridPosition);
-    public Vector2Int GetUnitPosition(GameObject unit) => gridController?.GetUnitPosition(unit) ?? new Vector2Int(-1, -1);
+    // 위치 검증 메서드들
+    public bool IsValidPosition(Vector2Int gridPosition) => GetController()?.IsValidPosition(gridPosition) ?? false;
+    public bool IsPositionOccupied(Vector2Int gridPosition) => GetController()?.IsPositionOccupied(gridPosition) ?? false;
+    public bool IsPositionBlocked(Vector2Int gridPosition) => GetController()?.IsPositionBlocked(gridPosition) ?? false;
+
+    // 유닛 위치 관리
+    public GameObject GetUnitAtPosition(Vector2Int gridPosition) => GetController()?.GetUnitAtPosition(gridPosition);
+    public Vector2Int GetUnitPosition(GameObject unit) => GetController()?.GetUnitPosition(unit) ?? new Vector2Int(-1, -1);
     public bool TryGetUnitPosition(GameObject unit, out Vector2Int position)
     {
-        if (gridController != null)
-            return gridController.TryGetUnitPosition(unit, out position);
-        
-        position = new Vector2Int(-1, -1);
-        return false;
+        var controller = GetController();
+        return controller?.TryGetUnitPosition(unit, out position) ?? (position = new Vector2Int(-1, -1), false).Item2;
     }
 
-    public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition) => gridController?.CanMoveUnit(unit, targetPosition) ?? false;
-    public bool MoveUnit(GameObject unit, Vector2Int newPosition) => gridController?.MoveUnit(unit, newPosition) ?? false;
-    public bool MoveUnit(GameObject unit, Vector2Int startPosition, Vector2Int endPosition) => gridController?.MoveUnit(unit, startPosition, endPosition) ?? false;
+    // 유닛 이동 (가장 중요한 기능들)
+    public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition) => GetController()?.CanMoveUnit(unit, targetPosition) ?? false;
+    public bool MoveUnit(GameObject unit, Vector2Int newPosition) => GetController()?.MoveUnit(unit, newPosition) ?? false;
+    public bool MoveUnit(GameObject unit, Vector2Int startPosition, Vector2Int endPosition) => GetController()?.MoveUnit(unit, startPosition, endPosition) ?? false;
     public bool TryMoveUnit(GameObject unit, Vector2Int newPosition, out string errorMessage)
     {
-        if (gridController != null)
-            return gridController.TryMoveUnit(unit, newPosition, out errorMessage);
-        
-        errorMessage = "GridController not initialized";
-        return false;
+        var controller = GetController();
+        return controller?.TryMoveUnit(unit, newPosition, out errorMessage) ?? (errorMessage = "GridController not initialized", false).Item2;
     }
 
-    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int end, GameObject movingUnit = null) => gridController?.FindPath(start, end, movingUnit) ?? new List<Vector2Int>();
-    public bool IsPathClear(Vector2Int start, Vector2Int end, GameObject ignoredUnit = null) => gridController?.IsPathClear(start, end, ignoredUnit) ?? false;
-    public int GetPathDistance(Vector2Int start, Vector2Int end) => gridController?.GetPathDistance(start, end) ?? -1;
+    // 경로 탐색
+    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int end, GameObject movingUnit = null) => GetController()?.FindPath(start, end, movingUnit) ?? new List<Vector2Int>();
+    public bool IsPathClear(Vector2Int start, Vector2Int end, GameObject ignoredUnit = null) => GetController()?.IsPathClear(start, end, ignoredUnit) ?? false;
+    public int GetPathDistance(Vector2Int start, Vector2Int end) => GetController()?.GetPathDistance(start, end) ?? -1;
 
-    public List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true) => gridController?.GetPositionsInRange(center, range, includeOccupied) ?? new List<Vector2Int>();
-    public List<GameObject> GetUnitsInRange(Vector2Int center, int range) => gridController?.GetUnitsInRange(center, range) ?? new List<GameObject>();
-    public List<Vector2Int> GetValidMovePositions(GameObject unit, int moveRange) => gridController?.GetValidMovePositions(unit, moveRange) ?? new List<Vector2Int>();
+    // 범위 검색
+    public List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true) => GetController()?.GetPositionsInRange(center, range, includeOccupied) ?? new List<Vector2Int>();
+    public List<GameObject> GetUnitsInRange(Vector2Int center, int range) => GetController()?.GetUnitsInRange(center, range) ?? new List<GameObject>();
+    public List<Vector2Int> GetValidMovePositions(GameObject unit, int moveRange) => GetController()?.GetValidMovePositions(unit, moveRange) ?? new List<Vector2Int>();
 
-    public Vector3 GridToWorldPosition(Vector2Int gridPosition) => gridController?.GridToWorldPosition(gridPosition) ?? Vector3.zero;
-    public Vector2Int WorldToGridPosition(Vector3 worldPosition) => gridController?.WorldToGridPosition(worldPosition) ?? Vector2Int.zero;
+    // 좌표 변환
+    public Vector3 GridToWorldPosition(Vector2Int gridPosition) => GetController()?.GridToWorldPosition(gridPosition) ?? Vector3.zero;
+    public Vector2Int WorldToGridPosition(Vector3 worldPosition) => GetController()?.WorldToGridPosition(worldPosition) ?? Vector2Int.zero;
 
-    public void SetTileBlocked(Vector2Int position, bool blocked) => gridController?.SetTileBlocked(position, blocked);
-    public void SetTileHighlight(Vector2Int position, Color highlightColor) => gridController?.SetTileHighlight(position, highlightColor);
-    public void ClearAllHighlights() => gridController?.ClearAllHighlights();
+    // 타일 상태 관리 - 렌더러와 연동
+    public void SetTileBlocked(Vector2Int position, bool blocked) => GetController()?.SetTileBlocked(position, blocked);
+    public void SetTileHighlight(Vector2Int position, Color highlightColor) 
+    {
+        GetController()?.SetTileHighlight(position, highlightColor);
+        gridRenderer?.SetTileHighlight(position, highlightColor);
+    }
+    public void ClearAllHighlights() 
+    {
+        GetController()?.ClearAllHighlights();
+        gridRenderer?.ClearAllHighlights();
+    }
 
     // IGridManager 이벤트들 - GridController의 이벤트를 중계
     public event System.Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved

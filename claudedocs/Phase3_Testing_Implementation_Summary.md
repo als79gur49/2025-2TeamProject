@@ -42,7 +42,7 @@
 - **System Validation**: Complete system health checks
 - **Quick Health Check**: Rapid status verification
 - **Test Report Generation**: Comprehensive documentation output
-- **Integration with GridMigrationHelper**: Migration validation support
+- **ServiceLocator Validation**: Direct service registration and retrieval validation
 
 ### 🏗️ Test Infrastructure
 

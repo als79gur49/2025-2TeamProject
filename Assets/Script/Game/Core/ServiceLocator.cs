@@ -45,19 +45,11 @@ namespace Game.Core
                 throw new ArgumentException($"Implementation {implementation.GetType().Name} does not implement {serviceType.Name}");
 
             lock (lockObject)
-            {
-                Debug.Log($"[ServiceLocator] Registering - Type: {serviceType.Name}, Hash: {serviceType.GetHashCode()}, Assembly: {serviceType.Assembly.FullName}");
-                Debug.Log($"[ServiceLocator] Implementation: {implementation.GetType().Name}, Thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
-                Debug.Log($"[ServiceLocator] Services dictionary hash: {services.GetHashCode()}, Count before: {services.Count}");
-                
+            {               
                 services[serviceType] = implementation;
                 OnServiceRegistered?.Invoke(serviceType, implementation);
                 
-                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}, Count after: {services.Count}");
-                
-                // 즉시 확인 테스트
-                var immediateTest = services.TryGetValue(serviceType, out var testService);
-                Debug.Log($"[ServiceLocator] Immediate verification: {immediateTest}, Service: {testService?.GetType().Name ?? "null"}");
+                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}, Count after: {services.Count}");              
             }
         }
 
@@ -207,9 +199,7 @@ namespace Game.Core
         {
             lock (lockObject)
             {
-                Debug.Log($"[ServiceLocator] Clear() called - Services count before clear: {services.Count}");
                 var stackTrace = UnityEngine.StackTraceUtility.ExtractStackTrace();
-                Debug.Log($"[ServiceLocator] Clear() stack trace: {stackTrace}");
                 
                 services.Clear();
                 singletonInstances.Clear();

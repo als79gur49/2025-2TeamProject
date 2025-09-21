@@ -262,33 +262,6 @@ public class UnitMovementTest : MonoBehaviour
         Debug.Log($"컴포넌트 시스템 사용: {testUnit.IsUsingComponentSystem()}");
     }
     
-    /// <summary>
-    /// 그리드 상태 정보 출력
-    /// </summary>
-    [ContextMenu("Log Grid Status")]
-    public void LogGridStatus()
-    {
-        if (gridManager == null)
-        {
-            Debug.LogWarning("[UnitMovementTest] No grid manager assigned");
-            return;
-        }
-        
-        Debug.Log("=== 그리드 상태 정보 ===");
-        Debug.Log($"GridManager: {gridManager.name}");
-        
-        var gridServices = gridManager.GetGridServices();
-        if (gridServices != null)
-        {
-            var gridState = gridServices.GridState;
-            Debug.Log($"그리드 크기: {gridState.GridSize.x} x {gridState.GridSize.y}");
-            
-        }
-        else
-        {
-            Debug.LogWarning("GridServices를 가져올 수 없음");
-        }
-    }
     
     // Update에서 실시간 정보 업데이트
     private void Update()
