@@ -85,6 +85,8 @@ namespace Game.Services
             {
                 turnService.OnTurnChanged += HandleTurnChanged;
                 turnService.OnTurnCountChanged += HandleTurnCountChanged;
+                turnService.OnPhaseChanged += HandlePhaseChanged;
+                turnService.OnPhaseCountChanged += HandlePhaseCountChanged;
             }
         }
         
@@ -167,6 +169,18 @@ namespace Game.Services
         private void HandleTurnCountChanged(int turnCount)
         {
             UpdateDisplay();
+        }
+        
+        private void HandlePhaseChanged(TurnPhase phase)
+        {
+            UpdateDisplay();
+            Debug.Log($"[UIService] Phase changed to: {phase}");
+        }
+        
+        private void HandlePhaseCountChanged(int phaseCount)
+        {
+            UpdateDisplay();
+            Debug.Log($"[UIService] Phase count changed to: {phaseCount}");
         }
         
         private void OnEndTurnButtonClicked()
@@ -268,6 +282,8 @@ namespace Game.Services
             {
                 turnService.OnTurnChanged -= HandleTurnChanged;
                 turnService.OnTurnCountChanged -= HandleTurnCountChanged;
+                turnService.OnPhaseChanged -= HandlePhaseChanged;
+                turnService.OnPhaseCountChanged -= HandlePhaseCountChanged;
             }
         }
         
@@ -277,17 +293,36 @@ namespace Game.Services
         {
             if (turnStatusText == null || turnService == null) return;
             
-            string currentPlayer = turnService.IsPlayerTurn ? "Player" : "Enemy";
-            turnStatusText.text = $"Turn {turnService.TurnCount}: {currentPlayer}'s Turn";
+            string phaseText = GetPhaseDisplayText(turnService.CurrentPhase);
+            string cycleInfo = $"Cycle {turnService.TurnCount + 1} | Phase {(int)turnService.CurrentPhase + 1}/4";
+            turnStatusText.text = $"{cycleInfo}\n{phaseText}";
             
-            if (turnService.IsPlayerTurn)
+            // Set color based on current phase
+            turnStatusText.color = GetPhaseColor(turnService.CurrentPhase);
+        }
+        
+        private string GetPhaseDisplayText(TurnPhase phase)
+        {
+            return phase switch
             {
-                turnStatusText.color = Color.cyan;
-            }
-            else
+                TurnPhase.EnemySummon => "Enemy Summon Phase",
+                TurnPhase.AllySummon => "Ally Summon Phase", 
+                TurnPhase.EnemyAction => "Enemy Action Phase",
+                TurnPhase.AllyAction => "Ally Action Phase",
+                _ => "Unknown Phase"
+            };
+        }
+        
+        private Color GetPhaseColor(TurnPhase phase)
+        {
+            return phase switch
             {
-                turnStatusText.color = Color.red;
-            }
+                TurnPhase.EnemySummon => new Color(1f, 0.4f, 0.4f),    // Light red
+                TurnPhase.AllySummon => new Color(0.4f, 0.8f, 1f),     // Light blue
+                TurnPhase.EnemyAction => new Color(0.9f, 0.2f, 0.2f),  // Dark red
+                TurnPhase.AllyAction => new Color(0.2f, 0.9f, 0.2f),   // Green
+                _ => Color.white
+            };
         }
         
         private void UpdateEndTurnButton()
@@ -297,18 +332,36 @@ namespace Game.Services
             Text buttonText = endTurnButton.GetComponentInChildren<Text>();
             Image buttonImage = endTurnButton.GetComponent<Image>();
             
-            if (turnService.IsPlayerTurn)
+            string buttonLabel = GetPhaseButtonText(turnService.CurrentPhase);
+            Color buttonColor = GetPhaseButtonColor(turnService.CurrentPhase);
+            
+            buttonText.text = buttonLabel;
+            buttonImage.color = buttonColor;
+            endTurnButton.interactable = true;
+        }
+        
+        private string GetPhaseButtonText(TurnPhase phase)
+        {
+            return phase switch
             {
-                buttonText.text = "End Player Turn";
-                buttonImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
-                endTurnButton.interactable = true;
-            }
-            else
+                TurnPhase.EnemySummon => "End Enemy Summon",
+                TurnPhase.AllySummon => "End Ally Summon",
+                TurnPhase.EnemyAction => "End Enemy Action",
+                TurnPhase.AllyAction => "End Ally Action",
+                _ => "End Phase"
+            };
+        }
+        
+        private Color GetPhaseButtonColor(TurnPhase phase)
+        {
+            return phase switch
             {
-                buttonText.text = "End Enemy Turn";
-                buttonImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f);
-                endTurnButton.interactable = true;
-            }
+                TurnPhase.EnemySummon => new Color(0.8f, 0.3f, 0.3f, 0.8f),  // Red-ish
+                TurnPhase.AllySummon => new Color(0.3f, 0.7f, 0.9f, 0.8f),   // Blue-ish
+                TurnPhase.EnemyAction => new Color(0.9f, 0.2f, 0.2f, 0.8f),  // Dark red
+                TurnPhase.AllyAction => new Color(0.2f, 0.8f, 0.2f, 0.8f),   // Green
+                _ => new Color(0.5f, 0.5f, 0.5f, 0.8f)                       // Gray
+            };
         }
     }
 }

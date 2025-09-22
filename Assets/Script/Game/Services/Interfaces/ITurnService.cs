@@ -7,39 +7,33 @@ namespace Game.Services
     /// </summary>
     public interface ITurnService
     {
-        /// <summary>
-        /// Gets whether it's currently the player's turn
-        /// </summary>
-        bool IsPlayerTurn { get; }
+        // 페이즈 관리 속성
+        TurnPhase CurrentPhase { get; }
+        int TurnCount { get; }          // 전체 턴 사이클 (4 페이즈마다 1 증가)
+        int PhaseCount { get; }         // 진행된 총 페이즈 수
         
-        /// <summary>
-        /// Gets the current turn count
-        /// </summary>
-        int TurnCount { get; }
+        // 레거시 호환성 속성
+        bool IsPlayerTurn { get; }      // AllySummon & AllyAction 페이즈에서 true
         
-        /// <summary>
-        /// Starts a new turn
-        /// </summary>
-        void StartTurn();
+        // 페이즈 제어 메서드
+        void StartGame();               // EnemySummon 페이즈로 초기화
+        void StartCurrentPhase();       // 현재 페이즈 처리 시작
+        void EndCurrentPhase();         // 현재 페이즈 종료 및 다음 페이즈로 전환
         
-        /// <summary>
-        /// Ends the current turn
-        /// </summary>
-        void EndTurn();
+        // 페이즈 질의 메서드
+        bool IsSummonPhase { get; }     // 소환 페이즈인지 확인
+        bool IsActionPhase { get; }     // 행동 페이즈인지 확인
+        bool IsEnemyPhase { get; }      // 적의 페이즈인지 확인
+        bool IsAllyPhase { get; }       // 아군의 페이즈인지 확인
         
-        /// <summary>
-        /// Starts the game (resets turn state)
-        /// </summary>
-        void StartGame();
+        // 레거시 호환성 메서드
+        void StartTurn();               // StartCurrentPhase()로 위임
+        void EndTurn();                 // EndCurrentPhase()로 위임
         
-        /// <summary>
-        /// Event fired when the turn changes between player and AI
-        /// </summary>
-        event Action<bool> OnTurnChanged;
-        
-        /// <summary>
-        /// Event fired when the turn count changes
-        /// </summary>
-        event Action<int> OnTurnCountChanged;
+        // 이벤트 (하위 호환성 유지)
+        event Action<bool> OnTurnChanged;           // 레거시 호환용
+        event Action<int> OnTurnCountChanged;       // 턴 사이클 변경 시
+        event Action<TurnPhase> OnPhaseChanged;     // 신규: 페이즈 변경 시
+        event Action<int> OnPhaseCountChanged;      // 신규: 페이즈 카운트 변경 시
     }
 }

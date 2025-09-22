@@ -37,6 +37,19 @@ namespace Game.Services
         void ProcessAllUnits();
         
         /// <summary>
+        /// 현재 턴 페이즈에 맞춰 적절한 순서로 유닛을 처리합니다.
+        /// </summary>
+        /// <param name="phase">처리할 턴 페이즈</param>
+        void ProcessUnitsForPhase(TurnPhase phase);
+        
+        /// <summary>
+        /// 그리드 위치(우상단에서 좌하단)에 따라 정렬된 유닛 리스트를 가져옵니다.
+        /// </summary>
+        /// <param name="isPlayerUnits">플레이어 유닛 여부</param>
+        /// <returns>그리드 순서로 정렬된 유닛 리스트</returns>
+        List<Unit> GetUnitsInGridOrder(bool isPlayerUnits);
+        
+        /// <summary>
         /// Gets a list of active units, optionally filtered by owner
         /// </summary>
         /// <param name="isPlayerUnit">Filter by player ownership (null for all units)</param>

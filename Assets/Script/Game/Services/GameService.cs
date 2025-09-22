@@ -90,7 +90,7 @@ namespace Game.Services
         {
             if (uiService != null)
             {
-                uiService.OnEndTurnRequested += HandleEndTurnRequest;
+                uiService.OnEndTurnRequested += HandleEndPhaseRequest;
                 uiService.OnRestartRequested += RestartGame;
             }
         }
@@ -168,41 +168,35 @@ namespace Game.Services
         #region Turn Management Coordination
         
         /// <summary>
-        /// Handles end turn request from UI
-        /// Coordinates between TurnService and UnitService
+        /// Handles end phase request from UI
+        /// Simplified to only trigger phase transition
         /// </summary>
-        private void HandleEndTurnRequest()
+        private void HandleEndPhaseRequest()
         {
             if (!IsGameActive || !dependenciesInjected)
             {
-                Debug.LogWarning("[GameService] Cannot process end turn - Game not active or dependencies missing");
+                Debug.LogWarning("[GameService] Cannot process end phase - Game not active or dependencies missing");
                 return;
             }
             
-            if (turnService == null || unitService == null)
+            if (turnService == null)
             {
-                Debug.LogError("[GameService] Cannot process end turn - Required services are null");
+                Debug.LogError("[GameService] Cannot process end phase - TurnService is null");
                 return;
             }
             
-            Debug.Log("[GameService] Processing end turn request...");
+            Debug.Log("[GameService] Processing end phase request...");
             
             try
             {
-                // Process units for current turn before ending
-                unitService.ProcessUnitsForCurrentPlayer(turnService.IsPlayerTurn);
+                // Simply end the current phase - unit processing is handled by GameServiceManager
+                turnService.EndCurrentPhase();
                 
-                // End the turn
-                turnService.EndTurn();
-                
-                // Update UI to reflect new state
-                uiService?.UpdateDisplay();
-                
-                Debug.Log("[GameService] End turn processed successfully");
+                Debug.Log("[GameService] End phase processed successfully");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"[GameService] Error processing end turn: {ex.Message}");
+                Debug.LogError($"[GameService] Error processing end phase: {ex.Message}");
             }
         }
         
@@ -217,7 +211,7 @@ namespace Game.Services
         {
             if (uiService != null)
             {
-                uiService.OnEndTurnRequested -= HandleEndTurnRequest;
+                uiService.OnEndTurnRequested -= HandleEndPhaseRequest;
                 uiService.OnRestartRequested -= RestartGame;
             }
         }

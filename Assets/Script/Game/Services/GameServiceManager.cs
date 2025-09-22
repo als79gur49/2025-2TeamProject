@@ -31,6 +31,12 @@ namespace Game.Services
         /// <summary>Event fired when turn count changes</summary>
         public event Action<int> OnTurnCountChanged;
         
+        /// <summary>Event fired when phase changes</summary>
+        public event Action<TurnPhase> OnPhaseChanged;
+        
+        /// <summary>Event fired when phase count changes</summary>
+        public event Action<int> OnPhaseCountChanged;
+        
         /// <summary>Event fired when a unit is registered</summary>
         public event Action<Unit> OnUnitRegistered;
         
@@ -226,6 +232,8 @@ namespace Game.Services
             // TurnService events
             turnService.OnTurnChanged += HandleTurnChanged;
             turnService.OnTurnCountChanged += HandleTurnCountChanged;
+            turnService.OnPhaseChanged += HandlePhaseChanged;
+            turnService.OnPhaseCountChanged += HandlePhaseCountChanged;
             
             // UnitService events
             unitService.OnUnitRegistered += HandleUnitRegistered;
@@ -236,8 +244,8 @@ namespace Game.Services
             gameService.OnGameStarted += HandleGameStarted;
             gameService.OnGameEnded += HandleGameEnded;
             
-            // UIService events
-            uiService.OnEndTurnRequested += HandleEndTurnRequested;
+            // UIService events  
+            uiService.OnEndTurnRequested += HandleEndPhaseRequested;
             uiService.OnRestartRequested += HandleRestartRequested;
             
             areEventsConnected = true;
@@ -321,6 +329,21 @@ namespace Game.Services
             OnTurnCountChanged?.Invoke(turnCount);
         }
         
+        private void HandlePhaseChanged(TurnPhase phase)
+        {
+            LogEvent($"🔄 Phase changed: {phase}");
+            OnPhaseChanged?.Invoke(phase);
+            
+            // 페이즈 변경 시 자동으로 해당 페이즈의 유닛 처리 로직을 트리거
+            unitService?.ProcessUnitsForPhase(phase);
+        }
+        
+        private void HandlePhaseCountChanged(int phaseCount)
+        {
+            LogEvent($"📊 Phase count changed: {phaseCount}");
+            OnPhaseCountChanged?.Invoke(phaseCount);
+        }
+        
         private void HandleUnitRegistered(Unit unit)
         {
             LogEvent($"👥 Unit registered: {unit?.name}");
@@ -351,10 +374,12 @@ namespace Game.Services
             OnGameEnded?.Invoke();
         }
         
-        private void HandleEndTurnRequested()
+        private void HandleEndPhaseRequested()
         {
-            LogEvent("🔚 End turn requested");
-            OnEndTurnRequested?.Invoke();
+            LogEvent("🔚 End phase requested by user");
+            // GameService는 더 이상 유닛 처리나 턴 종료를 직접 호출하지 않음
+            // 이 이벤트는 GameService를 통해 TurnService.EndCurrentPhase()를 호출하도록 연결됨
+            OnEndTurnRequested?.Invoke(); // 기존 이벤트 이름 유지 또는 변경 가능
         }
         
         private void HandleRestartRequested()
@@ -379,6 +404,8 @@ namespace Game.Services
                 {
                     turnService.OnTurnChanged -= HandleTurnChanged;
                     turnService.OnTurnCountChanged -= HandleTurnCountChanged;
+                    turnService.OnPhaseChanged -= HandlePhaseChanged;
+                    turnService.OnPhaseCountChanged -= HandlePhaseCountChanged;
                 }
                 
                 // UnitService events
@@ -399,7 +426,7 @@ namespace Game.Services
                 // UIService events
                 if (uiService != null)
                 {
-                    uiService.OnEndTurnRequested -= HandleEndTurnRequested;
+                    uiService.OnEndTurnRequested -= HandleEndPhaseRequested;
                     uiService.OnRestartRequested -= HandleRestartRequested;
                 }
                 
