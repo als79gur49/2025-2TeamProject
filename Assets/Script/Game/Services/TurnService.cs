@@ -16,7 +16,7 @@ namespace Game.Services
         public int TurnCount => turnCount;
         public int PhaseCount => phaseCount;
         
-        // 레거시 호환성
+        // 호환성
         public bool IsPlayerTurn => IsAllyPhase;
         
         // 페이즈 질의 속성
@@ -76,24 +76,13 @@ namespace Game.Services
             OnPhaseChanged?.Invoke(currentPhase);
             OnPhaseCountChanged?.Invoke(phaseCount);
             
-            // 플레이어 턴 상태가 변경되었을 때만 레거시 이벤트 발생
+            // 플레이어 턴 상태가 변경되었을 때만 이벤트 발생
             if (wasPlayerTurn != IsPlayerTurn)
             {
                 OnTurnChanged?.Invoke(IsPlayerTurn);
             }
             
             Debug.Log($"[TurnService] Phase changed: {previousPhase} → {currentPhase}");
-        }
-        
-        // 레거시 호환성 메서드
-        public void StartTurn()
-        {
-            StartCurrentPhase();
-        }
-        
-        public void EndTurn()
-        {
-            EndCurrentPhase();
         }
         
         private TurnPhase GetNextPhase(TurnPhase current)

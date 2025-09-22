@@ -12,7 +12,7 @@ namespace Game.Services
         int TurnCount { get; }          // 전체 턴 사이클 (4 페이즈마다 1 증가)
         int PhaseCount { get; }         // 진행된 총 페이즈 수
         
-        // 레거시 호환성 속성
+        // 호환성 속성
         bool IsPlayerTurn { get; }      // AllySummon & AllyAction 페이즈에서 true
         
         // 페이즈 제어 메서드
@@ -26,12 +26,8 @@ namespace Game.Services
         bool IsEnemyPhase { get; }      // 적의 페이즈인지 확인
         bool IsAllyPhase { get; }       // 아군의 페이즈인지 확인
         
-        // 레거시 호환성 메서드
-        void StartTurn();               // StartCurrentPhase()로 위임
-        void EndTurn();                 // EndCurrentPhase()로 위임
-        
-        // 이벤트 (하위 호환성 유지)
-        event Action<bool> OnTurnChanged;           // 레거시 호환용
+        // 이벤트
+        event Action<bool> OnTurnChanged;           // 호환용
         event Action<int> OnTurnCountChanged;       // 턴 사이클 변경 시
         event Action<TurnPhase> OnPhaseChanged;     // 신규: 페이즈 변경 시
         event Action<int> OnPhaseCountChanged;      // 신규: 페이즈 카운트 변경 시

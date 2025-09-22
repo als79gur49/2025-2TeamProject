@@ -45,41 +45,6 @@ namespace Game.Services
             }
         }
         
-        public void ProcessUnitsForCurrentPlayer(bool isPlayerTurn)
-        {
-            string playerType = isPlayerTurn ? "Player" : "Enemy";
-            Debug.Log($"[UnitService] Processing {playerType} units...");
-            
-            var unitsToProcess = GetActiveUnits(isPlayerTurn);
-            
-            foreach (Unit unit in unitsToProcess)
-            {
-                if (unit != null && unit.IsAlive)
-                {
-                    unit.OnTurnStart();
-                }
-            }
-            
-            Debug.Log($"[UnitService] {playerType} units processed: {unitsToProcess.Count}");
-            OnUnitsProcessed?.Invoke();
-        }
-        
-        public void ProcessAllUnits()
-        {
-            Debug.Log("[UnitService] Processing all active units...");
-            
-            foreach (Unit unit in allUnits)
-            {
-                if (unit != null && unit.IsAlive)
-                {
-                    unit.OnTurnStart();
-                }
-            }
-            
-            Debug.Log($"[UnitService] All units processed: {ActiveUnitCount}");
-            OnUnitsProcessed?.Invoke();
-        }
-        
         public List<Unit> GetActiveUnits(bool? isPlayerUnit = null)
         {
             return allUnits.Where(u => u != null && u.IsAlive && 

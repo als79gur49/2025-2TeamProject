@@ -4,6 +4,7 @@ using Game.Interfaces;
 using Game.Components;
 using Game.Services;
 using PlasticPipe.PlasticProtocol.Messages;
+using Game;
 
 
 /// <summary>
@@ -13,10 +14,7 @@ public class GameInitializer : MonoBehaviour
 {
     [Header("서비스 참조")]
     [SerializeField] private GridManager gridManager;
-    [SerializeField] private TurnService turnService;
-    [SerializeField] private UnitService unitService;
-    [SerializeField] private UIService uiService;
-    [SerializeField] private GameService gameService;
+    [SerializeField] private GameServiceManager gameServiceManager;
 
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -158,48 +156,15 @@ public class GameInitializer : MonoBehaviour
     {
         Log("Registering game services via direct references...");
 
-        // TurnService 등록
-        if (turnService != null)
+        // GameServiceManager 등록
+        if (gameServiceManager != null)
         {
-            ServiceLocator.Register<ITurnService>(turnService);
-            Log("✅ ITurnService registered via direct reference");
+            ServiceLocator.Register<IGameServiceManager>(gameServiceManager);
+            Log("✅ IGameServiceManager registered via direct reference");
         }
         else
         {
-            LogError("❌ TurnService reference not assigned in inspector");
-        }
-
-        // UnitService 등록
-        if (unitService != null)
-        {
-            ServiceLocator.Register<IUnitService>(unitService);
-            Log("✅ IUnitService registered via direct reference");
-        }
-        else
-        {
-            LogError("❌ UnitService reference not assigned in inspector");
-        }
-
-        // UIService 등록
-        if (uiService != null)
-        {
-            ServiceLocator.Register<IUIService>(uiService);
-            Log("✅ IUIService registered via direct reference");
-        }
-        else
-        {
-            LogError("❌ UIService reference not assigned in inspector");
-        }
-
-        // GameService 등록 (다른 서비스들에 의존하므로 마지막에 등록)
-        if (gameService != null)
-        {
-            ServiceLocator.Register<IGameService>(gameService);
-            Log("✅ IGameService registered via direct reference");
-        }
-        else
-        {
-            LogError("❌ GameService reference not assigned in inspector");
+            LogError("❌ GameServiceManager reference not assigned in inspector");
         }
 
         Log("Game services registration completed");
@@ -259,30 +224,10 @@ public class GameInitializer : MonoBehaviour
             LogError("❌ Critical service missing: IGridManager");
         }
 
-        if (!ServiceLocator.IsRegistered<IGridController>())
+        // Game 서비스 확인   
+        if (!ServiceLocator.IsRegistered<IGameServiceManager>())
         {
-            LogError("❌ Critical service missing: IGridController");
-        }
-
-        // Game 서비스 확인
-        if (!ServiceLocator.IsRegistered<ITurnService>())
-        {
-            LogError("❌ Critical service missing: ITurnService");
-        }
-
-        if (!ServiceLocator.IsRegistered<IUnitService>())
-        {
-            LogError("❌ Critical service missing: IUnitService");
-        }
-
-        if (!ServiceLocator.IsRegistered<IUIService>())
-        {
-            LogError("❌ Critical service missing: IUIService");
-        }
-
-        if (!ServiceLocator.IsRegistered<IGameService>())
-        {
-            LogError("❌ Critical service missing: IGameService");
+            LogError("❌ Critical service missing: IGameServiceManager");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

@@ -3,6 +3,7 @@ using Game.Interfaces;
 using Game.Components;
 using Game.Data;
 using Game.Core;
+using Game;
 public class Unit : MonoBehaviour
 {
     [Header("Legacy Configuration (for Inspector compatibility)")]
@@ -18,6 +19,9 @@ public class Unit : MonoBehaviour
     [Header("Runtime Status (Read Only)")]
     [SerializeField, Tooltip("Shows if all components are properly initialized")]
     private bool componentSystemReady = false;
+    
+    [SerializeField, Tooltip("Shows if Unit has been initialized with ServiceLocator")]
+    private bool isInitialized = false;
     
     // Component references
     private IHealthComponent healthComponent;
@@ -47,6 +51,10 @@ public class Unit : MonoBehaviour
     public int X => CurrentTile?.X ?? (gridManager != null ? gridManager.GetUnitPosition(gameObject).x : -1);
     public int Y => CurrentTile?.Y ?? (gridManager != null ? gridManager.GetUnitPosition(gameObject).y : -1);
     
+    // Initialization status properties
+    public bool IsInitialized => isInitialized;
+    public bool IsReadyForGame => isInitialized && gridManager != null;
+    
     private void Awake()
     {
         // Initialize component system
@@ -56,33 +64,61 @@ public class Unit : MonoBehaviour
         legacyMaxHealth = health;
     }
     
-    private void Start()
+    /// <summary>
+    /// Unit을 ServiceLocator와 연결하고 초기화 수행
+    /// 외부에서 호출하여 초기화 타이밍 제어 가능
+    /// </summary>
+    public void Init(IGridManager igridManager, IGameServiceManager igameServiceManager)
     {
-        // Phase 3: ServiceLocator를 통한 직접 GridManager 접근
-        InitializeGridManager();
+        if (isInitialized)
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} already initialized");
+            return;
+        }
+
+        InitializeGridManager(igridManager);
+        RegisterWithGameServiceManager(igameServiceManager);
+      
+        isInitialized = true;
+        
+        Debug.Log($"[Unit] {gameObject.name} initialization completed - 프레임: {Time.frameCount}");
+    }
+       
+    /// <summary>
+    /// GameServiceManager를 통해 UnitService에 자동 등록
+    /// </summary>
+    private void RegisterWithGameServiceManager(IGameServiceManager igameServiceManager)
+    {
+        if(igameServiceManager != null)
+        {
+            // GameServiceManager의 public 메서드를 통해 등록
+            igameServiceManager.RegisterUnit(this);
+            Debug.Log($"[Unit] {gameObject.name} registered with GameServiceManager successfully");
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} registration failed - GameServiceManager is null");
+        }
     }
 
     /// <summary>
     /// ServiceLocator를 통한 직접 GridManager 초기화
     /// </summary>
-    private void InitializeGridManager()
+    private void InitializeGridManager(IGridManager igridManager)
     {
-        gridManager = ServiceLocator.Get<IGridManager>();
+        gridManager = igridManager;
         if (gridManager != null)
         {
             Debug.Log($"[Unit] GridManager initialized directly for {gameObject.name}");
-            
-            // GridManager를 통해 필요한 하위 서비스들에 접근
-            // GridManager가 하위 서비스들을 관리하므로 이것만으로 충분
+
             SetupEventSubscriptions();
             InitializeCurrentTile();
         }
         else
         {
-            Debug.LogWarning($"[Unit] Failed to initialize GridManager for {gameObject.name} - IGridManager not available in ServiceLocator");
+            Debug.LogWarning($"[Unit] Failed to initialize GridManager for {gameObject.name}");
         }
     }
-    
     
     /// <summary>
     /// 초기화 시 currentTile 설정 - 이미 그리드에 배치된 유닛을 위한 처리
@@ -586,9 +622,12 @@ public class Unit : MonoBehaviour
             // Fallback: just update current tile reference if available
             Debug.LogWarning($"[Unit] SetPosition called without GridManager - position update may not be complete");
         }
+        else
+        {
+            Debug.LogWarning($"[Unit] SetPosition called without GridManager and currentTile 프레임: {Time.frameCount}");
+        }
     }
-
-    // Inspector utility methods
+    
     [ContextMenu("Initialize Components")]
     private void ForceInitializeComponents()
     {
@@ -617,6 +656,7 @@ public class Unit : MonoBehaviour
         Debug.Log($"Team: {(teamComponent?.Team.ToString() ?? "Legacy")} | Player Unit: {IsPlayerUnit}");
         Debug.Log($"Current Tile: {(currentTile != null ? $"{currentTile.name} ({currentTile.X}, {currentTile.Y})" : "NULL")}");
         Debug.Log($"Grid Position: ({X}, {Y})");
+        Debug.Log($"Initialization Status - Initialized: {isInitialized}, Ready for Game: {IsReadyForGame}");
     }
     
     [ContextMenu("Force Update Current Tile")]

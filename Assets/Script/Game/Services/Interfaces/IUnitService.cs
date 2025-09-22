@@ -26,17 +26,6 @@ namespace Game.Services
         void UnregisterUnit(Unit unit);
         
         /// <summary>
-        /// Processes units for the current player turn
-        /// </summary>
-        /// <param name="isPlayerTurn">Whether it's the player's turn</param>
-        void ProcessUnitsForCurrentPlayer(bool isPlayerTurn);
-        
-        /// <summary>
-        /// Processes all units regardless of owner
-        /// </summary>
-        void ProcessAllUnits();
-        
-        /// <summary>
         /// 현재 턴 페이즈에 맞춰 적절한 순서로 유닛을 처리합니다.
         /// </summary>
         /// <param name="phase">처리할 턴 페이즈</param>

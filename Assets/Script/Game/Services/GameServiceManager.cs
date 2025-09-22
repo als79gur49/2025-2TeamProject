@@ -9,14 +9,13 @@ namespace Game.Services
     /// Enhanced GameServiceManager - Acts as a central coordinator for all game services
     /// Manages service lifecycle, dependency injection, and provides centralized event aggregation
     /// </summary>
-    public class GameServiceManager : MonoBehaviour
+    public class GameServiceManager : MonoBehaviour, IGameServiceManager
     {
         [Header("Service Components")]
         [SerializeField] private TurnService turnService;
         [SerializeField] private UnitService unitService;
         [SerializeField] private UIService uiService;
         [SerializeField] private GameService gameService;
-        [SerializeField] private TestInputHandler testInputHandler;
         
         [Header("Configuration")]
         [SerializeField] private bool autoInitialize = true;
@@ -91,7 +90,10 @@ namespace Game.Services
                 InitializeServices();
             }
         }
-        
+        private void Start()
+        {
+            gameService.StartGame();
+        }
         private void OnDestroy()
         {
             DisconnectServiceEvents();
@@ -175,12 +177,6 @@ namespace Game.Services
                 gameService = gameObject.AddComponent<GameService>();
                 LogEvent("🎮 Created GameService component");
             }
-            
-            if (testInputHandler == null)
-            {
-                testInputHandler = gameObject.AddComponent<TestInputHandler>();
-                LogEvent("🎯 Created TestInputHandler component");
-            }
         }
         
         /// <summary>
@@ -188,13 +184,6 @@ namespace Game.Services
         /// </summary>
         private void RegisterServicesWithLocator()
         {
-            // Register interfaces with their implementations
-            ServiceLocator.Register<ITurnService>(turnService);
-            ServiceLocator.Register<IUnitService>(unitService);
-            ServiceLocator.Register<IUIService>(uiService);
-            ServiceLocator.Register<IGameService>(gameService);
-            
-            LogEvent("📋 All services registered with ServiceLocator");
         }
         
         /// <summary>
@@ -283,11 +272,6 @@ namespace Game.Services
                 allHealthy = false;
             }
             
-            if (testInputHandler == null)
-            {
-                LogEvent("❌ TestInputHandler is null");
-                allHealthy = false;
-            }
             
             if (!isDependencyInjectionComplete)
             {
@@ -453,6 +437,58 @@ namespace Game.Services
         
         #endregion
         
+        #region Unit Registration API
+        
+        /// <summary>
+        /// Registers a unit with the game service system
+        /// </summary>
+        /// <param name="unit">Unit to register</param>
+        public void RegisterUnit(Unit unit)
+        {
+            if (unit == null)
+            {
+                LogEvent("❌ Cannot register null unit");
+                return;
+            }
+            
+            if (unitService != null)
+            {
+                unitService.RegisterUnit(unit);
+                LogEvent($"👥 Unit {unit.name} registered through GameServiceManager");
+            }
+            else
+            {
+                LogEvent($"❌ Cannot register unit {unit.name} - UnitService not available");
+                OnServiceError?.Invoke($"UnitService not available for registering unit {unit.name}");
+            }
+        }
+        
+        /// <summary>
+        /// Unregisters a unit from the game service system
+        /// </summary>
+        /// <param name="unit">Unit to unregister</param>
+        public void UnregisterUnit(Unit unit)
+        {
+            if (unit == null)
+            {
+                LogEvent("❌ Cannot unregister null unit");
+                return;
+            }
+            
+            if (unitService != null)
+            {
+                unitService.UnregisterUnit(unit);
+                LogEvent($"👥 Unit {unit.name} unregistered through GameServiceManager");
+            }
+            else
+            {
+                LogEvent($"❌ Cannot unregister unit {unit.name} - UnitService not available");
+                OnServiceError?.Invoke($"UnitService not available for unregistering unit {unit.name}");
+            }
+        }
+        
+        #endregion
+        
         #region Public API
         
         /// <summary>
@@ -469,8 +505,7 @@ namespace Game.Services
                    $"- TurnService: {(turnService != null ? "✅" : "❌")}\n" +
                    $"- UnitService: {(unitService != null ? "✅" : "❌")}\n" +
                    $"- UIService: {(uiService != null ? "✅" : "❌")}\n" +
-                   $"- GameService: {(gameService != null ? "✅" : "❌")}\n" +
-                   $"- TestInputHandler: {(testInputHandler != null ? "✅" : "❌")}";
+                   $"- GameService: {(gameService != null ? "✅" : "❌")}\n";
         }
         
         #endregion
