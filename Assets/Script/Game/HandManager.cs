@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Game.Interfaces;
 using Game.Core;
+using Game.Services;
 
 public class HandManager : MonoBehaviour
 {
@@ -17,7 +18,7 @@ public class HandManager : MonoBehaviour
     private IGridServices gridServices;
     
     private InputManager inputManager;
-    private TurnManager turnManager;
+    private GameServiceManager gameServiceManager;
     
     private bool isCardSelected = false;
     
@@ -36,12 +37,18 @@ public class HandManager : MonoBehaviour
         InitializeDependencies();
         
         inputManager = FindObjectOfType<InputManager>();
-        turnManager = FindObjectOfType<TurnManager>();
+        gameServiceManager = FindObjectOfType<GameServiceManager>();
         
         if (inputManager == null)
         {
             GameObject inputObj = new GameObject("InputManager");
             inputManager = inputObj.AddComponent<InputManager>();
+        }
+        
+        if (gameServiceManager == null)
+        {
+            GameObject gameServiceObj = new GameObject("GameServiceManager");
+            gameServiceManager = gameServiceObj.AddComponent<GameServiceManager>();
         }
     }
     
@@ -137,11 +144,9 @@ public class HandManager : MonoBehaviour
     
     private void OnCardButtonClicked()
     {
-        if (turnManager != null && !turnManager.IsPlayerTurn)
-        {
-            Debug.Log("Not player's turn!");
-            return;
-        }
+        // Note: Turn validation is now handled by GameServiceManager
+        // For now, allow card selection and let GameServiceManager handle turn logic
+        Debug.Log("Card selection requested via GameServiceManager");
         
         isCardSelected = !isCardSelected;
         

@@ -100,9 +100,12 @@ public class UnitControllerLegacyRefactored : MonoBehaviour
         
         if (Input.GetKeyDown(KeyCode.U))
         {
-            // ✅ DELEGATE: Let UnitService handle unit processing
+            // ✅ DELEGATE: Let UnitService handle unit processing for current phase
             Debug.Log("[UnitControllerRefactored] Delegating unit processing to UnitService");
-            unitService?.ProcessAllUnits();
+            if (unitService != null && turnService != null)
+            {
+                unitService.ProcessUnitsForPhase(turnService.CurrentPhase);
+            }
         }
         
         if (Input.GetKeyDown(KeyCode.R))

@@ -175,7 +175,7 @@ namespace Game.Services
         {
             if (!IsGameActive || !dependenciesInjected)
             {
-                Debug.LogWarning("[GameService] Cannot process end phase - Game not active or dependencies missing");
+                Debug.LogWarning($"[GameService] Cannot process end phase - IsGameActive({IsGameActive}) or dependenciesInjected({dependenciesInjected})");
                 return;
             }
             

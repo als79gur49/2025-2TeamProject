@@ -364,7 +364,7 @@ GameObject:
   - component: {fileID: 2598197631179147904}
   - component: {fileID: 3546852586526391875}
   m_Layer: 0
-  m_Name: SampleUnit
+  m_Name: SamplePlayerUnit
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -429,6 +429,8 @@ MonoBehaviour:
   useComponentSystem: 1
   autoAddMissingComponents: 1
   componentSystemReady: 0
+  isInitialized: 0
+  currentTile: {fileID: 0}
 --- !u!1 &4923207253799587756
 GameObject:
   m_ObjectHideFlags: 0

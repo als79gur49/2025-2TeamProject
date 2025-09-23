@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Services;
 
 public class UIManager : MonoBehaviour
 {
@@ -7,7 +8,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text turnStatusText;
     [SerializeField] private Canvas gameCanvas;
     
-    private TurnManager turnManager;
+    private GameServiceManager gameServiceManager;
     private UnitController unitController;
     
     private void Start()
@@ -19,14 +20,13 @@ public class UIManager : MonoBehaviour
     
     private void Initialize()
     {
-        turnManager = FindObjectOfType<TurnManager>();
+        gameServiceManager = FindObjectOfType<GameServiceManager>();
         unitController = FindObjectOfType<UnitController>();
         
-        if (turnManager == null)
+        if (gameServiceManager == null)
         {
-            GameObject turnObj = new GameObject("TurnManager");
-            turnManager = turnObj.AddComponent<TurnManager>();
-            turnManager.StartGame();
+            GameObject gameServiceObj = new GameObject("GameServiceManager");
+            gameServiceManager = gameServiceObj.AddComponent<GameServiceManager>();
         }
     }
     
@@ -146,7 +146,7 @@ public class UIManager : MonoBehaviour
     
     private void OnEndTurnButtonClicked()
     {
-        if (turnManager == null) return;
+        if (gameServiceManager == null) return;
         
         Debug.Log("End Turn button clicked!");
         
@@ -155,7 +155,8 @@ public class UIManager : MonoBehaviour
             ProcessCurrentTurnUnits();
         }
         
-        turnManager.EndTurn();
+        // Request turn end through GameServiceManager event system
+        //gameServiceManager.OnEndTurnRequested?.Invoke();
         UpdateUI();
     }
     
@@ -163,33 +164,20 @@ public class UIManager : MonoBehaviour
     {
         Unit[] allUnits = FindObjectsOfType<Unit>();
         
-        if (turnManager.IsPlayerTurn)
+        // Unit processing logic is now handled by GameServiceManager's UnitService
+        Debug.Log("Processing all units before ending turn...");
+        foreach (Unit unit in allUnits)
         {
-            Debug.Log("Processing player units before ending turn...");
-            foreach (Unit unit in allUnits)
+            if (unit != null && unit.IsAlive)
             {
-                if (unit != null && unit.IsAlive && unit.IsPlayerUnit)
-                {
-                    unit.OnTurnStart();
-                }
-            }
-        }
-        else
-        {
-            Debug.Log("Processing enemy units before ending turn...");
-            foreach (Unit unit in allUnits)
-            {
-                if (unit != null && unit.IsAlive && !unit.IsPlayerUnit)
-                {
-                    unit.OnTurnStart();
-                }
+                unit.OnTurnStart();
             }
         }
     }
     
     private void UpdateUI()
     {
-        if (turnManager == null) return;
+        if (gameServiceManager == null) return;
         
         UpdateTurnStatusText();
         UpdateEndTurnButton();
@@ -199,17 +187,10 @@ public class UIManager : MonoBehaviour
     {
         if (turnStatusText == null) return;
         
-        string currentPlayer = turnManager.IsPlayerTurn ? "Player" : "Enemy";
-        turnStatusText.text = $"Turn {turnManager.TurnCount}: {currentPlayer}'s Turn";
-        
-        if (turnManager.IsPlayerTurn)
-        {
-            turnStatusText.color = Color.cyan;
-        }
-        else
-        {
-            turnStatusText.color = Color.red;
-        }
+        // Note: Turn information will be provided through GameServiceManager events
+        // For now, show basic status until event system is properly connected
+        turnStatusText.text = "Game Active - Use GameServiceManager Events";
+        turnStatusText.color = Color.white;
     }
     
     private void UpdateEndTurnButton()
@@ -219,23 +200,15 @@ public class UIManager : MonoBehaviour
         Text buttonText = endTurnButton.GetComponentInChildren<Text>();
         Image buttonImage = endTurnButton.GetComponent<Image>();
         
-        if (turnManager.IsPlayerTurn)
-        {
-            buttonText.text = "End Player Turn";
-            buttonImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
-            endTurnButton.interactable = true;
-        }
-        else
-        {
-            buttonText.text = "End Enemy Turn";
-            buttonImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f);
-            endTurnButton.interactable = true;
-        }
+        // Simplified button state - GameServiceManager will handle turn logic
+        buttonText.text = "End Turn";
+        buttonImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
+        endTurnButton.interactable = true;
     }
     
-    public void SetTurnManager(TurnManager manager)
+    public void SetGameServiceManager(GameServiceManager manager)
     {
-        turnManager = manager;
+        gameServiceManager = manager;
         UpdateUI();
     }
     
