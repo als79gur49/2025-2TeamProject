@@ -315,11 +315,15 @@ namespace Game.Services
         
         private void HandlePhaseChanged(TurnPhase phase)
         {
-            LogEvent($"🔄 Phase changed: {phase}");
+            LogEvent($"🔄 Phase changed to: {phase}. Starting unit processing...");
             OnPhaseChanged?.Invoke(phase);
             
-            // 페이즈 변경 시 자동으로 해당 페이즈의 유닛 처리 로직을 트리거
-            unitService?.ProcessUnitsForPhase(phase);
+            // UnitService의 비동기 처리를 '요청'하고 즉시 리턴
+            if (unitService != null && !unitService.ProcessUnitsForPhaseAsync(phase))
+            {
+                // 만약 실행에 실패했다면 (예: 이전 페이즈가 아직 실행 중), 게임 멈춤을 방지
+                Debug.LogWarning("Unit processing could not be started. A previous phase might still be running.");
+            }
         }
         
         private void HandlePhaseCountChanged(int phaseCount)

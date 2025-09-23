@@ -1019,9 +1019,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ca81d29c5840b742b2f2bbf11bfb74b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  unitPrefab: {fileID: 3546852586526391875, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
+  playerUnitPrefab: {fileID: 3546852586526391875, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
     type: 3}
-  startPosition: {x: 3, y: 3}
+  enemyUnitPrefab: {fileID: 3546852586526391875, guid: 09969d1e6af0a4246a758cc626655001,
+    type: 3}
+  playerStartPositions:
+  - {x: 3, y: 0}
+  - {x: 2, y: 0}
+  enemyStartPositions:
+  - {x: 1, y: 8}
+  - {x: 2, y: 9}
 --- !u!1001 &1925692108
 PrefabInstance:
   m_ObjectHideFlags: 0

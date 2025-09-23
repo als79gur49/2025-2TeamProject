@@ -10,4 +10,14 @@ namespace Game.Services
         EnemyAction = 2,    // 적군 행동 턴
         AllyAction = 3      // 아군 행동 턴
     }
+
+    /// <summary>
+    /// 페이즈 실행 상태를 나타내는 열거형입니다.
+    /// </summary>
+    public enum PhaseExecutionState
+    {
+        Idle,           // 대기 상태
+        Executing,      // 페이즈 실행 중
+        Cancelling      // 취소 진행 중
+    }
 }

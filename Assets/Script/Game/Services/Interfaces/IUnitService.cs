@@ -66,5 +66,67 @@ namespace Game.Services
         /// Event fired when unit processing is completed
         /// </summary>
         event Action OnUnitsProcessed;
+        
+        // Phase 1: Sequential Processing System - New Interface Methods
+        
+        /// <summary>
+        /// 비동기적으로 페이즈에 맞는 유닛들을 순차 처리를 시작합니다.
+        /// </summary>
+        /// <param name="phase">처리할 턴 페이즈</param>
+        /// <returns>처리 시작 성공 여부</returns>
+        bool ProcessUnitsForPhaseAsync(TurnPhase phase);
+        
+        /// <summary>
+        /// 현재 진행 중인 페이즈를 취소합니다.
+        /// </summary>
+        /// <param name="completeAllActions">true일 경우 남은 유닛들의 로직을 즉시 실행하고 종료</param>
+        /// <returns>취소 성공 여부</returns>
+        bool CancelCurrentPhase(bool completeAllActions = false);
+        
+        /// <summary>
+        /// 현재 페이즈의 진행률을 가져옵니다 (0.0 ~ 1.0).
+        /// </summary>
+        /// <returns>진행률 (0.0 ~ 1.0)</returns>
+        float GetPhaseProgress();
+        
+        /// <summary>
+        /// 현재 페이즈가 실행 중인지 여부를 나타냅니다.
+        /// </summary>
+        bool IsPhaseExecuting { get; }
+        
+        /// <summary>
+        /// 현재 실행 중인 페이즈를 나타냅니다. 실행 중이 아니면 null입니다.
+        /// </summary>
+        TurnPhase? CurrentPhase { get; }
+        
+        /// <summary>
+        /// 유닛 액션 간의 시간 간격을 설정합니다.
+        /// </summary>
+        float UnitActionInterval { get; set; }
+        
+        // 강화된 이벤트 시스템
+        
+        /// <summary>
+        /// 페이즈 시작 시 발생하는 이벤트
+        /// </summary>
+        event Action<TurnPhase> OnPhaseStarted;
+        
+        /// <summary>
+        /// 페이즈 완료 시 발생하는 이벤트
+        /// </summary>
+        event Action<TurnPhase> OnPhaseCompleted;
+        
+        /// <summary>
+        /// 페이즈 취소 시 발생하는 이벤트
+        /// </summary>
+        event Action<TurnPhase> OnPhaseCancelled;
+        
+        /// <summary>
+        /// 개별 유닛 처리 완료 시 발생하는 이벤트
+        /// </summary>
+        /// <param name="unit">처리된 유닛</param>
+        /// <param name="currentIndex">현재 인덱스 (1부터 시작)</param>
+        /// <param name="totalCount">총 유닛 개수</param>
+        event Action<Unit, int, int> OnUnitProcessed;
     }
 }
