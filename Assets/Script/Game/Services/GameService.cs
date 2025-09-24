@@ -169,7 +169,7 @@ namespace Game.Services
         
         /// <summary>
         /// Handles end phase request from UI
-        /// Simplified to only trigger phase transition
+        /// Phase 4: Enhanced to handle sequential unit processing state
         /// </summary>
         private void HandleEndPhaseRequest()
         {
@@ -189,7 +189,16 @@ namespace Game.Services
             
             try
             {
-                // Simply end the current phase - unit processing is handled by GameServiceManager
+                // Phase 4: Check if UnitService is currently executing a phase
+                if (unitService != null && unitService.IsPhaseExecuting)
+                {
+                    // If phase is executing, request immediate completion instead of direct phase transition
+                    Debug.Log("[GameService] Phase is executing. Requesting immediate completion.");
+                    unitService.CancelCurrentPhase(true); // true: complete remaining unit actions instantly
+                }
+                
+                // Always attempt to end the current phase - this is safe even after cancellation
+                // because CancelCurrentPhase already handles the phase completion logic
                 turnService.EndCurrentPhase();
                 
                 Debug.Log("[GameService] End phase processed successfully");

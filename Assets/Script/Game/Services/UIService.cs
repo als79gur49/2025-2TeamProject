@@ -88,6 +88,15 @@ namespace Game.Services
                 turnService.OnPhaseChanged += HandlePhaseChanged;
                 turnService.OnPhaseCountChanged += HandlePhaseCountChanged;
             }
+            
+            // Phase 4: Subscribe to UnitService phase execution events
+            if (unitService != null)
+            {
+                unitService.OnPhaseStarted += HandlePhaseStarted;
+                unitService.OnPhaseCompleted += HandlePhaseCompleted;
+                unitService.OnPhaseCancelled += HandlePhaseCancelled;
+                unitService.OnUnitProcessed += HandleUnitProcessed;
+            }
         }
         
         private void CreateUIElements()
@@ -285,6 +294,15 @@ namespace Game.Services
                 turnService.OnPhaseChanged -= HandlePhaseChanged;
                 turnService.OnPhaseCountChanged -= HandlePhaseCountChanged;
             }
+            
+            // Phase 4: Unsubscribe from UnitService phase execution events
+            if (unitService != null)
+            {
+                unitService.OnPhaseStarted -= HandlePhaseStarted;
+                unitService.OnPhaseCompleted -= HandlePhaseCompleted;
+                unitService.OnPhaseCancelled -= HandlePhaseCancelled;
+                unitService.OnUnitProcessed -= HandleUnitProcessed;
+            }
         }
         
         #endregion
@@ -337,7 +355,18 @@ namespace Game.Services
             
             buttonText.text = buttonLabel;
             buttonImage.color = buttonColor;
-            endTurnButton.interactable = true;
+            
+            // Phase 4: Disable button during phase execution to prevent user interference
+            bool isPhaseExecuting = unitService != null && unitService.IsPhaseExecuting;
+            endTurnButton.interactable = !isPhaseExecuting;
+            
+            // Visual feedback for disabled state
+            if (isPhaseExecuting)
+            {
+                buttonImage.color = new Color(buttonColor.r, buttonColor.g, buttonColor.b, 0.5f);
+                if (buttonText != null)
+                    buttonText.text = "Processing...";
+            }
         }
         
         private string GetPhaseButtonText(TurnPhase phase)
@@ -362,6 +391,98 @@ namespace Game.Services
                 TurnPhase.AllyAction => new Color(0.2f, 0.8f, 0.2f, 0.8f),   // Green
                 _ => new Color(0.5f, 0.5f, 0.5f, 0.8f)                       // Gray
             };
+        }
+        
+        // Phase 4: New event handlers for phase execution state management
+        
+        /// <summary>
+        /// Handles phase start events - disables end turn button to prevent user interference
+        /// </summary>
+        private void HandlePhaseStarted(TurnPhase phase)
+        {
+            Debug.Log($"[UIService] Phase {phase} started - disabling end turn button");
+            UpdateEndTurnButton(); // This will now disable the button since IsPhaseExecuting is true
+            
+            // Update status text to show phase is executing
+            if (turnStatusText != null)
+            {
+                string phaseText = GetPhaseDisplayText(phase);
+                string cycleInfo = turnService != null ? $"Cycle {turnService.TurnCount + 1} | Phase {(int)turnService.CurrentPhase + 1}/4" : "Processing...";
+                turnStatusText.text = $"{cycleInfo}\n{phaseText} (Executing...)";
+            }
+        }
+        
+        /// <summary>
+        /// Handles phase completion events - re-enables end turn button
+        /// </summary>
+        private void HandlePhaseCompleted(TurnPhase phase)
+        {
+            Debug.Log($"[UIService] Phase {phase} completed - re-enabling end turn button");
+            UpdateEndTurnButton(); // This will now enable the button since IsPhaseExecuting is false
+            UpdateTurnStatusText(); // Restore normal status display
+        }
+        
+        /// <summary>
+        /// Handles phase cancellation events - re-enables end turn button
+        /// </summary>
+        private void HandlePhaseCancelled(TurnPhase phase)
+        {
+            Debug.Log($"[UIService] Phase {phase} cancelled - re-enabling end turn button");
+            UpdateEndTurnButton(); // This will now enable the button since IsPhaseExecuting is false
+            UpdateTurnStatusText(); // Restore normal status display
+        }
+        
+        /// <summary>
+        /// Handles individual unit processing events - updates progress display
+        /// </summary>
+        private void HandleUnitProcessed(Unit unit, int currentIndex, int totalCount)
+        {
+            if (turnStatusText != null && unitService != null)
+            {
+                TurnPhase currentPhase = unitService.CurrentPhase ?? TurnPhase.EnemySummon;
+                string phaseText = GetPhaseDisplayText(currentPhase);
+                string cycleInfo = turnService != null ? $"Cycle {turnService.TurnCount + 1} | Phase {(int)currentPhase + 1}/4" : "Processing...";
+                string progressInfo = $"Processing {unit?.name}: {currentIndex}/{totalCount}";
+                turnStatusText.text = $"{cycleInfo}\n{phaseText}\n{progressInfo}";
+            }
+        }
+        
+        // Phase 4: Additional UI helper methods for better phase state management
+        
+        /// <summary>
+        /// Gets the current phase execution progress for UI display
+        /// </summary>
+        public float GetCurrentPhaseProgress()
+        {
+            return unitService?.GetPhaseProgress() ?? 0f;
+        }
+        
+        /// <summary>
+        /// Checks if we can safely end the current phase (no processing in progress)
+        /// </summary>
+        public bool CanEndCurrentPhase()
+        {
+            return unitService == null || !unitService.IsPhaseExecuting;
+        }
+        
+        /// <summary>
+        /// Enhanced end turn request that respects phase execution state
+        /// </summary>
+        public void TriggerSmartEndTurnRequest()
+        {
+            if (CanEndCurrentPhase())
+            {
+                OnEndTurnRequested?.Invoke();
+            }
+            else
+            {
+                Debug.Log("[UIService] Cannot end turn - phase execution in progress. Requesting immediate completion.");
+                // Request immediate completion of current phase
+                if (unitService != null && unitService.IsPhaseExecuting)
+                {
+                    unitService.CancelCurrentPhase(true); // Complete remaining actions instantly
+                }
+            }
         }
     }
 }

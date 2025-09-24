@@ -70,6 +70,8 @@ namespace Game.Interfaces
         GameObject GetUnitAtPosition(Vector2Int gridPosition);
         Vector2Int GetUnitPosition(GameObject unit);
         bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
+        bool RemoveUnit(GameObject unit);
         
         // ✅ 유닛 이동
         bool CanMoveUnit(GameObject unit, Vector2Int targetPosition);

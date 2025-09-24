@@ -208,13 +208,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.19309291, y: -0, z: -0, w: 0.9811805}
-  m_LocalPosition: {x: 11.09, y: 10.43, z: -10}
+  m_LocalRotation: {x: 0.5, y: -0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: 12, y: 28, z: 15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 22.267, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: -90, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -377,18 +377,6 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
---- !u!114 &512663651 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3546852586526391875, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
-    type: 3}
-  m_PrefabInstance: {fileID: 1925692108}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c17ef7a9f804834089a8dbbac903366, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &587330866
 GameObject:
   m_ObjectHideFlags: 0
@@ -418,8 +406,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 838530bb70f456d43af0b2f67edb1e95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridSize: {x: 10, y: 10}
-  tileSize: 10
+  gridSize: {x: 6, y: 6}
+  tileSize: 5
   tilePrefab: {fileID: 9055745435785402388, guid: 0bc57d96d66f89847b83ddc066de2850,
     type: 3}
   allowDiagonalMovement: 0
@@ -470,12 +458,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5f23b6cab3f5df44bd375e508d4788f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  testUnit: {fileID: 512663651}
-  gridManager: {fileID: 587330867}
-  startPosition: {x: 1, y: 7}
-  testSteps: 3
-  currentPosition: {x: 0, y: 0}
-  testInProgress: 0
 --- !u!4 &790127258
 Transform:
   m_ObjectHideFlags: 0
@@ -491,18 +473,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 905686675}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &823289469 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3546852586526391875, guid: f6eeca3a10e323a46a4d7bc4cbd31e95,
-    type: 3}
-  m_PrefabInstance: {fileID: 1663898695}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c17ef7a9f804834089a8dbbac903366, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -725,12 +695,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5f23b6cab3f5df44bd375e508d4788f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  testUnit: {fileID: 823289469}
-  gridManager: {fileID: 587330867}
-  startPosition: {x: 1, y: 2}
-  testSteps: 3
-  currentPosition: {x: 0, y: 0}
-  testInProgress: 0
 --- !u!4 &1037006341
 Transform:
   m_ObjectHideFlags: 0
@@ -1024,11 +988,15 @@ MonoBehaviour:
   enemyUnitPrefab: {fileID: 3546852586526391875, guid: 09969d1e6af0a4246a758cc626655001,
     type: 3}
   playerStartPositions:
-  - {x: 3, y: 0}
+  - {x: 1, y: 0}
   - {x: 2, y: 0}
+  - {x: 3, y: 1}
+  - {x: 4, y: 2}
   enemyStartPositions:
-  - {x: 1, y: 8}
-  - {x: 2, y: 9}
+  - {x: 1, y: 4}
+  - {x: 2, y: 5}
+  - {x: 4, y: 5}
+  - {x: 5, y: 5}
 --- !u!1001 &1925692108
 PrefabInstance:
   m_ObjectHideFlags: 0

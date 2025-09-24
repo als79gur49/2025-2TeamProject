@@ -112,20 +112,26 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 유닛 위치 설정 (내부용)
+        /// 유닛 위치 설정 (내부용) - 물리적 Tile 컴포넌트와 동기화
         /// </summary>
         public bool SetUnitPosition(GameObject unit, Vector2Int newPosition)
         {
             if (unit == null || !IsValidPosition(newPosition))
                 return false;
 
+            Vector2Int oldPosition = new Vector2Int(-1, -1);
+            bool hadOldPosition = false;
+
             // 이전 위치 정리
-            if (unitPositions.TryGetValue(unit, out var oldPosition))
+            if (unitPositions.TryGetValue(unit, out oldPosition))
             {
+                hadOldPosition = true;
                 positionUnits.Remove(oldPosition);
                 if (IsValidPosition(oldPosition))
                 {
                     tileGrid[oldPosition.x, oldPosition.y].SetOccupied(null);
+                    // 이전 위치의 물리적 Tile 업데이트
+                    UpdatePhysicalTile(oldPosition, null);
                 }
             }
 
@@ -141,8 +147,11 @@ namespace Game.Components
             positionUnits[newPosition] = unit;
             tileGrid[newPosition.x, newPosition.y].SetOccupied(unit);
 
+            // 새 위치의 물리적 Tile 업데이트
+            UpdatePhysicalTile(newPosition, unit);
+
             // 이벤트 발생
-            if (IsValidPosition(oldPosition))
+            if (hadOldPosition && IsValidPosition(oldPosition))
             {
                 OnUnitMoved?.Invoke(unit, oldPosition, newPosition);
             }
@@ -155,7 +164,7 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 유닛 제거
+        /// 유닛 제거 - 물리적 Tile 컴포넌트와 동기화
         /// </summary>
         public bool RemoveUnit(GameObject unit)
         {
@@ -165,6 +174,9 @@ namespace Game.Components
             unitPositions.Remove(unit);
             positionUnits.Remove(position);
             tileGrid[position.x, position.y].SetOccupied(null);
+
+            // 물리적 Tile 업데이트
+            UpdatePhysicalTile(position, null);
 
             OnUnitRemoved?.Invoke(position, unit);
             return true;
@@ -415,6 +427,70 @@ namespace Game.Components
             }
 
             Debug.Log("[GridState] All state cleared");
+        }
+
+        /// <summary>
+        /// 물리적 Tile 컴포넌트 업데이트 - Highlight 시스템과 동일한 패턴
+        /// GridState의 데이터 변경을 물리적 Tile 컴포넌트에 반영
+        /// </summary>
+        private void UpdatePhysicalTile(Vector2Int position, GameObject unit)
+        {
+            if (!IsValidPosition(position))
+                return;
+
+            // Method 1: 이름으로 Tile 오브젝트 찾기 (GridRenderer와 동일한 패턴)
+            GameObject tileObject = GameObject.Find($"Tile_{position.x}_{position.y}");
+            if (tileObject != null)
+            {
+                Tile tile = tileObject.GetComponent<Tile>();
+                if (tile != null)
+                {
+                    if (unit != null)
+                    {
+                        Unit unitComponent = unit.GetComponent<Unit>();
+                        if (unitComponent != null)
+                        {
+                            tile.PlaceUnit(unitComponent);
+                            Debug.Log($"[GridState] Updated physical tile at ({position.x}, {position.y}) - placed unit {unit.name}");
+                        }
+                    }
+                    else
+                    {
+                        tile.RemoveUnit();
+                        Debug.Log($"[GridState] Updated physical tile at ({position.x}, {position.y}) - removed unit");
+                    }
+                    return;
+                }
+            }
+
+            // Method 2: 월드 위치 기반으로 Tile 찾기 (fallback)
+            Vector3 worldPos = GridToWorldPosition(position);
+            Collider[] colliders = Physics.OverlapSphere(worldPos, tileSize * 0.6f);
+            foreach (var collider in colliders)
+            {
+                Tile tile = collider.GetComponent<Tile>();
+                if (tile != null && tile.X == position.x && tile.Y == position.y)
+                {
+                    if (unit != null)
+                    {
+                        Unit unitComponent = unit.GetComponent<Unit>();
+                        if (unitComponent != null)
+                        {
+                            tile.PlaceUnit(unitComponent);
+                            Debug.Log($"[GridState] Updated physical tile via collider at ({position.x}, {position.y}) - placed unit {unit.name}");
+                        }
+                    }
+                    else
+                    {
+                        tile.RemoveUnit();
+                        Debug.Log($"[GridState] Updated physical tile via collider at ({position.x}, {position.y}) - removed unit");
+                    }
+                    return;
+                }
+            }
+
+            // 물리적 Tile을 찾지 못한 경우 (정상적인 상황일 수 있음)
+            Debug.Log($"[GridState] No physical tile found at ({position.x}, {position.y}) - data-only update");
         }
 
         // ✅ 디버깅용 메서드

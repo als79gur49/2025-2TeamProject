@@ -4,6 +4,7 @@ using Game.Components;
 using Game.Data;
 using Game.Core;
 using Game;
+using Game.Services;
 public class Unit : MonoBehaviour
 {
     [Header("Legacy Configuration (for Inspector compatibility)")]
@@ -22,6 +23,9 @@ public class Unit : MonoBehaviour
     
     [SerializeField, Tooltip("Shows if Unit has been initialized with ServiceLocator")]
     private bool isInitialized = false;
+    
+    [SerializeField, Tooltip("Shows if death notification has been sent to prevent duplicates")]
+    private bool deathNotificationSent = false;
     
     // Component references
     private IHealthComponent healthComponent;
@@ -390,10 +394,19 @@ public class Unit : MonoBehaviour
         if (useComponentSystem && movementComponent != null)
         {
             movementComponent.StartTurn();
+            
+            // 🔧 이동 가능성 검증 - 적 처치 후 이동 문제 디버깅
+            if (!movementComponent.CanMove)
+            {
+                Debug.LogWarning($"[Unit] {gameObject.name} cannot move after StartTurn() - " +
+                               $"MovementPoints: {movementComponent.CurrentMovementPoints}, " +
+                               $"IsMoving: {movementComponent.IsMoving}, " +
+                               $"IsAlive: {IsAlive}");
+            }
         }
         
         Debug.Log($"[Unit] {gameObject.name} OnTurnStart - currentTile: {currentTile?.name} at ({currentTile?.X}, {currentTile?.Y})");
-        Act();
+        Act();  
     }
     
     private void Act()
@@ -416,8 +429,8 @@ public class Unit : MonoBehaviour
     {
         if (currentTile == null || gridManager == null) return null;
         
-        int[] dx = { -1, 1, 0, 0 };
-        int[] dy = { 0, 0, -1, 1 };
+        int[] dx = {0, 0 };
+        int[] dy = {-1, 1 };
         
         for (int i = 0; i < dx.Length; i++)
         {
@@ -430,7 +443,7 @@ public class Unit : MonoBehaviour
             if (adjacentUnit != null)
             {
                 var unit = adjacentUnit.GetComponent<Unit>();
-                if (unit != null && unit.IsPlayerUnit != this.IsPlayerUnit)
+                if (unit != null && unit.IsPlayerUnit != this.IsPlayerUnit && unit.IsAlive)
                 {
                     return unit;
                 }
@@ -537,8 +550,107 @@ public class Unit : MonoBehaviour
     
     private void Die()
     {
-        Debug.Log($"{gameObject.name} has been destroyed!");
+        Debug.Log($"[Unit] {gameObject.name} has been destroyed!");
+        
+        // UnitService에 사망을 알림 (아직 하지 않았다면)
+        if (!deathNotificationSent)
+        {
+            NotifyUnitServiceOfDeath();
+        }
+        
         Destroy(gameObject);
+    }
+    
+    /// <summary>
+    /// HealthComponent가 사망을 감지했을 때 호출되는 메서드
+    /// </summary>
+    public void OnHealthComponentDeath()
+    {
+        Debug.Log($"[Unit] {gameObject.name} received death notification from HealthComponent");
+        
+        // UnitService에 사망을 알림 (즉시 정리를 위해)
+        NotifyUnitServiceOfDeath();
+        
+        // GameObject 파괴
+        Die();
+    }
+    
+    /// <summary>
+    /// UnitService에 유닛 사망을 알려서 즉시 정리하도록 요청
+    /// </summary>
+    private void NotifyUnitServiceOfDeath()
+    {
+        if (deathNotificationSent)
+        {
+            Debug.Log($"[Unit] Death notification already sent for {gameObject.name}, skipping");
+            return;
+        }
+
+        // Unit 사망 시 currentTile 정리
+        CleanupCurrentTile();
+
+        // GameServiceManager를 통해 UnitService에 접근
+        //var gameServiceManager = FindObjectOfType<GameServiceManager>();
+        var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+        if (gameServiceManager != null)
+        {
+            Debug.Log($"[Unit] Notifying UnitService of {gameObject.name} death for immediate cleanup");
+            gameServiceManager.UnregisterUnit(this);
+            deathNotificationSent = true;
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] Could not find GameServiceManager to notify UnitService of {gameObject.name} death");
+        }
+    }
+    
+    /// <summary>
+    /// Unit 사망 시 currentTile을 정리합니다.
+    /// Unit의 currentTile 참조를 직접 활용하여 간단하게 처리합니다.
+    /// 🔧 FIX: GridState에서도 유닛을 제거하여 positionUnits 딕셔너리 정리
+    /// </summary>
+    private void CleanupCurrentTile()
+    {
+        if (currentTile != null)
+        {
+            Debug.Log($"[Unit] Cleaning up currentTile for dying unit {gameObject.name} at ({currentTile.X}, {currentTile.Y})");
+            
+            // Tile의 occupying unit이 자신인지 확인 후 정리
+            if (currentTile.OccupyingUnit == this)
+            {
+                currentTile.RemoveUnit();
+                Debug.Log($"[Unit] Successfully removed {gameObject.name} from Tile ({currentTile.X}, {currentTile.Y})");
+            }
+            else
+            {
+                Debug.LogWarning($"[Unit] Tile occupancy mismatch - expected {gameObject.name}, found {currentTile.OccupyingUnit?.name}");
+            }
+            
+            // 🔧 FIX: GridState에서 유닛 제거 (positionUnits 딕셔너리 정리)
+            if (gridManager != null)
+            {
+                bool gridStateRemoved = gridManager.RemoveUnit(gameObject);
+                if (gridStateRemoved)
+                {
+                    Debug.Log($"[Unit] Successfully removed {gameObject.name} from GridState position tracking");
+                }
+                else
+                {
+                    Debug.LogWarning($"[Unit] Failed to remove {gameObject.name} from GridState - unit may not have been tracked");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[Unit] Cannot cleanup GridState for {gameObject.name} - gridManager is null");
+            }
+            
+            // currentTile 참조 정리
+            currentTile = null;
+        }
+        else
+        {
+            Debug.Log($"[Unit] No currentTile to cleanup for {gameObject.name}");
+        }
     }
     
     public void Heal(int healAmount)
@@ -678,6 +790,22 @@ public class Unit : MonoBehaviour
     {
         Debug.Log($"[Unit] Testing OnTurnStart for {gameObject.name}");
         OnTurnStart();
+    }
+    
+    [ContextMenu("Test Death System")]
+    private void TestDeathSystem()
+    {
+        Debug.Log($"[Unit] Testing death system for {gameObject.name}");
+        if (useComponentSystem && healthComponent != null)
+        {
+            Debug.Log($"[Unit] Using component system - setting health to 0");
+            healthComponent.TakeDamage(healthComponent.CurrentHealth + 100);
+        }
+        else
+        {
+            Debug.Log($"[Unit] Using legacy system - calling Die()");
+            Die();
+        }
     }
     
     /// <summary>

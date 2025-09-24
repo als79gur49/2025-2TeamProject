@@ -387,6 +387,9 @@ public class GridManager : MonoBehaviour, IGridManager
         var controller = GetController();
         return controller?.TryGetUnitPosition(unit, out position) ?? (position = new Vector2Int(-1, -1), false).Item2;
     }
+    
+    // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
+    public bool RemoveUnit(GameObject unit) => GetController()?.RemoveUnit(unit) ?? false;
 
     // 유닛 이동 (가장 중요한 기능들)
     public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition) => GetController()?.CanMoveUnit(unit, targetPosition) ?? false;

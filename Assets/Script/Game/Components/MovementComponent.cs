@@ -92,6 +92,9 @@ namespace Game.Components
 
         public bool CanMoveTo(Vector2Int targetPosition)
         {
+            //if (!CanMove) return false;
+            //if (gridManager == null) return false;
+
             if (!CanMove) return false;
             if (gridManager == null) return false;
 
@@ -106,6 +109,7 @@ namespace Game.Components
 
             // 그리드 유효성 확인
             if (!gridManager.IsValidPosition(targetPosition)) return false;
+
             if (gridManager.IsPositionOccupied(targetPosition)) return false;
 
             // 경로 확인
@@ -233,7 +237,9 @@ namespace Game.Components
             }
             finally
             {
+                // 🔧 강화된 상태 초기화 - 예외 발생 시에도 isMoving 플래그 확실히 초기화
                 isMoving = false;
+                Debug.Log($"[MovementComponent] {gameObject.name} Movement completed - isMoving reset to false");
             }
         }
 
@@ -305,8 +311,13 @@ namespace Game.Components
 
         public void StartTurn()
         {
-            RefreshMovementPoints();
-            hasMovedThisTurn = false;
+            // 🔧 방어적 상태 초기화 - 적 처치 후 이동 불가 문제 해결
+            isMoving = false;                    // 강제로 이동 중 플래그 초기화
+            hasMovedThisTurn = false;           // 턴 행동 상태 초기화
+            RefreshMovementPoints();            // 이동력 포인트 복구
+            
+            Debug.Log($"[MovementComponent] {gameObject.name} StartTurn() - CanMove: {CanMove}, " +
+                     $"MovementPoints: {currentMovementPoints}, IsMoving: {isMoving}");
         }
 
         public void EndTurn()
@@ -316,9 +327,13 @@ namespace Game.Components
 
         public void ResetMovement()
         {
+            // 🔧 완전한 이동 상태 초기화 - 문제 해결을 위한 강화된 리셋
             hasMovedThisTurn = false;
             isMoving = false;
             RefreshMovementPoints();
+            
+            Debug.Log($"[MovementComponent] {gameObject.name} Movement fully reset - " +
+                     $"CanMove: {CanMove}, MovementPoints: {currentMovementPoints}");
         }
 
         #endregion
@@ -538,6 +553,7 @@ namespace Game.Components
 
         private void OnDrawGizmos()
         {
+            return;
             if (gridManager != null)
             {
                 var currentPosition = gridManager.GetUnitPosition(gameObject);

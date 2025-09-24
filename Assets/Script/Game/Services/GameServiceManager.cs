@@ -229,6 +229,12 @@ namespace Game.Services
             unitService.OnUnitUnregistered += HandleUnitUnregistered;
             unitService.OnUnitsProcessed += HandleUnitsProcessed;
             
+            // Phase 4: Subscribe to new phase execution events
+            unitService.OnPhaseStarted += HandlePhaseStarted;
+            unitService.OnPhaseCompleted += HandlePhaseCompletedByUnitService;
+            unitService.OnPhaseCancelled += HandlePhaseCancelledByUnitService;
+            unitService.OnUnitProcessed += HandleUnitProcessed;
+            
             // GameService events
             gameService.OnGameStarted += HandleGameStarted;
             gameService.OnGameEnded += HandleGameEnded;
@@ -376,6 +382,32 @@ namespace Game.Services
             OnRestartRequested?.Invoke();
         }
         
+        // Phase 4: New event handlers for phase execution state management
+        
+        private void HandlePhaseStarted(TurnPhase phase)
+        {
+            LogEvent($"⚡ Phase {phase} execution started");
+            // This event can be used for additional coordination if needed
+        }
+        
+        private void HandlePhaseCompletedByUnitService(TurnPhase phase)
+        {
+            LogEvent($"✅ Phase {phase} execution completed by UnitService");
+            // This event indicates the phase finished naturally through sequential processing
+        }
+        
+        private void HandlePhaseCancelledByUnitService(TurnPhase phase)
+        {
+            LogEvent($"❌ Phase {phase} execution cancelled by UnitService");
+            // This event indicates the phase was cancelled (either with or without completion)
+        }
+        
+        private void HandleUnitProcessed(Unit unit, int currentIndex, int totalCount)
+        {
+            LogEvent($"⚙️ Unit processed: {unit?.name} ({currentIndex}/{totalCount})");
+            // This event provides progress information during phase execution
+        }
+        
         #endregion
         
         #region Event Cleanup
@@ -402,6 +434,12 @@ namespace Game.Services
                     unitService.OnUnitRegistered -= HandleUnitRegistered;
                     unitService.OnUnitUnregistered -= HandleUnitUnregistered;
                     unitService.OnUnitsProcessed -= HandleUnitsProcessed;
+                    
+                    // Phase 4: Unsubscribe from phase execution events
+                    unitService.OnPhaseStarted -= HandlePhaseStarted;
+                    unitService.OnPhaseCompleted -= HandlePhaseCompletedByUnitService;
+                    unitService.OnPhaseCancelled -= HandlePhaseCancelledByUnitService;
+                    unitService.OnUnitProcessed -= HandleUnitProcessed;
                 }
                 
                 // GameService events
@@ -494,7 +532,7 @@ namespace Game.Services
         #endregion
         
         #region Public API
-        
+              
         /// <summary>
         /// Gets the current status of all services for debugging
         /// </summary>

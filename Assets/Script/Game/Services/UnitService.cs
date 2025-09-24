@@ -13,7 +13,7 @@ namespace Game.Services
         
         // Phase 1: Sequential Processing System - State Management
         private PhaseExecutionContext currentContext;
-        private float unitActionInterval = 1.0f; // 기본 1초 간격
+        private float unitActionInterval = 0.3f; // 기본 1초 간격
         
         public int ActiveUnitCount => allUnits.Count(u => u != null && u.IsAlive);
         
@@ -157,7 +157,30 @@ namespace Game.Services
         
         private void CleanupDeadUnits()
         {
-            allUnits.RemoveAll(u => u == null || !u.IsAlive);
+            int removedCount = allUnits.RemoveAll(u => u == null || !u.IsAlive);
+            if (removedCount > 0)
+            {
+                Debug.Log($"[UnitService] Periodic cleanup removed {removedCount} dead/null units");
+            }
+        }
+        
+        /// <summary>
+        /// 특정 유닛이 죽었을 때 즉시 목록에서 제거합니다.
+        /// </summary>
+        public void NotifyUnitDeath(Unit deadUnit)
+        {
+            if (deadUnit == null) return;
+            
+            bool wasRemoved = allUnits.Remove(deadUnit);
+            if (wasRemoved)
+            {
+                Debug.Log($"[UnitService] Immediately removed dead unit from list: {deadUnit.name}");
+                OnUnitUnregistered?.Invoke(deadUnit);
+            }
+            else
+            {
+                Debug.LogWarning($"[UnitService] Attempted to remove dead unit {deadUnit.name}, but it was not found in allUnits list");
+            }
         }
         
         // Phase 1: Sequential Processing System - Basic Implementation
@@ -216,10 +239,13 @@ namespace Game.Services
                 StopCoroutine(currentContext.ExecutionCoroutine);
             }
             
+            // Store phase before reset for event firing
+            var cancelledPhase = currentContext.Phase;
+            
             // 즉시 완료 옵션 처리
             if (completeAllActions)
             {
-                Debug.Log($"[UnitService] Instantly completing remaining actions for phase {currentContext.Phase}...");
+                Debug.Log($"[UnitService] Instantly completing remaining actions for phase {cancelledPhase}...");
                 var units = currentContext.UnitsToProcess;
                 // 현재 유닛부터 마지막 유닛까지의 행동 로직을 시각적 딜레이 없이 즉시 실행
                 for (int i = currentContext.CurrentUnitIndex; i < units.Count; i++)
@@ -238,17 +264,19 @@ namespace Game.Services
                         }
                     }
                 }
-                // 모든 액션을 완료했으므로, Phase 'Completed' 이벤트 호출
-                OnPhaseCompleted?.Invoke(currentContext.Phase);
+                
+                // Reset context BEFORE firing completion event
+                ResetPhaseContext();
+                OnPhaseCompleted?.Invoke(cancelledPhase); // 모든 액션을 완료했으므로, Phase 'Completed' 이벤트 호출
             }
             else
             {
-                // 단순 취소이므로, Phase 'Cancelled' 이벤트 호출
-                OnPhaseCancelled?.Invoke(currentContext.Phase);
+                // Reset context BEFORE firing cancellation event
+                ResetPhaseContext();
+                OnPhaseCancelled?.Invoke(cancelledPhase); // 단순 취소이므로, Phase 'Cancelled' 이벤트 호출
             }
 
             OnUnitsProcessed?.Invoke(); // 기존 이벤트 호환성
-            ResetPhaseContext();
             return true;
         }
         
@@ -296,10 +324,11 @@ namespace Game.Services
         {
             if (currentContext != null)
             {
-                Debug.Log($"[UnitService] Completed phase {currentContext.Phase}");
-                OnPhaseCompleted?.Invoke(currentContext.Phase);
+                var completedPhase = currentContext.Phase; // Store phase before reset
+                Debug.Log($"[UnitService] Completed phase {completedPhase}");
+                ResetPhaseContext(); // Reset context BEFORE firing events
+                OnPhaseCompleted?.Invoke(completedPhase); // Fire event with stored phase
                 OnUnitsProcessed?.Invoke(); // 기존 이벤트 호환성
-                ResetPhaseContext();
             }
         }
         
@@ -325,9 +354,10 @@ namespace Game.Services
                 // 취소 요청 확인
                 if (currentContext.State == PhaseExecutionState.Cancelling)
                 {
+                    var cancelledPhase = currentContext.Phase; // Store phase before reset
                     Debug.Log($"[UnitService] Phase execution cancelled during unit processing.");
-                    OnPhaseCancelled?.Invoke(currentContext.Phase);
-                    ResetPhaseContext();
+                    ResetPhaseContext(); // Reset context BEFORE firing event
+                    OnPhaseCancelled?.Invoke(cancelledPhase);
                     yield break;
                 }
                     

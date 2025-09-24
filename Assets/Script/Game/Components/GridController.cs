@@ -116,6 +116,16 @@ namespace Game.Components
             return false;
         }
 
+        // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
+        public bool RemoveUnit(GameObject unit)
+        {
+            if (gridState != null)
+            {
+                return gridState.RemoveUnit(unit);
+            }
+            return false;
+        }
+
         public Vector3 GridToWorldPosition(Vector2Int gridPosition)
         {
             return gridState?.GridToWorldPosition(gridPosition) ?? Vector3.zero;
@@ -161,10 +171,12 @@ namespace Game.Components
         // 유닛 이동 로직
         public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition)
         {
-            return true; // Testing
+            return true;
 
             if (unit == null || gridState == null)
                 return false;
+
+            Debug.Log($"[GridController] CanMoveUnit: {unit.name} → ({targetPosition.x}, {targetPosition.y})");
 
             // 대상 위치 유효성 확인
             if (!IsValidPosition(targetPosition))

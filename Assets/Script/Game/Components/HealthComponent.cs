@@ -116,8 +116,23 @@ namespace Game.Components
         // ✅ 기본 체력 조작 메서드들
         public void TakeDamage(int damage)
         {
-            if (damage <= 0 || !IsAlive || IsInvulnerable)
+            if (damage <= 0)
+            {
+                Debug.LogWarning($"[HealthComponent] {gameObject.name} received invalid damage: {damage}");
                 return;
+            }
+
+            if (!IsAlive)
+            {
+                Debug.Log($"[HealthComponent] {gameObject.name} is already dead, ignoring damage: {damage}");
+                return;
+            }
+
+            if (IsInvulnerable)
+            {
+                Debug.Log($"[HealthComponent] {gameObject.name} is invulnerable, blocking damage: {damage}");
+                return;
+            }
 
             var damageInfo = new DamageInfo(damage, DamageType.Physical, null);
             ProcessDamage(damageInfo);
@@ -125,15 +140,27 @@ namespace Game.Components
 
         public void Heal(int amount)
         {
-            if (amount <= 0 || (!IsAlive && !canRevive))
+            if (amount <= 0)
+            {
+                Debug.LogWarning($"[HealthComponent] {gameObject.name} received invalid heal amount: {amount}");
                 return;
+            }
+
+            if (!IsAlive && !canRevive)
+            {
+                Debug.Log($"[HealthComponent] {gameObject.name} is dead and cannot be revived, ignoring heal: {amount}");
+                return;
+            }
 
             int previousHealth = currentHealth;
             int maxHealTo = canHealAboveMax ? int.MaxValue : MaxHealth;
             int actualHeal = Mathf.Min(amount, maxHealTo - currentHealth);
 
             if (actualHeal <= 0)
+            {
+                Debug.Log($"[HealthComponent] {gameObject.name} is already at maximum health, ignoring heal: {amount}");
                 return;
+            }
 
             currentHealth += actualHeal;
 
@@ -346,7 +373,20 @@ namespace Game.Components
             enableRegeneration = false; // 사망 시 재생 중단
             ClearAllStatusEffects(); // 상태 이상 제거
             
-            Debug.Log($"Death");
+            Debug.Log($"[HealthComponent] {gameObject.name} has died! Health: {currentHealth}/{MaxHealth}");
+            
+            // Unit 컴포넌트에게 죽음을 알려서 Destroy 처리를 위임
+            var unit = GetComponent<Unit>();
+            if (unit != null)
+            {
+                Debug.Log($"[HealthComponent] Notifying Unit component of death for {gameObject.name}");
+                unit.OnHealthComponentDeath();
+            }
+            else
+            {
+                Debug.LogWarning($"[HealthComponent] No Unit component found on {gameObject.name}, cannot handle death properly");
+            }
+            
             OnDeath?.Invoke();
         }
 
