@@ -79,58 +79,6 @@ namespace Game.Services
         }
         
         /// <summary>
-        /// 현재 턴 페이즈에 맞춰 적절한 순서로 유닛을 처리합니다.
-        /// </summary>
-        public void ProcessUnitsForPhase(TurnPhase phase)
-        {
-            switch (phase)
-            {
-                case TurnPhase.EnemySummon:
-                    ProcessSummonPhase(false); // 적 소환
-                    break;
-                    
-                case TurnPhase.AllySummon:
-                    ProcessSummonPhase(true); // 아군 소환
-                    break;
-                    
-                case TurnPhase.EnemyAction:
-                    ProcessActionPhase(false); // 적 행동
-                    break;
-                    
-                case TurnPhase.AllyAction:
-                    ProcessActionPhase(true); // 아군 행동
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// 소환 페이즈를 처리합니다 (플레이스홀더 구현).
-        /// </summary>
-        private void ProcessSummonPhase(bool isPlayerUnits)
-        {
-            Debug.Log($"[UnitService] Processing summon phase for {(isPlayerUnits ? "Player" : "Enemy")} units");
-            // TODO: 유닛 소환 로직 구현 필요
-            OnUnitsProcessed?.Invoke();
-        }
-        
-        /// <summary>
-        /// 그리드 순서에 따라 행동 페이즈를 처리합니다.
-        /// </summary>
-        private void ProcessActionPhase(bool isPlayerUnits)
-        {
-            var units = GetUnitsInGridOrder(isPlayerUnits);
-            
-            Debug.Log($"[UnitService] Processing {units.Count} {(isPlayerUnits ? "player" : "enemy")} units in grid order");
-            
-            foreach (var unit in units)
-            {
-                ProcessUnitAction(unit);
-            }
-            
-            OnUnitsProcessed?.Invoke();
-        }
-        
-        /// <summary>
         /// 그리드 위치(우상단에서 좌하단)에 따라 정렬된 유닛 리스트를 가져옵니다.
         /// </summary>
         public List<Unit> GetUnitsInGridOrder(bool isPlayerUnits)
@@ -141,18 +89,6 @@ namespace Game.Services
             return units.OrderByDescending(unit => unit.Y)
                        .ThenByDescending(unit => unit.X)
                        .ToList();
-        }
-        
-        /// <summary>
-        /// 개별 유닛의 행동을 처리합니다.
-        /// </summary>
-        private void ProcessUnitAction(Unit unit)
-        {
-            if (unit != null && unit.IsAlive)
-            {
-                Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
-                unit.OnTurnStart();
-            }
         }
         
         private void CleanupDeadUnits()
@@ -255,7 +191,7 @@ namespace Game.Services
                     {
                         try
                         {
-                            unit.OnTurnStart(); // 시각적 연출이 없는 순수 로직만 실행
+                            unit.Act(); // 시각적 연출이 없는 순수 로직만 실행
                             OnUnitProcessed?.Invoke(unit, i + 1, units.Count);
                         }
                         catch (System.Exception ex)
@@ -311,7 +247,12 @@ namespace Game.Services
                     return new List<Unit>();
                 case TurnPhase.AllyAction:
                     return GetUnitsInGridOrder(true); // 아군 유닛
-                    
+
+                case TurnPhase.TurnStart:
+                    return GetActiveUnits(); // 모든 활성 유닛
+                case TurnPhase.TurnEnd:
+                    return GetActiveUnits(); // 모든 활성 유닛
+
                 default:
                     return new List<Unit>();
             }
@@ -348,59 +289,75 @@ namespace Game.Services
         private IEnumerator ExecutePhaseSequentially()
         {
             var units = currentContext.UnitsToProcess;
-            
+            var phase = currentContext.Phase;
+
+            Debug.Log($"[UnitService] Executing phase {phase} for {units.Count} units.");
+
             for (int i = 0; i < units.Count; i++)
             {
-                // 취소 요청 확인
                 if (currentContext.State == PhaseExecutionState.Cancelling)
                 {
-                    var cancelledPhase = currentContext.Phase; // Store phase before reset
-                    Debug.Log($"[UnitService] Phase execution cancelled during unit processing.");
-                    ResetPhaseContext(); // Reset context BEFORE firing event
+                    var cancelledPhase = currentContext.Phase;
+                    Debug.Log("[UnitService] Phase execution cancelled during unit processing.");
+                    ResetPhaseContext();
                     OnPhaseCancelled?.Invoke(cancelledPhase);
                     yield break;
                 }
-                    
+
                 currentContext.CurrentUnitIndex = i;
                 var unit = units[i];
-                
-                // 유닛 액션 실행 (예외 처리를 ProcessUnitActionAsync 내부로 이동)
-                yield return StartCoroutine(ProcessUnitActionAsync(unit));
 
-                // 진행 상황 알림
-                OnUnitProcessed?.Invoke(unit, i + 1, units.Count);
-                
-                // 다음 유닛까지 대기 (마지막 유닛 제외)
-                if (i < units.Count - 1)
+                if (unit != null && unit.IsAlive)
+                {
+                    // 페이즈별 로직을 비동기적으로 처리
+                    yield return StartCoroutine(ProcessUnitActionAsync(unit, phase));
+
+                    OnUnitProcessed?.Invoke(unit, i + 1, units.Count);
+                }
+
+                // ProcessUnitActionAsync에 조건을 넣을려고 하였지만, Try-catch구문이라 반환이 불가능하다.
+                if (i < units.Count - 1 &&
+                    (phase == TurnPhase.EnemyAction) || phase == TurnPhase.AllyAction)
                 {
                     yield return new WaitForSeconds(unitActionInterval);
                 }
             }
-            
-            // 페이즈 완료
+
             CompleteCurrentPhase();
         }
 
-        /// <summary>
-        /// 개별 유닛의 액션을 비동기적으로 처리합니다.
-        /// </summary>
-        private IEnumerator ProcessUnitActionAsync(Unit unit)
+        private IEnumerator ProcessUnitActionAsync(Unit unit, TurnPhase phase)
         {
-            if (unit != null && unit.IsAlive)
+            try
             {
-                try
+                switch (phase)
                 {
-                    Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
-                    unit.OnTurnStart();
+                    case TurnPhase.TurnStart:
+                        Debug.Log($"[UnitService] Turn start for unit {unit.name}");
+                        unit.OnTurnStart();
+                        break;
+
+                    case TurnPhase.EnemyAction:
+                    case TurnPhase.AllyAction:
+                        Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
+                        unit.Act();
+                        break;
+
+                    case TurnPhase.TurnEnd:
+                        Debug.Log($"[UnitService] Turn end cleanup for unit: {unit.name}");
+                        // To-Do: unit.OnTurnEnd()와 같은 턴 종료 메서드 호출 필요
+                        break;
+
+                    // Summon 페이즈는 현재 처리할 유닛이 없으므로 호출되지 않음
                 }
-                catch (System.Exception ex)
-                {
-                    Debug.LogError($"[UnitService] Error processing unit {unit?.name}: {ex.Message}");
-                }
-                
-                // 유닛 액션(애니메이션 등) 완료까지 대기 (필요시)
-                yield return null; // 또는 유닛 액션 완료 이벤트 대기
             }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[UnitService] Error processing unit {unit?.name} in phase {phase}: {ex.Message}");
+            }
+
+            // 액션 후 애니메이션 등 시각적 처리를 위한 대기 시간 (필요시)
+            yield return null;
         }
     }
 }

@@ -95,8 +95,21 @@ namespace Game.Components
             //if (!CanMove) return false;
             //if (gridManager == null) return false;
 
-            if (!CanMove) return false;
-            if (gridManager == null) return false;
+            if (!CanMove)
+            {
+                Debug.LogError($"healthComponent is alive {healthComponent?.IsAlive} " +
+                    $"| currentMovementPoints {currentMovementPoints}" +
+                    $"| isMoveing {isMoving}");
+
+                return false;
+            }
+
+            if (gridManager == null)
+            {
+                Debug.LogError($"gridManager is null");
+
+                return false;
+            }
 
             var currentPosition = gridManager.GetUnitPosition(gameObject);
             int distance = currentPosition.GetManhattanDistance(targetPosition);
@@ -108,9 +121,19 @@ namespace Game.Components
             if (!constraints.IsMovementAllowed(healthComponent, combatSystem, distance)) return false;
 
             // 그리드 유효성 확인
-            if (!gridManager.IsValidPosition(targetPosition)) return false;
+            if (!gridManager.IsValidPosition(targetPosition))
+            {
+                Debug.LogError($"IsNotValidPosition at {targetPosition.x},{targetPosition.y}");
 
-            if (gridManager.IsPositionOccupied(targetPosition)) return false;
+                return false;
+            }
+
+            if (gridManager.IsPositionOccupied(targetPosition))
+            {
+                Debug.LogError($"IsPositionOccupied at {targetPosition.x},{targetPosition.y}");
+
+                return false;
+            }
 
             // 경로 확인
             if (CanFly || CanPhaseThrough)

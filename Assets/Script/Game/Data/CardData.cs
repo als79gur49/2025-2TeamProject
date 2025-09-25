@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Game.Card.Core;
 
 namespace Game.Data
 {
@@ -74,6 +75,13 @@ namespace Game.Data
         [Header("유닛 관련 (유닛 카드인 경우)")]
         [SerializeField] private UnitData unitToSummon;
 
+        [Header("주문 관련 (주문 카드인 경우)")]
+        [SerializeField] private SpellType spellType = SpellType.Damage;
+        [SerializeField] private int spellEffectValue = 0;
+        [SerializeField] private float spellRange = 0f;
+        [SerializeField] private float spellCooldown = 0f;
+        [SerializeField] private GameObject spellEffectPrefab;
+
         // ✅ 카드 효과 정의
         [System.Serializable]
         public class CardEffect
@@ -131,6 +139,15 @@ namespace Game.Data
         }
 
         public bool CanSummonUnit => cardType == CardType.Unit && unitToSummon != null;
+        public bool IsSpellCard => cardType == CardType.Spell;
+
+        // ✅ 주문 관련 읽기 전용 속성
+        public SpellType SpellType => spellType;
+        public int SpellEffectValue => spellEffectValue;
+        public float SpellRange => spellRange;
+        public float SpellCooldown => spellCooldown;
+        public GameObject SpellEffectPrefab => spellEffectPrefab;
+        public bool HasValidSpellData => cardType == CardType.Spell && spellEffectValue > 0;
 
         // ✅ 카드 비용 관련 메서드
         public bool CanAfford(int availableMana, int availableActions)
@@ -189,6 +206,39 @@ namespace Game.Data
             return effects.Any(e => e.EffectType.Equals(effectType, StringComparison.OrdinalIgnoreCase));
         }
 
+        // ✅ 주문 관련 헬퍼 메서드
+        /// <summary>
+        /// 주문 타입별 설명 텍스트 생성
+        /// </summary>
+        public string GetSpellDescription()
+        {
+            if (!IsSpellCard) return "";
+            
+            return spellType switch
+            {
+                SpellType.Damage => $"{spellEffectValue} 피해를 입힙니다",
+                SpellType.Heal => $"{spellEffectValue} 체력을 회복시킵니다",
+                SpellType.Buff => $"{spellEffectValue}만큼 강화합니다",
+                SpellType.Debuff => $"{spellEffectValue}만큼 약화시킵니다",
+                SpellType.Shield => $"{spellEffectValue} 보호막을 생성합니다",
+                SpellType.Teleport => $"최대 {spellRange} 거리만큼 이동시킵니다",
+                SpellType.Summon => $"{spellEffectValue}개의 유닛을 소환합니다",
+                _ => "알 수 없는 주문 효과"
+            };
+        }
+
+        /// <summary>
+        /// 주문 범위 유효성 검사
+        /// </summary>
+        public bool IsSpellInRange(Vector2Int casterPosition, Vector2Int targetPosition)
+        {
+            if (!IsSpellCard) return false;
+            if (spellRange <= 0) return true; // 범위 제한 없음
+            
+            float distance = Vector2Int.Distance(casterPosition, targetPosition);
+            return distance <= spellRange;
+        }
+
         // ✅ 카드 레어리티별 컬러 반환
         public Color GetRarityColor()
         {
@@ -209,6 +259,21 @@ namespace Game.Data
             var desc = $"<b><color=#{ColorUtility.ToHtmlStringRGB(GetRarityColor())}>{cardName}</color></b>\n";
             desc += $"<i>{cardType} - {rarity}</i>\n\n";
             desc += $"{description}\n\n";
+            
+            // 주문 카드 전용 설명 추가
+            if (IsSpellCard && HasValidSpellData)
+            {
+                desc += $"<b>주문 효과:</b> {GetSpellDescription()}\n";
+                if (spellRange > 0)
+                {
+                    desc += $"<b>주문 범위:</b> {spellRange}\n";
+                }
+                if (spellCooldown > 0)
+                {
+                    desc += $"<b>재사용 대기시간:</b> {spellCooldown}초\n";
+                }
+                desc += "\n";
+            }
             
             if (effects.Count > 0)
             {
@@ -254,13 +319,22 @@ namespace Game.Data
         // ✅ 데이터 유효성 검증
         public bool IsValid()
         {
-            return !string.IsNullOrEmpty(cardName) &&
-                   manaCost >= 0 &&
-                   actionCost >= 0 &&
-                   range >= 0 &&
-                   areaOfEffect >= 0 &&
-                   maxCopiesInDeck > 0 &&
-                   (cardType != CardType.Unit || unitToSummon != null);
+            bool baseValid = !string.IsNullOrEmpty(cardName) &&
+                            manaCost >= 0 &&
+                            actionCost >= 0 &&
+                            range >= 0 &&
+                            areaOfEffect >= 0 &&
+                            maxCopiesInDeck > 0;
+
+            // 카드 타입별 추가 검증
+            bool typeValid = cardType switch
+            {
+                CardType.Unit => unitToSummon != null,
+                CardType.Spell => spellEffectValue > 0,
+                _ => true
+            };
+
+            return baseValid && typeValid;
         }
 
         // ✅ 디버깅용 ToString
@@ -292,6 +366,23 @@ namespace Game.Data
                 unitToSummon = null;
             }
 
+            // 주문 카드 검증 추가
+            if (cardType == CardType.Spell)
+            {
+                spellEffectValue = Mathf.Max(0, spellEffectValue);
+                spellRange = Mathf.Max(0f, spellRange);
+                spellCooldown = Mathf.Max(0f, spellCooldown);
+            }
+            else
+            {
+                // 주문이 아닌 카드의 주문 데이터 초기화
+                spellType = SpellType.Damage;
+                spellEffectValue = 0;
+                spellRange = 0f;
+                spellCooldown = 0f;
+                spellEffectPrefab = null;
+            }
+
             // 중복 키워드 제거
             if (keywords != null)
             {
@@ -320,6 +411,26 @@ namespace Game.Data
             card.manaCost = manaCost;
             card.actionCost = actionCost;
             card.effects = effects?.ToList() ?? new List<CardEffect>();
+            
+            return card;
+        }
+
+        /// <summary>
+        /// 주문 카드 생성을 위한 팩토리 메서드 (확장)
+        /// </summary>
+        public static CardData CreateSpellCard(string name, string desc, int manaCost, int actionCost, 
+            SpellType spellType, int effectValue, float range = 0f, float cooldown = 0f)
+        {
+            var card = CreateInstance<CardData>();
+            card.cardName = name;
+            card.description = desc;
+            card.cardType = CardType.Spell;
+            card.manaCost = manaCost;
+            card.actionCost = actionCost;
+            card.spellType = spellType;
+            card.spellEffectValue = effectValue;
+            card.spellRange = range;
+            card.spellCooldown = cooldown;
             
             return card;
         }

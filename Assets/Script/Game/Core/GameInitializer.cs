@@ -15,6 +15,8 @@ public class GameInitializer : MonoBehaviour
     [Header("서비스 참조")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GameServiceManager gameServiceManager;
+    [SerializeField] private CardServiceManager cardServiceManager; // 신규 참조 추가
+    [SerializeField] private ResourceManager resourceManager; // Phase 2: 자원 관리 서비스 추가
 
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -98,6 +100,12 @@ public class GameInitializer : MonoBehaviour
 
         // Game Services 등록 - 직접 참조를 통한 안전한 등록
         RegisterGameServices();
+
+        // Card Services 등록 - CardServiceManager를 통한 카드 시스템 등록
+        RegisterCardServices();
+
+        // Resource Services 등록 - ResourceManager를 통한 자원 관리 시스템 등록
+        RegisterResourceServices();
     }
 
     /// <summary>
@@ -171,6 +179,49 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
+    /// 카드 서비스들 등록 - CardServiceManager를 통한 카드 시스템 등록
+    /// </summary>
+    private void RegisterCardServices()
+    {
+        Log("Registering card services via CardServiceManager...");
+
+        // CardServiceManager 등록
+        if (cardServiceManager != null)
+        {
+            cardServiceManager.InitializeAndRegisterServices();
+            Log("✅ Card services registered via CardServiceManager");
+        }
+        else
+        {
+            LogError("❌ CardServiceManager not found - Card services not registered");
+        }
+
+        Log("Card services registration completed");
+    }
+
+    /// <summary>
+    /// 자원 관리 서비스 등록 - ResourceManager를 통한 자원 시스템 등록
+    /// </summary>
+    private void RegisterResourceServices()
+    {
+        Log("Registering resource services via ResourceManager...");
+
+        // ResourceManager 등록
+        if (resourceManager != null)
+        {
+            resourceManager.Initialize();
+            ServiceLocator.Register<IResourceManager>(resourceManager);
+            Log("✅ ResourceManager initialized and registered");
+        }
+        else
+        {
+            LogError("❌ ResourceManager not found - Resource services not registered");
+        }
+
+        Log("Resource services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -228,6 +279,12 @@ public class GameInitializer : MonoBehaviour
         if (!ServiceLocator.IsRegistered<IGameServiceManager>())
         {
             LogError("❌ Critical service missing: IGameServiceManager");
+        }
+
+        // Card 서비스 확인
+        if (!ServiceLocator.IsRegistered<ICardServiceManager>())
+        {
+            LogError("❌ Critical service missing: ICardServiceManager");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

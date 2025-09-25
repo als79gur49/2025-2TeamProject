@@ -24,13 +24,7 @@ namespace Game.Services
         /// </summary>
         /// <param name="unit">Unit to unregister</param>
         void UnregisterUnit(Unit unit);
-        
-        /// <summary>
-        /// 현재 턴 페이즈에 맞춰 적절한 순서로 유닛을 처리합니다.
-        /// </summary>
-        /// <param name="phase">처리할 턴 페이즈</param>
-        void ProcessUnitsForPhase(TurnPhase phase);
-        
+
         /// <summary>
         /// 그리드 위치(우상단에서 좌하단)에 따라 정렬된 유닛 리스트를 가져옵니다.
         /// </summary>

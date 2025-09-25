@@ -377,7 +377,7 @@ public class Unit : MonoBehaviour
     {
         if (!IsAlive) return;
         
-        // Ensure currentTile is set before acting
+        // Ensure currentTile is set before initializing turn
         if (currentTile == null)
         {
             Debug.LogWarning($"[Unit] {gameObject.name} OnTurnStart called but currentTile is null - attempting to initialize");
@@ -385,31 +385,22 @@ public class Unit : MonoBehaviour
             
             if (currentTile == null)
             {
-                Debug.LogError($"[Unit] {gameObject.name} cannot act - currentTile is still null after initialization attempt");
+                Debug.LogError($"[Unit] {gameObject.name} cannot initialize turn - currentTile is still null after initialization attempt");
                 return;
             }
         }
         
-        // Initialize turn for components
+        // Initialize turn for components - 턴 시작 시 필요한 초기화만 수행
         if (useComponentSystem && movementComponent != null)
         {
             movementComponent.StartTurn();
-            
-            // 🔧 이동 가능성 검증 - 적 처치 후 이동 문제 디버깅
-            if (!movementComponent.CanMove)
-            {
-                Debug.LogWarning($"[Unit] {gameObject.name} cannot move after StartTurn() - " +
-                               $"MovementPoints: {movementComponent.CurrentMovementPoints}, " +
-                               $"IsMoving: {movementComponent.IsMoving}, " +
-                               $"IsAlive: {IsAlive}");
-            }
         }
         
-        Debug.Log($"[Unit] {gameObject.name} OnTurnStart - currentTile: {currentTile?.name} at ({currentTile?.X}, {currentTile?.Y})");
-        Act();  
+        Debug.Log($"[Unit] {gameObject.name} OnTurnStart - currentTile: {currentTile?.name} at ({currentTile?.X}, {currentTile?.Y}) - Turn initialized");
+        // Act() 호출 제거 - 실제 행동은 Action Phase에서 별도로 처리
     }
     
-    private void Act()
+    public void Act()
     {
         Unit enemy = SearchForNearbyEnemies();
         

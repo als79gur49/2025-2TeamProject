@@ -1,6 +1,17 @@
 using UnityEngine;
 using System;
+using Game.Data;
 
+/// <summary>
+/// [DEPRECATED - Phase 4] 이 클래스는 더 이상 사용되지 않습니다.
+/// CardData 클래스를 사용하여 주문 카드를 관리하세요.
+/// 
+/// 마이그레이션 가이드:
+/// - CardData.CreateSpellCard() 팩토리 메서드 사용
+/// - CardSpawnService에서 cardData.SpellType, cardData.SpellEffectValue 등 직접 접근
+/// - SpellEffectFactory.CreateEffect(cardData) 또는 SpellEffectFactory.ExecuteSpellEffect(cardData, position) 사용
+/// </summary>
+[System.Obsolete("Use CardData instead. This class will be removed in future versions. See Phase 4 migration guide.")]
 public class Spell : BaseCard
 {
     [Header("Spell Properties")]

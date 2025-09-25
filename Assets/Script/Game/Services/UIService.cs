@@ -323,10 +323,12 @@ namespace Game.Services
         {
             return phase switch
             {
+                TurnPhase.TurnStart => "Turn Start Phase",
                 TurnPhase.EnemySummon => "Enemy Summon Phase",
                 TurnPhase.AllySummon => "Ally Summon Phase", 
                 TurnPhase.EnemyAction => "Enemy Action Phase",
                 TurnPhase.AllyAction => "Ally Action Phase",
+                TurnPhase.TurnEnd => "Turn End Phase",
                 _ => "Unknown Phase"
             };
         }
@@ -335,10 +337,12 @@ namespace Game.Services
         {
             return phase switch
             {
+                TurnPhase.TurnStart => new Color(1f, 1f, 0.4f),        // Yellow
                 TurnPhase.EnemySummon => new Color(1f, 0.4f, 0.4f),    // Light red
                 TurnPhase.AllySummon => new Color(0.4f, 0.8f, 1f),     // Light blue
                 TurnPhase.EnemyAction => new Color(0.9f, 0.2f, 0.2f),  // Dark red
                 TurnPhase.AllyAction => new Color(0.2f, 0.9f, 0.2f),   // Green
+                TurnPhase.TurnEnd => new Color(0.6f, 0.6f, 0.6f),      // Gray
                 _ => Color.white
             };
         }
@@ -373,10 +377,12 @@ namespace Game.Services
         {
             return phase switch
             {
+                TurnPhase.TurnStart => "End Turn Start",
                 TurnPhase.EnemySummon => "End Enemy Summon",
                 TurnPhase.AllySummon => "End Ally Summon",
                 TurnPhase.EnemyAction => "End Enemy Action",
                 TurnPhase.AllyAction => "End Ally Action",
+                TurnPhase.TurnEnd => "End Turn",
                 _ => "End Phase"
             };
         }
@@ -385,10 +391,12 @@ namespace Game.Services
         {
             return phase switch
             {
+                TurnPhase.TurnStart => new Color(0.9f, 0.9f, 0.3f, 0.8f),   // Yellow-ish
                 TurnPhase.EnemySummon => new Color(0.8f, 0.3f, 0.3f, 0.8f),  // Red-ish
                 TurnPhase.AllySummon => new Color(0.3f, 0.7f, 0.9f, 0.8f),   // Blue-ish
                 TurnPhase.EnemyAction => new Color(0.9f, 0.2f, 0.2f, 0.8f),  // Dark red
                 TurnPhase.AllyAction => new Color(0.2f, 0.8f, 0.2f, 0.8f),   // Green
+                TurnPhase.TurnEnd => new Color(0.6f, 0.6f, 0.6f, 0.8f),      // Gray-ish
                 _ => new Color(0.5f, 0.5f, 0.5f, 0.8f)                       // Gray
             };
         }
@@ -439,9 +447,9 @@ namespace Game.Services
         {
             if (turnStatusText != null && unitService != null)
             {
-                TurnPhase currentPhase = unitService.CurrentPhase ?? TurnPhase.EnemySummon;
+                TurnPhase currentPhase = unitService.CurrentPhase ?? TurnPhase.TurnStart;
                 string phaseText = GetPhaseDisplayText(currentPhase);
-                string cycleInfo = turnService != null ? $"Cycle {turnService.TurnCount + 1} | Phase {(int)currentPhase + 1}/4" : "Processing...";
+                string cycleInfo = turnService != null ? $"Cycle {turnService.TurnCount + 1} | Phase {(int)currentPhase + 1}/6" : "Processing...";
                 string progressInfo = $"Processing {unit?.name}: {currentIndex}/{totalCount}";
                 turnStatusText.text = $"{cycleInfo}\n{phaseText}\n{progressInfo}";
             }

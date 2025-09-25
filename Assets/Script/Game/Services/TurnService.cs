@@ -7,7 +7,7 @@ namespace Game.Services
     public class TurnService : MonoBehaviour, ITurnService
     {
         [Header("Turn State")]
-        [SerializeField] private TurnPhase currentPhase = TurnPhase.EnemySummon;
+        [SerializeField] private TurnPhase currentPhase = TurnPhase.TurnStart;
         [SerializeField] private int turnCount = 0;
         [SerializeField] private int phaseCount = 0;
         
@@ -37,7 +37,7 @@ namespace Game.Services
         
         public void StartGame()
         {
-            currentPhase = TurnPhase.EnemySummon;
+            currentPhase = TurnPhase.TurnStart;
             turnCount = 0;
             phaseCount = 0;
             
@@ -65,8 +65,8 @@ namespace Game.Services
             currentPhase = GetNextPhase(currentPhase);
             phaseCount++;
             
-            // 4 페이즈마다 턴 카운트 증가
-            if (phaseCount % 4 == 0)
+            // 6 페이즈마다 턴 카운트 증가
+            if (phaseCount % 6 == 0)
             {
                 turnCount++;
                 OnTurnCountChanged?.Invoke(turnCount);
@@ -89,11 +89,13 @@ namespace Game.Services
         {
             return current switch
             {
+                TurnPhase.TurnStart => TurnPhase.EnemySummon,
                 TurnPhase.EnemySummon => TurnPhase.AllySummon,
                 TurnPhase.AllySummon => TurnPhase.EnemyAction,
                 TurnPhase.EnemyAction => TurnPhase.AllyAction,
-                TurnPhase.AllyAction => TurnPhase.EnemySummon,
-                _ => TurnPhase.EnemySummon
+                TurnPhase.AllyAction => TurnPhase.TurnEnd,
+                TurnPhase.TurnEnd => TurnPhase.TurnStart,
+                _ => TurnPhase.TurnStart
             };
         }
     }

@@ -810,6 +810,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridManager: {fileID: 587330867}
   gameServiceManager: {fileID: 933723240}
+  cardServiceManager: {fileID: 0}
+  resourceManager: {fileID: 0}
   autoInitializeOnStart: 1
   logInitializationSteps: 1
   showDebugInfo: 1
@@ -991,7 +993,7 @@ MonoBehaviour:
   - {x: 1, y: 0}
   - {x: 2, y: 0}
   - {x: 3, y: 1}
-  - {x: 4, y: 2}
+  - {x: 4, y: 0}
   enemyStartPositions:
   - {x: 1, y: 4}
   - {x: 2, y: 5}

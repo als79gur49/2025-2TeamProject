@@ -15,6 +15,11 @@ public class Tile : MonoBehaviour
     public bool IsOccupied => isOccupied;
     public Unit OccupyingUnit => occupyingUnit;
     
+    public Vector2Int GetGridPosition()
+    {
+        return new Vector2Int(x, y);
+    }
+    
     private void Awake()
     {
         tileRenderer = GetComponent<Renderer>();
