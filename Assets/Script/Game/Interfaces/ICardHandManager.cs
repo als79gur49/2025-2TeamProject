@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Game.Data;
+using Game.Services;
 
 namespace Game.Interfaces
 {
@@ -21,7 +22,7 @@ namespace Game.Interfaces
         bool IsPlayerSummonMode { get; }
 
         /// <summary>CardServiceManager에 의해 호출되는 초기화 메서드</summary>
-        void Initialize();
+        void Init(ITurnService iTurnService);
 
         /// <summary>플레이어의 소환 모드 활성화</summary>
         void EnablePlayerSummonMode();

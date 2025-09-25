@@ -418,14 +418,14 @@ public class GridManager : MonoBehaviour, IGridManager
 
     // 타일 상태 관리 - 렌더러와 연동
     public void SetTileBlocked(Vector2Int position, bool blocked) => GetController()?.SetTileBlocked(position, blocked);
-    public void SetTileHighlight(Vector2Int position, Color highlightColor) 
+    public void SetTileHighlight(Vector2Int position, Color highlightColor)
     {
-        GetController()?.SetTileHighlight(position, highlightColor);
+        // 하이라이트는 렌더링 기능이므로 GridRenderer에만 위임
         gridRenderer?.SetTileHighlight(position, highlightColor);
     }
-    public void ClearAllHighlights() 
+    public void ClearAllHighlights()
     {
-        GetController()?.ClearAllHighlights();
+        // 하이라이트 정리는 렌더링 기능이므로 GridRenderer에만 위임
         gridRenderer?.ClearAllHighlights();
     }
 

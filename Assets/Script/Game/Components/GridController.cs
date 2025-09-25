@@ -37,11 +37,11 @@ namespace Game.Components
         private int cacheHits = 0;
         private float totalPathfindingTime = 0f;
 
-        // IGridController 구현 - 속성들
+        // GridController 속성들 (비즈니스 로직에서 필요한 정보)
         public Vector2Int GridSize => gridState?.GridSize ?? Vector2Int.zero;
         public float TileSize => gridState?.TileSize ?? 1f;
 
-        // IGridController 구현 - 이벤트들
+        // 비즈니스 로직 이벤트들 (다른 비즈니스 컴포넌트들이 구독)
         public event Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
         public event Action<Vector2Int, GameObject> OnUnitPlaced;
         public event Action<Vector2Int, GameObject> OnUnitRemoved;
@@ -79,7 +79,7 @@ namespace Game.Components
             gridState.OnUnitRemoved += (pos, unit) => OnUnitRemoved?.Invoke(pos, unit);
         }
 
-        // IGridManager 구현 - 기본 메서드들
+        // ✅ 비즈니스 로직에서 필요한 GridState 접근 메서드들 (public 유지)
         public bool IsValidPosition(Vector2Int gridPosition)
         {
             return gridState?.IsValidPosition(gridPosition) ?? false;
@@ -111,12 +111,11 @@ namespace Game.Components
             {
                 return gridState.TryGetUnitPosition(unit, out position);
             }
-            
+
             position = new Vector2Int(-1, -1);
             return false;
         }
 
-        // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
         public bool RemoveUnit(GameObject unit)
         {
             if (gridState != null)
@@ -140,22 +139,6 @@ namespace Game.Components
         {
             gridState?.SetTileBlocked(position, blocked);
             ClearPathCache(); // 차단 상태 변경 시 경로 캐시 무효화
-        }
-
-        public void SetTileHighlight(Vector2Int position, Color highlightColor)
-        {
-            if(gridState is GridState _gridState)
-            {
-                _gridState?.SetTileHighlight(position, highlightColor);
-            }
-        }
-
-        public void ClearAllHighlights()
-        {
-            if (gridState is GridState _gridState)
-            {
-                _gridState?.ClearAllHighlights();
-            }
         }
 
         public List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true)

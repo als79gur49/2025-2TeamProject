@@ -64,5 +64,21 @@ namespace Game
         /// </summary>
         /// <param name="unit">Unit to unregister</param>
         void UnregisterUnit(Unit unit);
+
+        // Service Access API
+        /// <summary>턴 서비스 반환</summary>
+        ITurnService GetTurnService();
+
+        /// <summary>유닛 서비스 반환</summary>
+        IUnitService GetUnitService();
+
+        /// <summary>UI 서비스 반환</summary>
+        IUIService GetUIService();
+
+        /// <summary>게임 서비스 반환</summary>
+        IGameService GetGameService();
+
+        /// <summary>서비스 상태 정보 반환 (디버깅용)</summary>
+        string GetServiceStatus();
     }
 }

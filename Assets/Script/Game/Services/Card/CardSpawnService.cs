@@ -42,79 +42,82 @@ namespace Game.Services
 
         /// <summary>
         /// CardServiceManager에 의해 호출되는 초기화 메서드
-        /// ServiceLocator를 통해 필요한 의존성들을 해결
+        /// Unit의 Init() 패턴을 따라 외부에서 의존성을 주입받음
         /// </summary>
-        public void Initialize()
+        /// <param name="iUnitService">유닛 서비스</param>
+        /// <param name="iGridController">그리드 컨트롤러</param>
+        /// <param name="iGridState">그리드 상태</param>
+        /// <param name="iSpawnValidator">소환 검증기</param>
+        /// <param name="iResourceManager">자원 매니저</param>
+        public void Init(IUnitService iUnitService, IGridController iGridController,
+                        IGridState iGridState, ISpawnValidator iSpawnValidator,
+                        IResourceManager iResourceManager)
         {
+            if (isInitialized)
+            {
+                Debug.LogWarning($"[CardSpawnService] {gameObject.name} already initialized");
+                return;
+            }
+
             Log("⭐ Initializing CardSpawnService...");
 
-            // ServiceLocator를 통한 의존성 해결
-            unitService = ServiceLocator.Get<IUnitService>();
-            if (unitService == null)
-            {
-                LogError("❌ UnitService not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ UnitService dependency resolved");
-            }
+            // 외부에서 주입받은 의존성 설정
+            InjectDependencies(iUnitService, iGridController, iGridState, iSpawnValidator, iResourceManager);
 
-            gridController = ServiceLocator.Get<IGridController>();
-            if (gridController == null)
-            {
-                LogError("❌ GridController not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ GridController dependency resolved");
-            }
-
-            gridState = ServiceLocator.Get<IGridState>();
-            if (gridState == null)
-            {
-                LogError("❌ GridState not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ GridState dependency resolved");
-            }
-
-            spawnValidator = ServiceLocator.Get<ISpawnValidator>();
-            if (spawnValidator == null)
-            {
-                LogError("❌ SpawnValidator not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ SpawnValidator dependency resolved");
-            }
-
-            resourceManager = ServiceLocator.Get<IResourceManager>();
-            if (resourceManager == null)
-            {
-                LogError("❌ ResourceManager not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ ResourceManager dependency resolved");
-            }
-
-            // 필수 의존성들이 모두 해결되었는지 확인
-            bool allDependenciesResolved = unitService != null && 
-                                         gridController != null && 
-                                         gridState != null && 
-                                         spawnValidator != null && 
+            // 필수 의존성들이 모두 주입되었는지 확인
+            bool allDependenciesResolved = unitService != null &&
+                                         gridController != null &&
+                                         gridState != null &&
+                                         spawnValidator != null &&
                                          resourceManager != null;
 
             if (allDependenciesResolved)
             {
                 isInitialized = true;
-                Log("✅ CardSpawnService initialized successfully");
+                Log("✅ CardSpawnService initialization completed");
             }
             else
             {
                 LogError("❌ CardSpawnService initialization failed - missing dependencies");
             }
+        }
+
+        /// <summary>
+        /// 외부에서 주입받은 서비스 의존성 설정
+        /// </summary>
+        private void InjectDependencies(IUnitService iUnitService, IGridController iGridController,
+                                       IGridState iGridState, ISpawnValidator iSpawnValidator,
+                                       IResourceManager iResourceManager)
+        {
+            unitService = iUnitService;
+            if (unitService != null)
+                Log("✅ UnitService dependency injected successfully");
+            else
+                LogError("❌ UnitService is null");
+
+            gridController = iGridController;
+            if (gridController != null)
+                Log("✅ GridController dependency injected successfully");
+            else
+                LogError("❌ GridController is null");
+
+            gridState = iGridState;
+            if (gridState != null)
+                Log("✅ GridState dependency injected successfully");
+            else
+                LogError("❌ GridState is null");
+
+            spawnValidator = iSpawnValidator;
+            if (spawnValidator != null)
+                Log("✅ SpawnValidator dependency injected successfully");
+            else
+                LogError("❌ SpawnValidator is null");
+
+            resourceManager = iResourceManager;
+            if (resourceManager != null)
+                Log("✅ ResourceManager dependency injected successfully");
+            else
+                LogError("❌ ResourceManager is null");
         }
 
         #endregion

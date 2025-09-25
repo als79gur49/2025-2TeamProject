@@ -39,45 +39,50 @@ namespace Game.Services
 
         /// <summary>
         /// CardServiceManager에 의해 호출되는 초기화 메서드
-        /// ServiceLocator를 통해 필요한 의존성들을 해결
+        /// Unit의 Init() 패턴을 따라 외부에서 의존성을 주입받음
         /// </summary>
-        public void Initialize()
+        /// <param name="iGridController">그리드 컨트롤러</param>
+        /// <param name="iTurnService">턴 서비스</param>
+        /// <param name="iResourceManager">자원 매니저</param>
+        public void Init(IGridController iGridController, ITurnService iTurnService, IResourceManager iResourceManager)
         {
+            if (isInitialized)
+            {
+                Debug.LogWarning($"[SpawnValidator] {gameObject.name} already initialized");
+                return;
+            }
+
             Log("✔️ Initializing SpawnValidator...");
 
-            // ServiceLocator를 통한 의존성 해결
-            gridController = ServiceLocator.Get<IGridController>();
-            if (gridController == null)
-            {
-                LogError("❌ GridController not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ GridController dependency resolved");
-            }
-
-            turnService = ServiceLocator.Get<ITurnService>();
-            if (turnService == null)
-            {
-                LogError("❌ TurnService not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ TurnService dependency resolved");
-            }
-
-            resourceManager = ServiceLocator.Get<IResourceManager>();
-            if (resourceManager == null)
-            {
-                LogError("❌ ResourceManager not found in ServiceLocator");
-            }
-            else
-            {
-                Log("✅ ResourceManager dependency resolved");
-            }
+            // 외부에서 주입받은 의존성 설정
+            InjectDependencies(iGridController, iTurnService, iResourceManager);
 
             isInitialized = true;
-            Log("✅ SpawnValidator initialized successfully");
+            Log("✅ SpawnValidator initialization completed");
+        }
+
+        /// <summary>
+        /// 외부에서 주입받은 서비스 의존성 설정
+        /// </summary>
+        private void InjectDependencies(IGridController iGridController, ITurnService iTurnService, IResourceManager iResourceManager)
+        {
+            gridController = iGridController;
+            if (gridController != null)
+                Log("✅ GridController dependency injected successfully");
+            else
+                LogError("❌ GridController is null");
+
+            turnService = iTurnService;
+            if (turnService != null)
+                Log("✅ TurnService dependency injected successfully");
+            else
+                LogError("❌ TurnService is null");
+
+            resourceManager = iResourceManager;
+            if (resourceManager != null)
+                Log("✅ ResourceManager dependency injected successfully");
+            else
+                LogError("❌ ResourceManager is null");
         }
 
         #endregion

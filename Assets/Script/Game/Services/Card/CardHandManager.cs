@@ -59,13 +59,21 @@ namespace Game.Services
 
         /// <summary>
         /// CardServiceManager에 의해 호출되는 초기화 메서드
+        /// Unit의 Init() 패턴을 따라 외부에서 의존성을 주입받음
         /// </summary>
-        public void Initialize()
+        /// <param name="iTurnService">턴 서비스 인터페이스</param>
+        public void Init(ITurnService iTurnService)
         {
+            if (isInitialized)
+            {
+                Debug.LogWarning($"[CardHandManager] {gameObject.name} already initialized");
+                return;
+            }
+
             Log("🖐️ Initializing CardHandManager...");
 
-            // 서비스 의존성 주입
-            InjectDependencies();
+            // 외부에서 주입받은 의존성 설정
+            InjectDependencies(iTurnService);
 
             // UI 컴포넌트 초기화
             InitializeUI();
@@ -77,20 +85,23 @@ namespace Game.Services
             SetupInitialHand();
 
             isInitialized = true;
-            Log("✅ CardHandManager initialized successfully");
+            Log("✅ CardHandManager initialization completed");
         }
 
         /// <summary>
-        /// 서비스 의존성 주입
+        /// 외부에서 주입받은 서비스 의존성 설정
         /// </summary>
-        private void InjectDependencies()
+        private void InjectDependencies(ITurnService iTurnService)
         {
-            if (ServiceLocator.IsInitialized)
+            turnService = iTurnService;
+
+            if (turnService != null)
             {
-                turnService = ServiceLocator.Get<ITurnService>();
-                
-                if (turnService == null)
-                    Debug.LogError("[CardHandManager] TurnService not found in ServiceLocator");
+                Log("✅ TurnService dependency injected successfully");
+            }
+            else
+            {
+                Debug.LogError("[CardHandManager] TurnService is null");
             }
         }
 
@@ -523,6 +534,7 @@ namespace Game.Services
         [Header("에디터 디버깅 도구")]
         [SerializeField] private bool showHandDebugInfo = false;
         [SerializeField] private CardData testCardData;
+        [SerializeField] private bool generateTestCards = false;
 
         private void OnGUI()
         {
@@ -554,6 +566,21 @@ namespace Game.Services
                 AddCardToHand(testCardData);
             }
 
+            if (GUILayout.Button("Generate Test Cards"))
+            {
+                GenerateTestCards();
+            }
+
+            if (GUILayout.Button("Add Sample Spell Cards"))
+            {
+                AddSampleSpellCards();
+            }
+
+            if (GUILayout.Button("Add Sample Unit Cards"))
+            {
+                AddSampleUnitCards();
+            }
+
             if (GUILayout.Button("Clear Hand"))
             {
                 ClearHand();
@@ -573,6 +600,188 @@ namespace Game.Services
             }
 
             GUILayout.EndArea();
+        }
+
+        /// <summary>
+        /// 테스트용 카드 데이터 생성 메서드
+        /// </summary>
+        private void GenerateTestCards()
+        {
+            Log("🎴 Generating test card data...");
+
+            // 테스트 카드들을 핸드에 추가
+            var testCards = CreateTestCardData();
+            foreach (var card in testCards)
+            {
+                if (!IsHandFull())
+                {
+                    AddCardToHand(card);
+                }
+                else
+                {
+                    LogError("Hand is full, cannot add more test cards");
+                    break;
+                }
+            }
+
+            Log($"✅ Generated {testCards.Count} test cards");
+        }
+
+        /// <summary>
+        /// 샘플 주문 카드들 추가
+        /// </summary>
+        private void AddSampleSpellCards()
+        {
+            Log("🔥 Adding sample spell cards...");
+
+            var spellCards = CreateSampleSpellCards();
+            int added = 0;
+
+            foreach (var card in spellCards)
+            {
+                if (!IsHandFull())
+                {
+                    AddCardToHand(card);
+                    added++;
+                }
+                else
+                {
+                    LogError("Hand is full, cannot add more cards");
+                    break;
+                }
+            }
+
+            Log($"✅ Added {added} spell cards to hand");
+        }
+
+        /// <summary>
+        /// 샘플 유닛 카드들 추가 (UnitData 없이 테스트용)
+        /// </summary>
+        private void AddSampleUnitCards()
+        {
+            Log("⚔️ Adding sample unit cards...");
+
+            var unitCards = CreateSampleUnitCards();
+            int added = 0;
+
+            foreach (var card in unitCards)
+            {
+                if (!IsHandFull())
+                {
+                    AddCardToHand(card);
+                    added++;
+                }
+                else
+                {
+                    LogError("Hand is full, cannot add more cards");
+                    break;
+                }
+            }
+
+            Log($"✅ Added {added} unit cards to hand");
+        }
+
+        /// <summary>
+        /// 기본 테스트 카드 데이터 생성
+        /// </summary>
+        private List<CardData> CreateTestCardData()
+        {
+            var testCards = new List<CardData>();
+
+            // 1. 파이어볼 (데미지 주문)
+            var fireball = CardData.CreateSpellCard(
+                "파이어볼",
+                "적에게 화염 피해를 입힙니다",
+                3, 1,
+                SpellType.Damage, 25, 5f, 2f
+            );
+            testCards.Add(fireball);
+
+            // 2. 힐 (회복 주문)
+            var heal = CardData.CreateSpellCard(
+                "치유",
+                "아군을 회복시킵니다",
+                2, 1,
+                SpellType.Heal, 15, 3f, 1f
+            );
+            testCards.Add(heal);
+
+            // 3. 실드 (보호 주문)
+            var shield = CardData.CreateSpellCard(
+                "마법 방패",
+                "아군에게 보호막을 생성합니다",
+                2, 1,
+                SpellType.Shield, 10, 4f, 3f
+            );
+            testCards.Add(shield);
+
+            return testCards;
+        }
+
+        /// <summary>
+        /// 다양한 주문 카드 생성
+        /// </summary>
+        private List<CardData> CreateSampleSpellCards()
+        {
+            var spellCards = new List<CardData>();
+
+            // 공격 주문들
+            spellCards.Add(CardData.CreateSpellCard(
+                "번개 화살", "순간적으로 적을 타격합니다",
+                1, 1, SpellType.Damage, 12, 6f, 0f
+            ));
+
+            spellCards.Add(CardData.CreateSpellCard(
+                "얼음 창", "적을 얼려 둔화시킵니다",
+                2, 1, SpellType.Debuff, 8, 4f, 1.5f
+            ));
+
+            spellCards.Add(CardData.CreateSpellCard(
+                "메테오", "광역 화염 피해를 입힙니다",
+                5, 2, SpellType.Damage, 40, 8f, 5f
+            ));
+
+            // 보조 주문들
+            spellCards.Add(CardData.CreateSpellCard(
+                "신속", "아군을 강화합니다",
+                1, 1, SpellType.Buff, 5, 3f, 2f
+            ));
+
+            spellCards.Add(CardData.CreateSpellCard(
+                "순간이동", "아군을 다른 위치로 이동시킵니다",
+                2, 1, SpellType.Teleport, 0, 7f, 3f
+            ));
+
+            return spellCards;
+        }
+
+        /// <summary>
+        /// 샘플 유닛 카드 생성 (UnitData 없이)
+        /// </summary>
+        private List<CardData> CreateSampleUnitCards()
+        {
+            var unitCards = new List<CardData>();
+
+            // UnitData가 없어도 테스트할 수 있도록 일반 카드로 생성
+            var warrior = CardData.CreateSpellCard(
+                "전사", "근접 전투 유닛입니다",
+                2, 1, SpellType.Summon, 1, 0f, 0f
+            );
+            unitCards.Add(warrior);
+
+            var archer = CardData.CreateSpellCard(
+                "궁수", "원거리 공격 유닛입니다",
+                2, 1, SpellType.Summon, 1, 0f, 0f
+            );
+            unitCards.Add(archer);
+
+            var mage = CardData.CreateSpellCard(
+                "마법사", "마법 공격 유닛입니다",
+                3, 1, SpellType.Summon, 1, 0f, 0f
+            );
+            unitCards.Add(mage);
+
+            return unitCards;
         }
 #endif
 

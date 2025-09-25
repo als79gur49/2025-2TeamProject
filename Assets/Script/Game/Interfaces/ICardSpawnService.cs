@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Data;
+using Game.Services;
 
 namespace Game.Interfaces
 {
@@ -13,7 +14,9 @@ namespace Game.Interfaces
         bool IsInitialized { get; }
 
         /// <summary>CardServiceManager에 의해 호출되는 초기화 메서드</summary>
-        void Initialize();
+        void Init(IUnitService iUnitService, IGridController iGridController,
+                        IGridState iGridState, ISpawnValidator iSpawnValidator,
+                        IResourceManager iResourceManager);
 
         /// <summary>카드로부터 유닛을 소환하고 UnitService에 등록</summary>
         /// <param name="cardData">소환할 카드 데이터</param>

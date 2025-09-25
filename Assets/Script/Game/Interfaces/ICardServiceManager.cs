@@ -19,5 +19,14 @@ namespace Game.Interfaces
 
         /// <summary>카드 서비스 상태 정보 반환 (디버깅용)</summary>
         string GetServiceStatus();
+
+        /// <summary>카드 핸드 매니저 반환</summary>
+        ICardHandManager GetCardHandManager();
+
+        /// <summary>카드 스폰 서비스 반환</summary>
+        ICardSpawnService GetCardSpawnService();
+
+        /// <summary>스폰 검증자 반환</summary>
+        ISpawnValidator GetSpawnValidator();
     }
 }

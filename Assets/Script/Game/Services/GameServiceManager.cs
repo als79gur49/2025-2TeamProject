@@ -549,7 +549,15 @@ namespace Game.Services
                    $"- UIService: {(uiService != null ? "✅" : "❌")}\n" +
                    $"- GameService: {(gameService != null ? "✅" : "❌")}\n";
         }
-        
+
+        /// <summary>
+        /// GridManager와 CardServiceManager 패턴을 따라 하위 서비스들에 대한 접근 제공
+        /// </summary>
+        public ITurnService GetTurnService() => turnService;
+        public IUnitService GetUnitService() => unitService;
+        public IUIService GetUIService() => uiService;
+        public IGameService GetGameService() => gameService;
+
         #endregion
     }
 }

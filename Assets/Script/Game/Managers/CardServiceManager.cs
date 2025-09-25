@@ -113,59 +113,55 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 카드 서비스들 초기화 (ServiceLocator 의존성 해결)
+        /// 카드 서비스들 초기화 (외부 의존성 주입 방식)
         /// </summary>
         private void InitializeCardServices()
         {
-            // CardSpawnService 초기화 - UnitService 의존성 주입
-            if (cardSpawnService != null)
-            {
-                cardSpawnService.Initialize();
-                Log("💉 CardSpawnService dependencies injected");
-            }
+            // 매니저들에서 하위 서비스 가져오기
+            var gridManager = ServiceLocator.Get<IGridManager>();
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+            var gridController = gridManager?.GetGridController();
+            var gridState = gridManager?.GetGridState();
+            var turnService = gameServiceManager?.GetTurnService();
+            var unitService = gameServiceManager?.GetUnitService();
 
-            // SpawnValidator 초기화
+            // ResourceManager는 독립적인 서비스로 ServiceLocator에서 직접 가져오기
+            var resourceManager = ServiceLocator.Get<IResourceManager>();
+
+            // SpawnValidator 먼저 초기화 (CardSpawnService가 이를 사용하므로)
             if (spawnValidator != null)
             {
-                spawnValidator.Initialize();
-                Log("💉 SpawnValidator dependencies injected");
+                spawnValidator.Init(gridController, turnService, resourceManager);
+                Log("💉 SpawnValidator dependencies injected via Init()");
+            }
+
+            // CardSpawnService 초기화 - SpawnValidator 포함하여 의존성 주입
+            if (cardSpawnService != null)
+            {
+                cardSpawnService.Init(unitService, gridController, gridState, spawnValidator, resourceManager);
+                Log("💉 CardSpawnService dependencies injected via Init()");
             }
 
             // CardHandManager 초기화
             if (cardHandManager != null)
             {
-                cardHandManager.Initialize();
-                Log("💉 CardHandManager dependencies injected");
+                cardHandManager.Init(turnService);
+                Log("💉 CardHandManager dependencies injected via Init()");
             }
         }
 
         /// <summary>
-        /// ServiceLocator에 모든 카드 서비스들 등록
+        /// ServiceLocator에 CardServiceManager만 등록 (하위 서비스들은 등록하지 않음)
         /// </summary>
         private void RegisterServicesWithLocator()
         {
-            // CardServiceManager 자신 등록
+            // CardServiceManager 자신만 등록
             ServiceLocator.Register<ICardServiceManager>(this);
             Log("📋 ICardServiceManager registered");
 
-            // 하위 서비스들 등록
-            if (cardHandManager != null)
-            {
-                ServiceLocator.Register<ICardHandManager>(cardHandManager);
-                Log("📋 ICardHandManager registered");
-            }
-
-            if (cardSpawnService != null)
-            {
-                ServiceLocator.Register<ICardSpawnService>(cardSpawnService);
-                Log("📋 ICardSpawnService registered");
-            }
-
-            if (spawnValidator != null)
-            {
-                ServiceLocator.Register<ISpawnValidator>(spawnValidator);
-                Log("📋 ISpawnValidator registered");
-            }
+            // 하위 서비스들은 ServiceLocator에 등록하지 않음
+            // 대신 Get 메서드를 통해 접근하도록 함
+            Log("📋 Child services not registered - access through Get methods");
         }
 
         /// <summary>
@@ -452,6 +448,13 @@ namespace Game.Services
                    $"- CardSpawnService: {(cardSpawnService != null ? "✅" : "❌")}\n" +
                    $"- SpawnValidator: {(spawnValidator != null ? "✅" : "❌")}\n";
         }
+
+        /// <summary>
+        /// GridManager 패턴을 따라 하위 서비스들에 대한 접근 제공
+        /// </summary>
+        public ICardHandManager GetCardHandManager() => cardHandManager;
+        public ICardSpawnService GetCardSpawnService() => cardSpawnService;
+        public ISpawnValidator GetSpawnValidator() => spawnValidator;
 
         #endregion
 

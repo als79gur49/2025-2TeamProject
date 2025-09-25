@@ -102,48 +102,99 @@ namespace Game.Interfaces
         event Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved; // 유닛, 이전위치, 새위치
         event Action<Vector2Int, GameObject> OnUnitPlaced; // 위치, 유닛
         event Action<Vector2Int, GameObject> OnUnitRemoved; // 위치, 유닛
+
+        // ✅ 하위 컴포넌트 접근
+        /// <summary>그리드 컨트롤러 반환</summary>
+        IGridController GetGridController();
+
+        /// <summary>그리드 상태 반환</summary>
+        IGridState GetGridState();
+
+        /// <summary>그리드 렌더러 반환</summary>
+        IGridRenderer GetGridRenderer();
     }
 
     /// <summary>
     /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
+    /// IGridManager 상속 제거로 책임 분리
     /// </summary>
-    public interface IGridController : IGridManager
+    public interface IGridController
     {
+        // 그리드 속성들
+        Vector2Int GridSize { get; }
+        float TileSize { get; }
+
         // 의존성 초기화
         void Initialize(IGridState gridState);
-        
-        // 길찾기 고급 기능
+
+        // 위치 검증 메서드들
+        bool IsValidPosition(Vector2Int gridPosition);
+        bool IsPositionOccupied(Vector2Int gridPosition);
+        bool IsPositionBlocked(Vector2Int gridPosition);
+
+        // 유닛 위치 관리
+        GameObject GetUnitAtPosition(Vector2Int gridPosition);
+        Vector2Int GetUnitPosition(GameObject unit);
+        bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        bool RemoveUnit(GameObject unit);
+
+        // 좌표 변환
+        Vector3 GridToWorldPosition(Vector2Int gridPosition);
+        Vector2Int WorldToGridPosition(Vector3 worldPosition);
+
+        // 타일 상태 관리
+        void SetTileBlocked(Vector2Int position, bool blocked);
+
+        // 범위 검색
+        List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true);
+        List<GameObject> GetUnitsInRange(Vector2Int center, int range);
+
+        // 유닛 이동
+        bool CanMoveUnit(GameObject unit, Vector2Int targetPosition);
+        bool MoveUnit(GameObject unit, Vector2Int newPosition);
+        bool TryMoveUnit(GameObject unit, Vector2Int newPosition, out string errorMessage);
+
+        // 길찾기 기능
+        List<Vector2Int> FindPath(Vector2Int start, Vector2Int end, GameObject movingUnit = null);
         PathfindingResult FindPathWithDetails(Vector2Int start, Vector2Int end, GameObject movingUnit = null);
-        
+        bool IsPathClear(Vector2Int start, Vector2Int end, GameObject ignoredUnit = null);
+        int GetPathDistance(Vector2Int start, Vector2Int end);
+        List<Vector2Int> GetValidMovePositions(GameObject unit, int moveRange);
+
         // 고급 설정
         void SetPathfindingOptions(bool allowDiagonal, int maxIterations);
         void ClearPathCache();
-        
+
         // ✅ Clean Architecture: Unit positioning methods (Business Logic Layer responsibility)
         /// <summary>
         /// Move unit from one position to another with full business logic validation
         /// </summary>
         bool MoveUnit(GameObject unit, Vector2Int fromPosition, Vector2Int toPosition);
-        
+
         /// <summary>
         /// Set unit's world position based on grid position (Business Logic responsibility)
         /// </summary>
         void SetUnitWorldPosition(GameObject unit, Vector2Int gridPosition);
-        
+
         /// <summary>
         /// Calculate world position for unit placement including offset
         /// </summary>
         Vector3 CalculateUnitWorldPosition(Vector2Int gridPosition);
-        
+
         /// <summary>
         /// Get the standard unit offset (e.g., Vector3.up * 0.5f)
         /// </summary>
         Vector3 GetUnitOffset();
-        
+
         /// <summary>
         /// Validate and execute unit movement with comprehensive checks
         /// </summary>
         bool ValidateAndExecuteUnitMovement(GameObject unit, Vector2Int targetPosition);
+
+        // 이벤트들
+        event System.Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
+        event System.Action<Vector2Int, GameObject> OnUnitPlaced;
+        event System.Action<Vector2Int, GameObject> OnUnitRemoved;
     }
 
     /// <summary>
