@@ -151,14 +151,75 @@ namespace Game.Services
 
             Log($"🔮 Validating spell use: {cardData.CardName} at {targetPosition}");
 
-            // TODO: Phase 2에서 구현
-            // 1. 페이즈 검증
-            // 2. 대상 위치 유효성 검증
-            // 3. 주문 사용 비용 검증
-            // 4. 주문별 특별 조건 검증
+            // 1. 주문 카드인지 확인
+            if (!cardData.IsSpellCard)
+            {
+                LogError($"Card {cardData.CardName} is not a spell card");
+                return false;
+            }
 
-            Log("✅ Spell use validation placeholder - returning true");
+            // 2. 현재 플레이어의 턴인지 검증
+            if (turnService != null && !turnService.IsPlayerTurn())
+            {
+                Log("Cannot use spell - not player's turn");
+                return false;
+            }
+
+            // 3. 그리드 위치 유효성 검증
+            if (gridController != null && !gridController.IsValidPosition(targetPosition))
+            {
+                Log($"Invalid target position: {targetPosition}");
+                return false;
+            }
+
+            // 4. 자원 비용 검증
+            if (resourceManager != null && !resourceManager.CanAfford(true, cardData.ManaCost, cardData.ActionCost))
+            {
+                Log($"Insufficient resources for spell {cardData.CardName}: Mana={cardData.ManaCost}, Action={cardData.ActionCost}");
+                return false;
+            }
+
+            // 5. 대상 지정 대상 유효성 검증 (주문별 특별 조건)
+            if (!ValidateSpellTarget(cardData, targetPosition))
+            {
+                Log($"Invalid spell target for {cardData.CardName} at {targetPosition}");
+                return false;
+            }
+
+            Log($"✅ Spell validation passed for {cardData.CardName} at {targetPosition}");
             return true;
+        }
+
+        /// <summary>
+        /// 주문별 대상 지정 유효성 검증
+        /// </summary>
+        private bool ValidateSpellTarget(CardData cardData, Vector2Int targetPosition)
+        {
+            // 대상 타입에 따른 검증
+            switch (cardData.TargetType)
+            {
+                case CardData.TargetType.None:
+                    return true; // 대상 지정 불필요
+
+                case CardData.TargetType.Ground:
+                    // 빈 땅에만 사용 가능
+                    return gridController?.IsEmptyPosition(targetPosition) ?? true;
+
+                case CardData.TargetType.Enemy:
+                    // 적 유닛이 있는 위치에만 사용 가능
+                    return gridController?.HasEnemyUnit(targetPosition) ?? true;
+
+                case CardData.TargetType.Ally:
+                    // 아군 유닛이 있는 위치에만 사용 가능
+                    return gridController?.HasPlayerUnit(targetPosition) ?? true;
+
+                case CardData.TargetType.Any:
+                    // 어떤 유닛이든 있으면 가능
+                    return gridController?.HasUnit(targetPosition) ?? true;
+
+                default:
+                    return true; // 기타 경우 기본적으로 허용
+            }
         }
 
         #endregion
