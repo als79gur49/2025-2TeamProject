@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
+using TMPro;
 
 namespace Game.Card.UI
 {
@@ -15,9 +16,9 @@ namespace Game.Card.UI
     {
         [Header("카드 UI 설정")]
         [SerializeField] private Image cardImage;
-        [SerializeField] private Text cardNameText;
-        [SerializeField] private Text costText;
-        [SerializeField] private Text descriptionText;
+        [SerializeField] private TextMeshProUGUI cardNameText;
+        [SerializeField] private TextMeshProUGUI costText;
+        [SerializeField] private TextMeshProUGUI descriptionText;
         [SerializeField] private CanvasGroup canvasGroup;
 
         [Header("드래그 설정")]
@@ -216,15 +217,15 @@ namespace Game.Card.UI
 
             isDragging = false;
 
-            // 레이캐스팅 재활성화
+            // 드롭 처리 (레이캐스팅이 비활성화된 상태에서 실행)
+            bool dropSuccess = HandleDrop(eventData);
+
+            // 레이캐스팅 재활성화 (드롭 처리 완료 후)
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 1f;
                 canvasGroup.blocksRaycasts = true;
             }
-
-            // 드롭 처리
-            bool dropSuccess = HandleDrop(eventData);
 
             // 드롭 실패 시 원래 위치로 복귀
             if (!dropSuccess && returnToOriginalPosition)
@@ -244,25 +245,29 @@ namespace Game.Card.UI
         /// </summary>
         private void CheckDropValidation(PointerEventData eventData)
         {
-            // 레이캐스트로 드롭 대상 찾기
-            var results = new System.Collections.Generic.List<RaycastResult>();
-            if (graphicRaycaster != null)
+            // Physics Raycast로 3D 타일 검출
+            Camera camera = Camera.main;
+            if (camera == null)
             {
-                graphicRaycaster.Raycast(eventData, results);
+                UpdateDropFeedback(false);
+                return;
             }
 
+            Ray ray = camera.ScreenPointToRay(eventData.position);
+            RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity);
+
             bool isValidDrop = false;
-            
-            foreach (var result in results)
+
+            foreach (var hit in hits)
             {
-                var tileDropHandler = result.gameObject.GetComponent<TileDropHandler>();
+                var tileDropHandler = hit.collider.GetComponent<TileDropHandler>();
                 if (tileDropHandler != null)
                 {
-                    // 스폰 유효성 검사
+                    // 카드 드롭 유효성 검사
                     Vector2Int gridPosition = tileDropHandler.GetGridPosition();
                     if (spawnValidator != null && cardData != null)
                     {
-                        isValidDrop = spawnValidator.CanSpawnUnit(cardData, gridPosition);
+                        isValidDrop = ValidateCardDrop(cardData, gridPosition);
                     }
                     break;
                 }
@@ -277,16 +282,21 @@ namespace Game.Card.UI
         /// </summary>
         private bool HandleDrop(PointerEventData eventData)
         {
-            // 레이캐스트로 드롭 대상 찾기
-            var results = new System.Collections.Generic.List<RaycastResult>();
-            if (graphicRaycaster != null)
+            // Physics Raycast로 3D 타일 검출
+            Camera camera = Camera.main;
+            if (camera == null)
             {
-                graphicRaycaster.Raycast(eventData, results);
+                Debug.LogError("[CardUI] Main camera not found for physics raycast");
+                return false;
             }
 
-            foreach (var result in results)
+            Ray ray = camera.ScreenPointToRay(eventData.position);
+            RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity);
+
+            foreach (var hit in hits)
             {
-                var tileDropHandler = result.gameObject.GetComponent<TileDropHandler>();
+                Debug.Log($"Physics Raycast hit: {hit.collider.gameObject.name}");
+                var tileDropHandler = hit.collider.GetComponent<TileDropHandler>();
                 if (tileDropHandler != null)
                 {
                     // 드롭 처리 위임
@@ -305,6 +315,26 @@ namespace Game.Card.UI
             if (cardImage != null)
             {
                 cardImage.color = isValid ? validDropColor : invalidDropColor;
+            }
+        }
+
+        /// <summary>
+        /// 카드 타입에 따른 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateCardDrop(CardData cardData, Vector2Int gridPosition)
+        {
+            if (spawnValidator == null) return false;
+
+            switch (cardData.CardType)
+            {
+                case CardData.CardType.Unit:
+                    return spawnValidator.CanSpawnUnit(cardData, gridPosition);
+
+                case CardData.CardType.Spell:
+                    return spawnValidator.CanUseSpell(cardData, gridPosition);
+
+                default:
+                    return false;
             }
         }
 

@@ -15,7 +15,7 @@ namespace Game.Card.UI
     {
         [Header("타일 정보")]
         [SerializeField] private Vector2Int gridPosition;
-        [SerializeField] private Image tileImage;
+        [SerializeField] private Renderer tileRenderer;
         [SerializeField] private bool isInteractable = true;
 
         [Header("드롭 피드백")]
@@ -47,8 +47,8 @@ namespace Game.Card.UI
         private void Awake()
         {
             // 컴포넌트 참조 설정
-            if (tileImage == null)
-                tileImage = GetComponent<Image>();
+            if (tileRenderer == null)
+                tileRenderer = GetComponent<Renderer>();
 
             audioSource = GetComponent<AudioSource>();
             if (audioSource == null)
@@ -81,8 +81,10 @@ namespace Game.Card.UI
         {
             if (ServiceLocator.IsInitialized)
             {
-                cardSpawnService = ServiceLocator.Get<ICardSpawnService>();
-                spawnValidator = ServiceLocator.Get<ISpawnValidator>();
+                var cardServiceManager = ServiceLocator.Get<ICardServiceManager>();
+                cardSpawnService = cardServiceManager.GetCardSpawnService();
+                spawnValidator = cardServiceManager.GetSpawnValidator();
+
                 gridManager = ServiceLocator.Get<IGridManager>();
                 
                 if (cardSpawnService == null)
@@ -175,23 +177,44 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// 카드 드롭 처리 (CardUI에서 직접 호출)
+        /// 카드 드롭 처리 (CardUI에서 직접 호출) - Unit과 Spell 카드 모두 지원
         /// </summary>
         public bool HandleCardDrop(CardData cardData, CardUI cardUI)
         {
             if (!isInteractable || cardData == null) return false;
 
-            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} at position {gridPosition}");
+            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} ({cardData.CardType}) at position {gridPosition}");
 
-            // 소환 유효성 검사
+            // 카드 타입에 따른 처리 분기
+            switch (cardData.CardType)
+            {
+                case CardData.CardType.Unit:
+                    return HandleUnitCardDrop(cardData, cardUI);
+
+                case CardData.CardType.Spell:
+                    return HandleSpellCardDrop(cardData, cardUI);
+
+                default:
+                    Debug.LogWarning($"[TileDropHandler] Unsupported card type: {cardData.CardType}");
+                    PlayDropFailedFeedback();
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Unit 카드 드롭 처리
+        /// </summary>
+        private bool HandleUnitCardDrop(CardData cardData, CardUI cardUI)
+        {
+            // 유닛 소환 유효성 검사
             if (spawnValidator == null || !spawnValidator.CanSpawnUnit(cardData, gridPosition))
             {
-                Debug.Log($"[TileDropHandler] Invalid drop position for {cardData.CardName} at {gridPosition}");
+                Debug.Log($"[TileDropHandler] Invalid spawn position for unit {cardData.CardName} at {gridPosition}");
                 PlayDropFailedFeedback();
                 return false;
             }
 
-            // 카드 소환 시도
+            // 카드 소환 서비스 확인
             if (cardSpawnService == null)
             {
                 Debug.LogError("[TileDropHandler] CardSpawnService not available");
@@ -199,21 +222,58 @@ namespace Game.Card.UI
                 return false;
             }
 
+            // 유닛 소환 시도
             bool spawnSuccess = cardSpawnService.TrySpawnUnitFromCard(cardData, gridPosition);
-            
+
             if (spawnSuccess)
             {
-                Debug.Log($"[TileDropHandler] Successfully spawned {cardData.CardName} at {gridPosition}");
+                Debug.Log($"[TileDropHandler] Successfully spawned unit {cardData.CardName} at {gridPosition}");
                 PlayDropSuccessFeedback();
-                
-                // CardUI에게 사용 완료 알림
                 cardUI?.OnCardUsed();
-                
                 return true;
             }
             else
             {
-                Debug.Log($"[TileDropHandler] Failed to spawn {cardData.CardName} at {gridPosition}");
+                Debug.Log($"[TileDropHandler] Failed to spawn unit {cardData.CardName} at {gridPosition}");
+                PlayDropFailedFeedback();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Spell 카드 드롭 처리
+        /// </summary>
+        private bool HandleSpellCardDrop(CardData cardData, CardUI cardUI)
+        {
+            // 주문 사용 유효성 검사
+            if (spawnValidator == null || !spawnValidator.CanUseSpell(cardData, gridPosition))
+            {
+                Debug.Log($"[TileDropHandler] Invalid target position for spell {cardData.CardName} at {gridPosition}");
+                PlayDropFailedFeedback();
+                return false;
+            }
+
+            // 카드 소환 서비스 확인
+            if (cardSpawnService == null)
+            {
+                Debug.LogError("[TileDropHandler] CardSpawnService not available");
+                PlayDropFailedFeedback();
+                return false;
+            }
+
+            // 주문 발동 시도
+            bool spellSuccess = cardSpawnService.TryActivateSpellFromCard(cardData, gridPosition);
+
+            if (spellSuccess)
+            {
+                Debug.Log($"[TileDropHandler] Successfully activated spell {cardData.CardName} at {gridPosition}");
+                PlayDropSuccessFeedback();
+                cardUI?.OnCardUsed();
+                return true;
+            }
+            else
+            {
+                Debug.Log($"[TileDropHandler] Failed to activate spell {cardData.CardName} at {gridPosition}");
                 PlayDropFailedFeedback();
                 return false;
             }
@@ -237,8 +297,8 @@ namespace Game.Card.UI
                 var cardData = cardUI.GetCardData();
                 if (cardData != null)
                 {
-                    // 유효성 검사
-                    isValidDrop = spawnValidator?.CanSpawnUnit(cardData, gridPosition) ?? false;
+                    // 카드 타입에 따른 유효성 검사
+                    isValidDrop = ValidateCardDrop(cardData);
                     SetHighlight(true);
                     ShowDropPreview(cardData);
                 }
@@ -254,6 +314,30 @@ namespace Game.Card.UI
 
             SetHighlight(false);
             HideDropPreview();
+        }
+
+        #endregion
+
+        #region 카드 드롭 유효성 검사
+
+        /// <summary>
+        /// 카드 드롭 유효성 검사 (카드 타입에 따른 분기 처리)
+        /// </summary>
+        private bool ValidateCardDrop(CardData cardData)
+        {
+            if (spawnValidator == null) return false;
+
+            switch (cardData.CardType)
+            {
+                case CardData.CardType.Unit:
+                    return spawnValidator.CanSpawnUnit(cardData, gridPosition);
+
+                case CardData.CardType.Spell:
+                    return spawnValidator.CanUseSpell(cardData, gridPosition);
+
+                default:
+                    return false;
+            }
         }
 
         #endregion
@@ -283,10 +367,10 @@ namespace Game.Card.UI
         /// </summary>
         private void SetTileColor(Color color)
         {
-            if (tileImage != null)
+            if (tileRenderer != null && tileRenderer.material != null)
             {
                 color.a = feedbackAlpha;
-                tileImage.color = color;
+                tileRenderer.material.color = color;
             }
         }
 
@@ -367,12 +451,13 @@ namespace Game.Card.UI
         /// </summary>
         private System.Collections.IEnumerator FlashColor(Color flashColor)
         {
-            Color originalColor = tileImage != null ? tileImage.color : Color.white;
-            
+            Color originalColor = (tileRenderer != null && tileRenderer.material != null)
+                ? tileRenderer.material.color : Color.white;
+
             // 플래시 색상으로 변경
             SetTileColor(flashColor);
             yield return new WaitForSeconds(0.2f);
-            
+
             // 원래 색상으로 복귀
             SetTileColor(originalColor);
         }
