@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using Game.Core;
 using Game.Interfaces;
 using Game.Card.UI;
@@ -24,6 +25,9 @@ namespace Game.Services
         [SerializeField] private float cardSpacing = 120f;
         [SerializeField] private bool arrangeCardsInArc = true;
         [SerializeField] private float arcRadius = 800f;
+
+        [Header("카드 데이터 소스")]
+        [SerializeField] private List<CardData> availableCards = new List<CardData>();
 
         [Header("상호작용 설정")]
         [SerializeField] private bool enablePlayerInteraction = false;
@@ -332,10 +336,10 @@ namespace Game.Services
             {
                 // 카드 데이터 설정
                 cardUI.SetCardData(cardData);
-                
+
                 // 드래그 가능 여부 설정
                 cardUI.SetDraggable(isPlayerSummonMode && enablePlayerInteraction);
-                
+
                 // 리스트에 추가
                 cardUIComponents.Add(cardUI);
 
@@ -443,17 +447,82 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 랜덤 카드 드로우 (테스트용)
+        /// 랜덤 카드 드로우 (ScriptableObject 기반)
         /// CardServiceManager에서 호출됨
+        /// availableCards 목록에서 랜덤 CardData를 선택하여 핸드에 추가
         /// </summary>
         public void DrawRandomCard()
         {
+            if (!isInitialized)
+            {
+                LogError("CardHandManager not initialized");
+                return;
+            }
+
+            if (IsHandFull())
+            {
+                LogError("Hand is full - cannot draw more cards");
+                return;
+            }
+
             Log("🃏 DrawRandomCard() called - Drawing a random card for player");
-            
-            // 실제 카드 드로우 로직은 구현하지 않고 로그만 출력
-            // 추후 카드 데이터베이스나 덱 시스템과 연동하여 구현
-            
-            Log("✨ Random card drawn successfully (placeholder implementation)");
+
+            // availableCards에서 랜덤 선택
+            if (availableCards != null && availableCards.Count > 0)
+            {
+                // 유효한 카드 데이터만 필터링
+                var validCards = availableCards.Where(card => card != null).ToList();
+
+                if (validCards.Count > 0)
+                {
+                    int randomIndex = UnityEngine.Random.Range(0, validCards.Count);
+                    var randomCardData = validCards[randomIndex];
+
+                    Log($"🎯 Selected random card: {randomCardData.CardName} (index {randomIndex}/{validCards.Count})");
+
+                    bool success = AddCardToHand(randomCardData);
+
+                    if (success)
+                    {
+                        Log($"✨ Successfully drew random card: {randomCardData.CardName}");
+                    }
+                    else
+                    {
+                        LogError("Failed to add random card to hand");
+                    }
+                }
+                else
+                {
+                    LogError("No valid CardData available in availableCards list");
+                }
+            }
+            else
+            {
+                // availableCards가 비어있으면 기본 테스트 데이터 사용 (fallback)
+                LogError("availableCards list is empty, using fallback test data");
+                var testCards = CreateTestCardData();
+
+                if (testCards.Count > 0)
+                {
+                    int randomCardIndex = UnityEngine.Random.Range(0, testCards.Count);
+                    var randomCardData = testCards[randomCardIndex];
+
+                    bool success = AddCardToHand(randomCardData);
+
+                    if (success)
+                    {
+                        Log($"✨ Successfully drew fallback card: {randomCardData.CardName}");
+                    }
+                    else
+                    {
+                        LogError("Failed to add fallback card to hand");
+                    }
+                }
+                else
+                {
+                    LogError("No card data available for random draw");
+                }
+            }
         }
 
         #endregion
@@ -489,7 +558,8 @@ namespace Game.Services
                    $"- Player Summon Mode: {isPlayerSummonMode}\n" +
                    $"- Player Interaction: {enablePlayerInteraction}\n" +
                    $"- Hand UI Parent: {(handUIParent != null ? "✅" : "❌")}\n" +
-                   $"- Card UI Prefab: {(cardUIPrefab != null ? "✅" : "❌")}\n";
+                   $"- Card UI Prefab: {(cardUIPrefab != null ? "✅" : "❌")}\n" +
+                   $"- Available Cards: {(availableCards != null ? availableCards.Count : 0)}\n";
         }
 
         /// <summary>

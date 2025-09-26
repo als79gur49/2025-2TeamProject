@@ -669,7 +669,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1604013275049930151}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -682,7 +682,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: -183.4, y: 7.2}
+  m_AnchoredPosition: {x: -184, y: 7.2}
   m_SizeDelta: {x: 100, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &5659835416121797553
@@ -1202,7 +1202,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -88.4, y: 92.2}
+  m_AnchoredPosition: {x: 88, y: 92.2}
   m_SizeDelta: {x: 57.6911, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8414883466714616075
@@ -1480,7 +1480,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6405299723055427200}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1488,7 +1488,7 @@ RectTransform:
   - {fileID: 7161223740483851721}
   - {fileID: 5640691072147983250}
   m_Father: {fileID: 53277688086135723}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 3.9}
@@ -1692,6 +1692,7 @@ GameObject:
   - component: {fileID: 7877466603396862114}
   - component: {fileID: 5409087295159626670}
   - component: {fileID: 9019657363929014674}
+  - component: {fileID: 5565905702914655022}
   m_Layer: 0
   m_Name: TestCard_Unit
   m_TagString: Untagged
@@ -1775,6 +1776,30 @@ MonoBehaviour:
   m_EffectColor: {r: 0, g: 0, b: 0, a: 0.07058824}
   m_EffectDistance: {x: 0, y: -7}
   m_UseGraphicAlpha: 1
+--- !u!114 &5565905702914655022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7006624643073576995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45a088672ccd6ad4ea9dde2b1ade567f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardImage: {fileID: 0}
+  cardNameText: {fileID: 0}
+  costText: {fileID: 0}
+  descriptionText: {fileID: 0}
+  canvasGroup: {fileID: 0}
+  dragAlpha: 0.6
+  returnToOriginalPosition: 1
+  returnSpeed: 10
+  glowEffect: {fileID: 0}
+  validDropColor: {r: 0, g: 1, b: 0, a: 1}
+  invalidDropColor: {r: 1, g: 0, b: 0, a: 1}
+  showDebugInfo: 0
 --- !u!1 &7059755038474529838
 GameObject:
   m_ObjectHideFlags: 0

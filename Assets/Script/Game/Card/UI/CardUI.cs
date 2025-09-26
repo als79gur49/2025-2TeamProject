@@ -81,8 +81,9 @@ namespace Game.Card.UI
         {
             if (ServiceLocator.IsInitialized)
             {
-                cardSpawnService = ServiceLocator.Get<ICardSpawnService>();
-                spawnValidator = ServiceLocator.Get<ISpawnValidator>();
+                var cardServiceManager = ServiceLocator.Get<ICardServiceManager>();
+                cardSpawnService = cardServiceManager?.GetCardSpawnService();
+                spawnValidator = cardServiceManager?.GetSpawnValidator();
                 
                 if (cardSpawnService == null)
                     Debug.LogError("[CardUI] CardSpawnService not found in ServiceLocator");

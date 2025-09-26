@@ -170,7 +170,9 @@ namespace Game.Services
         private void ConnectToGameServiceEvents()
         {
             // TurnService의 페이즈 변경 이벤트 구독
-            var turnService = ServiceLocator.Get<ITurnService>();
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+            var turnService = gameServiceManager?.GetTurnService();
+          
             if (turnService != null)
             {
                 // Phase 3에서 이벤트 연결 활성화

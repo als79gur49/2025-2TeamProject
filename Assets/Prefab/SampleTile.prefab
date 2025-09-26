@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2654133230719236656}
   - component: {fileID: 3391280208991244304}
   - component: {fileID: 2241584607519728195}
+  - component: {fileID: 1312816385153295931}
   m_Layer: 0
   m_Name: SampleTile
   m_TagString: Untagged
@@ -121,3 +122,28 @@ MonoBehaviour:
   x: 0
   y: 0
   occupyingUnit: {fileID: 0}
+--- !u!114 &1312816385153295931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9055745435785402388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f98eaeed3e937024cb6f9864c7ae844c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridPosition: {x: 0, y: 0}
+  tileImage: {fileID: 0}
+  isInteractable: 1
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  validDropColor: {r: 0, g: 1, b: 0, a: 1}
+  invalidDropColor: {r: 1, g: 0, b: 0, a: 1}
+  feedbackAlpha: 0.7
+  dropPreviewPrefab: {fileID: 0}
+  dropEffect: {fileID: 0}
+  dropSuccessSound: {fileID: 0}
+  dropFailSound: {fileID: 0}
+  showDebugInfo: 0

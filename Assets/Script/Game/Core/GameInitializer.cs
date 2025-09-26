@@ -101,11 +101,11 @@ public class GameInitializer : MonoBehaviour
         // Game Services 등록 - 직접 참조를 통한 안전한 등록
         RegisterGameServices();
 
-        // Card Services 등록 - CardServiceManager를 통한 카드 시스템 등록
-        RegisterCardServices();
-
         // Resource Services 등록 - ResourceManager를 통한 자원 관리 시스템 등록
         RegisterResourceServices();
+
+        // Card Services 등록 - CardServiceManager를 통한 카드 시스템 등록
+        RegisterCardServices();
     }
 
     /// <summary>

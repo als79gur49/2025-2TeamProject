@@ -258,7 +258,7 @@ namespace Game.Services
             turnStatusText.color = Color.white;
             
             RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.sizeDelta = new Vector2(300, 50);
+            textRect.sizeDelta = new Vector2(300, 100);
             textRect.anchorMin = new Vector2(0.5f, 1);
             textRect.anchorMax = new Vector2(0.5f, 1);
             textRect.anchoredPosition = new Vector2(0, -50);
@@ -312,7 +312,7 @@ namespace Game.Services
             if (turnStatusText == null || turnService == null) return;
             
             string phaseText = GetPhaseDisplayText(turnService.CurrentPhase);
-            string cycleInfo = $"Cycle {turnService.TurnCount + 1} | Phase {(int)turnService.CurrentPhase + 1}/4";
+            string cycleInfo = $"Cycle {turnService.TurnCount + 1} | Phase {(int)turnService.CurrentPhase + 1}/6";
             turnStatusText.text = $"{cycleInfo}\n{phaseText}";
             
             // Set color based on current phase

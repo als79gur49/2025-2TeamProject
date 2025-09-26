@@ -2,6 +2,7 @@ using UnityEngine;
 using Game.Core;
 using Game.Interfaces;
 using Game.Services;
+using Game;
 using System;
 
 namespace Game.Services
@@ -285,19 +286,27 @@ namespace Game.Services
         #region 턴 시스템 연동
 
         /// <summary>
-        /// TurnService 이벤트에 연결
+        /// TurnService 이벤트에 연결 (GameServiceManager를 통해 간접 접근)
         /// </summary>
         private void ConnectToTurnService()
         {
-            var turnService = ServiceLocator.Get<ITurnService>();
-            if (turnService != null)
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+            if (gameServiceManager != null)
             {
-                // TODO: 턴 시작 시 자원 회복 로직 추가
-                Log("🔗 Connected to TurnService for resource management");
+                var turnService = gameServiceManager.GetTurnService();
+                if (turnService != null)
+                {
+                    // TODO: 턴 시작 시 자원 회복 로직 추가
+                    Log("🔗 Connected to TurnService through GameServiceManager for resource management");
+                }
+                else
+                {
+                    LogError("❌ TurnService not found in GameServiceManager - resource per-turn logic won't work");
+                }
             }
             else
             {
-                LogError("❌ TurnService not found - resource per-turn logic won't work");
+                LogError("❌ GameServiceManager not found - cannot connect to TurnService");
             }
         }
 
