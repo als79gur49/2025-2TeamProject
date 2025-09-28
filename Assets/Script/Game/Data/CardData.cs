@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Game.Card.Effects;
 
 namespace Game.Data
 {
@@ -30,17 +31,17 @@ namespace Game.Data
             Legendary   // 신화
         }
 
+        /// <summary>
+        /// Phase 2.5: 배치 가능 위치 검증을 위한 대상 타입
+        /// 기존 주문 대상 지정에서 카드 배치 위치 검증으로 의미 변경
+        /// </summary>
         public enum TargetType
         {
-            None,           // 대상 없음
-            Self,           // 자신
-            Ally,           // 아군
-            Enemy,          // 적군
-            Any,            // 아무나
-            Ground,         // 지면
-            AllAllies,      // 모든 아군
-            AllEnemies,     // 모든 적군
-            All             // 모든 유닛
+            None,           // 타일이 없는 곳에서도 배치 가능
+            Ally,           // 아군 위치에서만 배치 가능
+            Enemy,          // 적군 위치에서만 배치 가능
+            Any,            // 적군, 아군 모두 배치 가능
+            Ground          // 타일이 있는 곳 어디든 배치 가능
         }
 
         /// <summary>
@@ -88,9 +89,18 @@ namespace Game.Data
         [SerializeField] private int range = 0;
         [SerializeField] private int areaOfEffect = 0; // 0 = 단일 대상, 1+ = 범위 효과
 
+        [Header("Phase 2.6: 배치 거리 제한")]
+        [SerializeField] private int targetRange = -1; // -1: 거리 무관, 0+: 해당 거리까지
+
+        [Header("Phase 2.7: 효과 범위")]
+        [SerializeField] private int affectedRange = 0; // 0: 단일 대상, 1+: 범위 효과
+
         [Header("효과")]
         [SerializeField] private List<CardEffect> effects = new List<CardEffect>();
         [SerializeField] private List<string> keywords = new List<string>();
+
+        [Header("새로운 효과 시스템 (Phase 2.4)")]
+        [SerializeField] private List<EffectData> effectDataList = new List<EffectData>();
 
         [Header("제약사항")]
         [SerializeField] private int maxCopiesInDeck = 3;
@@ -149,11 +159,16 @@ namespace Game.Data
         public TargetType Target => targetType;
         public int Range => range;
         public int AreaOfEffect => areaOfEffect;
+        public int TargetRange => targetRange;
+        public int AffectedRange => affectedRange;
         public int MaxCopiesInDeck => maxCopiesInDeck;
         public bool IsPlayableFromHand => isPlayableFromHand;
         public IReadOnlyList<CardEffect> Effects => effects.AsReadOnly();
         public IReadOnlyList<string> Keywords => keywords.AsReadOnly();
         public IReadOnlyList<string> RequiredTags => requiredTags.AsReadOnly();
+
+        // ✅ 새로운 EffectData 시스템 접근자 (Phase 2.4)
+        public IReadOnlyList<EffectData> EffectDataList => effectDataList.AsReadOnly();
 
         // ✅ 유닛 소환 관련 안전한 접근
         public UnitData GetUnitToSummon()
@@ -204,11 +219,12 @@ namespace Game.Data
             return requiredTags.All(tag => availableTags.Contains(tag));
         }
 
-        // ✅ 대상 유효성 검사
+        // ✅ 배치 위치 유효성 검사 (Phase 2.5: 의미 변경)
+        // 주의: 이 메서드는 거리만 확인하며, 실제 팀 기반 배치 검증은 SpawnValidator에서 수행됩니다.
         public bool IsValidTarget(Vector2Int casterPosition, Vector2Int targetPosition)
         {
             if (targetType == TargetType.None) return true;
-            
+
             float distance = Vector2Int.Distance(casterPosition, targetPosition);
             return range <= 0 || distance <= range;
         }
@@ -227,6 +243,127 @@ namespace Game.Data
         public bool HasEffect(string effectType)
         {
             return effects.Any(e => e.EffectType.Equals(effectType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // ✅ 새로운 EffectData 시스템 메서드들 (Phase 2.4)
+
+        /// <summary>
+        /// 지정된 효과 타입의 모든 EffectData를 반환합니다
+        /// </summary>
+        public List<EffectData> GetEffectsByType(EffectType effectType)
+        {
+            return effectDataList.Where(e => e.Type == effectType).ToList();
+        }
+
+        /// <summary>
+        /// 지정된 효과 타입을 가지고 있는지 확인합니다
+        /// </summary>
+        public bool HasEffectType(EffectType effectType)
+        {
+            return effectDataList.Any(e => e.Type == effectType);
+        }
+
+        /// <summary>
+        /// 지정된 효과 타입의 총 값을 반환합니다
+        /// </summary>
+        public int GetTotalEffectValue(EffectType effectType)
+        {
+            return effectDataList.Where(e => e.Type == effectType).Sum(e => e.Value);
+        }
+
+        /// <summary>
+        /// 카드의 주요 효과 타입을 반환합니다 (가장 높은 값을 가진 효과)
+        /// </summary>
+        public EffectType? GetPrimaryEffectType()
+        {
+            if (effectDataList.Count == 0) return null;
+
+            var primaryEffect = effectDataList.OrderByDescending(e => e.Value).FirstOrDefault();
+            return primaryEffect?.Type;
+        }
+
+        /// <summary>
+        /// 새로운 EffectData 시스템을 사용하는지 확인합니다
+        /// </summary>
+        public bool IsEffectBasedCard => effectDataList.Count > 0;
+
+        /// <summary>
+        /// EffectData 시스템에서의 카드 설명을 생성합니다
+        /// </summary>
+        public string GetEffectDataDescription()
+        {
+            if (effectDataList.Count == 0) return "";
+
+            var descriptions = effectDataList.Select(e => e.GetDescription());
+            return string.Join(", ", descriptions);
+        }
+
+        /// <summary>
+        /// Phase 2.8: AffectedRange 기반 범위 내 위치들을 반환합니다
+        /// </summary>
+        public List<Vector2Int> GetAffectedPositions(Vector2Int targetPosition, EffectData effectData)
+        {
+            var positions = new List<Vector2Int>();
+
+            if (effectData == null) return positions;
+
+            // AffectedRange가 0이면 단일 위치만 영향
+            if (effectData.AffectedRange == 0)
+            {
+                positions.Add(targetPosition);
+                return positions;
+            }
+
+            // AffectedRange가 1+이면 범위 내 모든 위치 포함
+            for (int x = -effectData.AffectedRange; x <= effectData.AffectedRange; x++)
+            {
+                for (int y = -effectData.AffectedRange; y <= effectData.AffectedRange; y++)
+                {
+                    var pos = new Vector2Int(targetPosition.x + x, targetPosition.y + y);
+                    positions.Add(pos);
+                }
+            }
+
+            return positions;
+        }
+
+        /// <summary>
+        /// Phase 2.8: 지정된 위치가 AffectedRange 내에 있는지 확인합니다
+        /// </summary>
+        public bool IsPositionInAffectedRange(Vector2Int targetPosition, Vector2Int checkPosition, EffectData effectData)
+        {
+            if (effectData == null) return false;
+
+            // AffectedRange가 0이면 정확히 동일한 위치만 유효
+            if (effectData.AffectedRange == 0)
+            {
+                return targetPosition == checkPosition;
+            }
+
+            // 맨하탄 거리로 범위 체크
+            int distance = Mathf.Abs(targetPosition.x - checkPosition.x) + Mathf.Abs(targetPosition.y - checkPosition.y);
+            return distance <= effectData.AffectedRange;
+        }
+
+        /// <summary>
+        /// Phase 2.8: 카드의 최대 AffectedRange 값을 반환합니다
+        /// </summary>
+        public int GetMaxAffectedRange()
+        {
+            if (effectDataList.Count == 0) return affectedRange; // 레거시 시스템 fallback
+
+            return effectDataList.Max(e => e.AffectedRange);
+        }
+
+        /// <summary>
+        /// Phase 2.8: 지정된 효과 타입의 AffectedRange 값을 반환합니다
+        /// </summary>
+        public int GetAffectedRangeForEffectType(EffectType effectType)
+        {
+            var effects = GetEffectsByType(effectType);
+            if (effects.Count == 0) return 0;
+
+            return effects.Max(e => e.AffectedRange);
         }
 
         // ✅ 주문 관련 헬퍼 메서드
@@ -307,14 +444,55 @@ namespace Game.Data
                 }
                 desc += "\n";
             }
+
+            // EffectData 시스템 정보 표시 (Phase 2.4 + 2.8)
+            if (effectDataList.Count > 0)
+            {
+                desc += "<b>새로운 효과 시스템:</b>\n";
+                foreach (var effectData in effectDataList)
+                {
+                    desc += $"• {effectData.GetDescription()}";
+
+                    // Phase 2.8: AffectedType과 AffectedRange 정보 추가
+                    if (effectData.AffectedType != AffectedType.None)
+                    {
+                        string affectedTypeDesc = effectData.AffectedType switch
+                        {
+                            AffectedType.Ally => "아군",
+                            AffectedType.Enemy => "적군",
+                            AffectedType.Any => "모두",
+                            _ => effectData.AffectedType.ToString()
+                        };
+                        desc += $" ({affectedTypeDesc} 대상";
+
+                        if (effectData.AffectedRange > 0)
+                        {
+                            desc += $", 효과범위: {effectData.AffectedRange}";
+                        }
+                        desc += ")";
+                    }
+                    desc += "\n";
+                }
+                desc += "\n";
+            }
             
             desc += $"<b>비용:</b> 마나 {manaCost}\n";
             
             if (targetType != TargetType.None)
             {
-                desc += $"<b>대상:</b> {targetType}";
+                string targetDescription = targetType switch
+                {
+                    TargetType.Ally => "아군 위치에만 배치 가능",
+                    TargetType.Enemy => "적군 위치에만 배치 가능",
+                    TargetType.Any => "아군/적군 위치 모두 배치 가능",
+                    TargetType.Ground => "타일이 있는 곳 어디든 배치 가능",
+                    _ => targetType.ToString()
+                };
+                desc += $"<b>배치 제한:</b> {targetDescription}";
                 if (range > 0) desc += $" (사거리: {range})";
+                if (targetRange >= 0) desc += $" (배치 거리: {targetRange})";
                 if (areaOfEffect > 0) desc += $" (범위: {areaOfEffect})";
+                if (affectedRange > 0) desc += $" (효과 범위: {affectedRange})";
                 desc += "\n";
             }
             
@@ -342,9 +520,11 @@ namespace Game.Data
                             manaCost >= 0 &&
                             range >= 0 &&
                             areaOfEffect >= 0 &&
+                            targetRange >= -1 &&
+                            affectedRange >= 0 &&
                             maxCopiesInDeck > 0;
 
-            // 카드 타입별 추가 검증
+            // 카드 타입별 추가 검증 (레거시 시스템)
             bool typeValid = cardType switch
             {
                 CardType.Unit => unitToSummon != null,
@@ -352,7 +532,14 @@ namespace Game.Data
                 _ => true
             };
 
-            return baseValid && typeValid;
+            // EffectData 시스템 검증 (Phase 2.4 + 2.8)
+            bool effectDataValid = true;
+            if (effectDataList.Count > 0)
+            {
+                effectDataValid = effectDataList.All(e => e.IsValid() && e.AffectedRange >= 0);
+            }
+
+            return baseValid && typeValid && effectDataValid;
         }
 
         // ✅ 디버깅용 ToString
@@ -371,10 +558,12 @@ namespace Game.Data
                 cardName = name;
             }
 
-            // 비용과 범위는 음수가 될 수 없음
+            // 비용과 범위는 음수가 될 수 없음 (targetRange는 -1 허용)
             manaCost = Mathf.Max(0, manaCost);
             range = Mathf.Max(0, range);
             areaOfEffect = Mathf.Max(0, areaOfEffect);
+            targetRange = Mathf.Max(-1, targetRange); // -1은 거리 무관을 의미
+            affectedRange = Mathf.Max(0, affectedRange); // 0은 단일 대상을 의미
             maxCopiesInDeck = Mathf.Max(1, maxCopiesInDeck);
 
             // 유닛 카드가 아니면 unitToSummon을 null로 설정
@@ -414,6 +603,26 @@ namespace Game.Data
                 requiredTags = requiredTags.Where(t => !string.IsNullOrEmpty(t))
                                          .Distinct()
                                          .ToList();
+            }
+
+            // EffectData 검증 및 정리 (Phase 2.4)
+            if (effectDataList != null)
+            {
+                // 무효한 EffectData 제거
+                effectDataList = effectDataList.Where(e => e != null && e.IsValid()).ToList();
+
+                // 중복 효과 제거 (같은 타입과 값을 가진 효과)
+                var distinctEffects = new List<EffectData>();
+                foreach (var effect in effectDataList)
+                {
+                    if (!distinctEffects.Any(de => de.Type == effect.Type &&
+                                                  de.Value == effect.Value &&
+                                                  de.AffectedType == effect.AffectedType))
+                    {
+                        distinctEffects.Add(effect);
+                    }
+                }
+                effectDataList = distinctEffects;
             }
         }
         #endif

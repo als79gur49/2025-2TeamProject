@@ -122,8 +122,9 @@ namespace Game.Services
             bool isValidPhase = ValidatePhaseForSpawn(isPlayerUnit);
             bool isValidPosition = ValidateSpawnPosition(gridPosition, isPlayerUnit);
             bool hasEnoughResources = ValidateSpawnCost(cardData, isPlayerUnit);
+            bool isValidRange = ValidateTargetRange(cardData, gridPosition, isPlayerUnit);
 
-            bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources;
+            bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources && isValidRange;
 
             Log($"{(canSpawn ? "✅" : "❌")} Spawn validation result: {canSpawn}");
             return canSpawn;
@@ -179,10 +180,17 @@ namespace Game.Services
                 return false;
             }
 
-            // 5. 대상 지정 대상 유효성 검증 (주문별 특별 조건)
-            if (!ValidateSpellTarget(cardData, targetPosition))
+            // 5. 배치 대상 유효성 검증 (Phase 2.5: TargetType 의미 변경)
+            if (!ValidatePlacementTarget(cardData, targetPosition))
             {
-                Log($"Invalid spell target for {cardData.CardName} at {targetPosition}");
+                Log($"Invalid placement target for {cardData.CardName} at {targetPosition}");
+                return false;
+            }
+
+            // 6. Phase 2.6: TargetRange 배치 거리 제한 검증
+            if (!ValidateTargetRange(cardData, targetPosition, true)) // 주문은 플레이어가 사용
+            {
+                Log($"Target position {targetPosition} is out of range for {cardData.CardName}");
                 return false;
             }
 
@@ -191,30 +199,31 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 주문별 대상 지정 유효성 검증
+        /// Phase 2.5: 카드 배치 대상 유효성 검증 (주문 대상 지정에서 배치 대상 검증으로 변경)
         /// </summary>
-        private bool ValidateSpellTarget(CardData cardData, Vector2Int targetPosition)
+        private bool ValidatePlacementTarget(CardData cardData, Vector2Int targetPosition)
         {
-            // 대상 타입에 따른 검증
+            // 배치 대상 타입에 따른 검증
             switch (cardData.Target)
             {
                 case CardData.TargetType.None:
-                    return true; // 대상 지정 불필요
+                    return true; // 타일이 없는 곳에서도 배치 가능
 
                 case CardData.TargetType.Ground:
-                    // 빈 땅에만 사용 가능
-                    return ! gridController?.IsPositionOccupied(targetPosition) ?? true;
+                    // 타일이 있는 곳 어디든 배치 가능 (빈 타일에만)
+                    return gridController?.IsValidPosition(targetPosition) ?? true &&
+                           !(gridController?.IsPositionOccupied(targetPosition) ?? false);
 
                 case CardData.TargetType.Enemy:
-                    // 적 유닛이 있는 위치에만 사용 가능
+                    // 적군 유닛이 있는 위치에만 배치 가능 (예: 파이어볼)
                     return gridController?.HasEnemyUnit(targetPosition) ?? true;
 
                 case CardData.TargetType.Ally:
-                    // 아군 유닛이 있는 위치에만 사용 가능
+                    // 아군 유닛이 있는 위치에만 배치 가능 (예: 힐링, 버프)
                     return gridController?.HasPlayerUnit(targetPosition) ?? true;
 
                 case CardData.TargetType.Any:
-                    // 어떤 유닛이든 있으면 가능
+                    // 아군/적군 상관없이 유닛이 있는 위치에 배치 가능
                     return gridController?.HasUnit(targetPosition) ?? true;
 
                 default:
@@ -225,6 +234,112 @@ namespace Game.Services
         #endregion
 
         #region 내부 검증 메서드들 (Phase 2에서 구현)
+
+        /// <summary>
+        /// Phase 2.6: TargetRange 배치 거리 제한 검증
+        /// 플레이어는 가장 왼쪽 유닛 기준, 적군은 가장 오른쪽 유닛 기준으로 거리 계산
+        /// </summary>
+        /// <param name="cardData">카드 데이터</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="isPlayerUnit">플레이어 유닛인지 여부</param>
+        /// <returns>범위 내인지 여부</returns>
+        private bool ValidateTargetRange(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit)
+        {
+            // TargetRange가 -1이면 거리 제한 없음
+            if (cardData.TargetRange < 0)
+            {
+                Log($"✅ No range restriction for {cardData.CardName}");
+                return true;
+            }
+
+            if (gridController == null)
+            {
+                LogError("❌ GridController not available for range validation");
+                return false;
+            }
+
+            Vector2Int basePosition;
+
+            if (isPlayerUnit)
+            {
+                // 플레이어: 가장 왼쪽 유닛 기준
+                basePosition = GetPlayerBasePosition();
+            }
+            else
+            {
+                // 적군: 가장 오른쪽 유닛 기준
+                basePosition = GetEnemyBasePosition();
+            }
+
+            // 맨하탄 거리 계산
+            int distance = Mathf.Abs(targetPosition.x - basePosition.x) + Mathf.Abs(targetPosition.y - basePosition.y);
+
+            bool isInRange = distance <= cardData.TargetRange;
+
+            if (isInRange)
+            {
+                Log($"✅ Target range validation passed for {cardData.CardName} - Distance: {distance}, Max: {cardData.TargetRange}");
+            }
+            else
+            {
+                Log($"❌ Target out of range for {cardData.CardName} - Distance: {distance}, Max: {cardData.TargetRange}");
+            }
+
+            return isInRange;
+        }
+
+        /// <summary>
+        /// 플레이어 기준점 계산 (가장 왼쪽 끝 기준)
+        /// </summary>
+        private Vector2Int GetPlayerBasePosition()
+        {
+            // 플레이어는 가장 왼쪽 끝 (x=0)에서 가장 가까운 유닛 기준
+            // 유닛이 없으면 그리드 왼쪽 가운데를 기준점으로 사용
+            var gridSize = gridController.GridSize;
+
+            // 가장 왼쪽 열에서 플레이어 유닛 찾기
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int pos = new Vector2Int(0, y);
+                if (gridController.HasPlayerUnit(pos))
+                {
+                    Log($"Player base position found at leftmost unit: {pos}");
+                    return pos;
+                }
+            }
+
+            // 유닛이 없으면 왼쪽 가운데를 기준점으로 사용
+            Vector2Int fallbackPosition = new Vector2Int(0, gridSize.y / 2);
+            Log($"No player unit found, using fallback position: {fallbackPosition}");
+            return fallbackPosition;
+        }
+
+        /// <summary>
+        /// 적군 기준점 계산 (가장 오른쪽 끝 기준)
+        /// </summary>
+        private Vector2Int GetEnemyBasePosition()
+        {
+            // 적군은 가장 오른쪽 끝에서 가장 가까운 유닛 기준
+            // 유닛이 없으면 그리드 오른쪽 가운데를 기준점으로 사용
+            var gridSize = gridController.GridSize;
+            int rightmostColumn = gridSize.x - 1;
+
+            // 가장 오른쪽 열에서 적군 유닛 찾기
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int pos = new Vector2Int(rightmostColumn, y);
+                if (gridController.HasEnemyUnit(pos))
+                {
+                    Log($"Enemy base position found at rightmost unit: {pos}");
+                    return pos;
+                }
+            }
+
+            // 유닛이 없으면 오른쪽 가운데를 기준점으로 사용
+            Vector2Int fallbackPosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
+            Log($"No enemy unit found, using fallback position: {fallbackPosition}");
+            return fallbackPosition;
+        }
 
         /// <summary>
         /// 현재 페이즈에서 소환이 가능한지 검증
