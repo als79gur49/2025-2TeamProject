@@ -1,0 +1,34 @@
+CardData 리팩토링 백업 정보
+==========================
+
+백업 생성 시간: Mon Sep 29 00:32:12 KST 2025
+백업 생성자: user7949
+Git 커밋 해시: f938b3502f829ad74d83936e4db52974267111cf
+Git 브랜치: main
+Git 상태:
+ D Assets/Script/Tests.meta
+ D Assets/Script/Tests/Game.Tests.asmdef
+ D Assets/Script/Tests/Game.Tests.asmdef.meta
+ D Assets/Script/Tests/README_Tests.md
+ D Assets/Script/Tests/README_Tests.md.meta
+ M CardData_Phase1_Test.cs
+ M Phase3_Data_Migration_Test.cs
+?? Assets/Script/Game/Test/UnitGameServiceTest.cs
+?? Assets/Script/Game/Test/UnitGameServiceTest.cs.meta
+?? CardData_Refactoring_Plan.md
+?? CardData_Refactoring_Plan_v2.md
+?? backup_carddata_20250929_003212/
+?? claude-code-statusbar.md
+?? claude-statusbar.js
+?? scripts/
+
+백업된 파일 목록:
+backup_carddata_20250929_003212/Assets/Script/Game/Data/CardData.cs
+backup_carddata_20250929_003212/Assets/Script/Game/Data/CardData.cs.meta
+backup_carddata_20250929_003212/CardData_Phase1_Test.cs
+backup_carddata_20250929_003212/CardData_Refactoring_Plan.md
+backup_carddata_20250929_003212/CardData_Refactoring_Plan_v2.md
+backup_carddata_20250929_003212/Phase3_Data_Migration_Test.cs
+
+백업 목적: CardData 리팩토링 전 안전 백업
+리팩토링 계획서: CardData_Refactoring_Plan_v2.md
