@@ -18,7 +18,7 @@ public static class SpellEffectFactory
             return null;
         }
 
-        return CreateEffect(cardData.SpellType);
+        return CreateEffect(cardData.SpellCategory);
     }
 
     /// <summary>

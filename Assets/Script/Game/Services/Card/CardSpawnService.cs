@@ -174,7 +174,7 @@ namespace Game.Services
             }
 
             // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerUnit, cardData.ManaCost, 0))
+            if (resourceManager != null && !resourceManager.SpendResources(isPlayerUnit, cardData.ManaCost))
             {
                 LogError($"❌ Failed to spend resources for {cardData.CardName}");
                 return false;
@@ -295,7 +295,7 @@ namespace Game.Services
             }
 
             // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerSpell, cardData.ManaCost, 0))
+            if (resourceManager != null && !resourceManager.SpendResources(isPlayerSpell, cardData.ManaCost))
             {
                 LogError($"❌ Failed to spend resources for spell {cardData.CardName}");
                 return false;
@@ -331,7 +331,7 @@ namespace Game.Services
                 Vector3 worldPosition = gridController.GridToWorldPosition(targetPosition);
                 
                 // 주문 타입에 따른 효과 실행
-                CardData.SpellType spellType = cardData.SpellType;
+                CardData.SpellType spellType = cardData.SpellCategory;
                 int effectValue = cardData.SpellEffectValue;
                 float effectRange = cardData.SpellRange;
                 
@@ -521,12 +521,12 @@ namespace Game.Services
 
             if (isPlayerUnit)
             {
-                resourceManager.RestorePlayerResources(cardData.ManaCost, 0);
+                resourceManager.RestorePlayerResources(cardData.ManaCost);
                 Log($"🔄 Restored {cardData.ManaCost}M to Player");
             }
             else
             {
-                resourceManager.RestoreEnemyResources(cardData.ManaCost, 0);
+                resourceManager.RestoreEnemyResources(cardData.ManaCost);
                 Log($"🔄 Restored {cardData.ManaCost}M to Enemy");
             }
         }

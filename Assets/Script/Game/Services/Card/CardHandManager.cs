@@ -621,38 +621,6 @@ namespace Game.Services
 
             GUILayout.Space(10);
 
-            if (GUILayout.Button("Enable Summon Mode"))
-            {
-                EnablePlayerSummonMode();
-            }
-
-            if (GUILayout.Button("Disable Summon Mode"))
-            {
-                DisablePlayerSummonMode();
-            }
-
-            if (GUILayout.Button("Add Test Card") && testCardData != null)
-            {
-                AddCardToHand(testCardData);
-            }
-
-            if (GUILayout.Button("Clear Hand"))
-            {
-                ClearHand();
-            }
-
-            if (GUILayout.Button("Toggle Arc Layout"))
-            {
-                arrangeCardsInArc = !arrangeCardsInArc;
-                UpdateHandLayout();
-            }
-
-            GUILayout.Space(10);
-            GUILayout.Label("Cards in Hand:");
-            foreach (var card in handCards)
-            {
-                GUILayout.Label($"  • {card.CardName}");
-            }
 
             GUILayout.EndArea();
         }

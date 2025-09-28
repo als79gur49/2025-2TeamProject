@@ -20,14 +20,10 @@ namespace Game.Services
         [Header("플레이어 자원")]
         [SerializeField] private int playerMana = 5;
         [SerializeField] private int playerMaxMana = 10;
-        [SerializeField] private int playerActionPoints = 3;
-        [SerializeField] private int playerMaxActionPoints = 5;
 
         [Header("적군 자원")]
         [SerializeField] private int enemyMana = 5;
         [SerializeField] private int enemyMaxMana = 10;
-        [SerializeField] private int enemyActionPoints = 3;
-        [SerializeField] private int enemyMaxActionPoints = 5;
 
         // 초기화 상태
         private bool isInitialized = false;
@@ -43,12 +39,6 @@ namespace Game.Services
         /// <summary>플레이어 최대 마나</summary>
         public int PlayerMaxMana => playerMaxMana;
 
-        /// <summary>플레이어 현재 행동력</summary>
-        public int PlayerActionPoints => playerActionPoints;
-
-        /// <summary>플레이어 최대 행동력</summary>
-        public int PlayerMaxActionPoints => playerMaxActionPoints;
-
         #endregion
 
         #region 적군 자원 프로퍼티
@@ -59,24 +49,18 @@ namespace Game.Services
         /// <summary>적군 최대 마나</summary>
         public int EnemyMaxMana => enemyMaxMana;
 
-        /// <summary>적군 현재 행동력</summary>
-        public int EnemyActionPoints => enemyActionPoints;
-
-        /// <summary>적군 최대 행동력</summary>
-        public int EnemyMaxActionPoints => enemyMaxActionPoints;
-
         #endregion
 
         #region 이벤트
 
         /// <summary>플레이어 자원 변경 이벤트 (마나, 행동력)</summary>
-        public event System.Action<int, int> OnPlayerResourcesChanged;
+        public event System.Action<int> OnPlayerResourcesChanged;
 
         /// <summary>적군 자원 변경 이벤트 (마나, 행동력)</summary>
-        public event System.Action<int, int> OnEnemyResourcesChanged;
+        public event System.Action<int> OnEnemyResourcesChanged;
 
         /// <summary>자원 부족 이벤트 (플레이어 여부, 필요한 마나, 필요한 행동력)</summary>
-        public event System.Action<bool, int, int> OnInsufficientResources;
+        public event System.Action<bool, int> OnInsufficientResources;
 
         #endregion
 
@@ -123,14 +107,14 @@ namespace Game.Services
         /// <param name="manaCost">필요한 마나</param>
         /// <param name="actionCost">필요한 행동력</param>
         /// <returns>지불 가능 여부</returns>
-        public bool CanPlayerAfford(int manaCost, int actionCost)
+        public bool CanPlayerAfford(int manaCost)
         {
-            bool canAfford = playerMana >= manaCost && playerActionPoints >= actionCost;
+            bool canAfford = playerMana >= manaCost;
             
             if (!canAfford)
             {
-                Log($"❌ Player cannot afford cost: Need {manaCost}M/{actionCost}A, Have {playerMana}M/{playerActionPoints}A");
-                OnInsufficientResources?.Invoke(true, manaCost, actionCost);
+                Log($"❌ Player cannot afford cost: Need {manaCost}M, Have {playerMana}M");
+                OnInsufficientResources?.Invoke(true, manaCost);
             }
             
             return canAfford;
@@ -142,14 +126,14 @@ namespace Game.Services
         /// <param name="manaCost">필요한 마나</param>
         /// <param name="actionCost">필요한 행동력</param>
         /// <returns>지불 가능 여부</returns>
-        public bool CanEnemyAfford(int manaCost, int actionCost)
+        public bool CanEnemyAfford(int manaCost)
         {
-            bool canAfford = enemyMana >= manaCost && enemyActionPoints >= actionCost;
+            bool canAfford = enemyMana >= manaCost;
             
             if (!canAfford)
             {
-                Log($"❌ Enemy cannot afford cost: Need {manaCost}M/{actionCost}A, Have {enemyMana}M/{enemyActionPoints}A");
-                OnInsufficientResources?.Invoke(false, manaCost, actionCost);
+                Log($"❌ Enemy cannot afford cost: Need {manaCost}M, Have {enemyMana}M");
+                OnInsufficientResources?.Invoke(false, manaCost);
             }
             
             return canAfford;
@@ -162,9 +146,9 @@ namespace Game.Services
         /// <param name="manaCost">필요한 마나</param>
         /// <param name="actionCost">필요한 행동력</param>
         /// <returns>지불 가능 여부</returns>
-        public bool CanAfford(bool isPlayerTeam, int manaCost, int actionCost)
+        public bool CanAfford(bool isPlayerTeam, int manaCost)
         {
-            return isPlayerTeam ? CanPlayerAfford(manaCost, actionCost) : CanEnemyAfford(manaCost, actionCost);
+            return isPlayerTeam ? CanPlayerAfford(manaCost) : CanEnemyAfford(manaCost);
         }
 
         #endregion
@@ -177,17 +161,16 @@ namespace Game.Services
         /// <param name="manaCost">소모할 마나</param>
         /// <param name="actionCost">소모할 행동력</param>
         /// <returns>소모 성공 여부</returns>
-        public bool SpendPlayerResources(int manaCost, int actionCost)
+        public bool SpendPlayerResources(int manaCost)
         {
-            if (!CanPlayerAfford(manaCost, actionCost))
+            if (!CanPlayerAfford(manaCost))
             {
                 return false;
             }
 
             playerMana -= manaCost;
-            playerActionPoints -= actionCost;
 
-            Log($"💸 Player spent {manaCost}M/{actionCost}A, Remaining: {playerMana}M/{playerActionPoints}A");
+            Log($"💸 Player spent {manaCost}M, Remaining: {playerMana}M");
             NotifyResourceChanged(true);
             return true;
         }
@@ -198,17 +181,16 @@ namespace Game.Services
         /// <param name="manaCost">소모할 마나</param>
         /// <param name="actionCost">소모할 행동력</param>
         /// <returns>소모 성공 여부</returns>
-        public bool SpendEnemyResources(int manaCost, int actionCost)
+        public bool SpendEnemyResources(int manaCost)
         {
-            if (!CanEnemyAfford(manaCost, actionCost))
+            if (!CanEnemyAfford(manaCost))
             {
                 return false;
             }
 
             enemyMana -= manaCost;
-            enemyActionPoints -= actionCost;
 
-            Log($"💸 Enemy spent {manaCost}M/{actionCost}A, Remaining: {enemyMana}M/{enemyActionPoints}A");
+            Log($"💸 Enemy spent {manaCost}M, Remaining: {enemyMana}M");
             NotifyResourceChanged(false);
             return true;
         }
@@ -220,9 +202,9 @@ namespace Game.Services
         /// <param name="manaCost">소모할 마나</param>
         /// <param name="actionCost">소모할 행동력</param>
         /// <returns>소모 성공 여부</returns>
-        public bool SpendResources(bool isPlayerTeam, int manaCost, int actionCost)
+        public bool SpendResources(bool isPlayerTeam, int manaCost)
         {
-            return isPlayerTeam ? SpendPlayerResources(manaCost, actionCost) : SpendEnemyResources(manaCost, actionCost);
+            return isPlayerTeam ? SpendPlayerResources(manaCost) : SpendEnemyResources(manaCost);
         }
 
         #endregion
@@ -234,12 +216,11 @@ namespace Game.Services
         /// </summary>
         /// <param name="manaAmount">회복할 마나</param>
         /// <param name="actionAmount">회복할 행동력</param>
-        public void RestorePlayerResources(int manaAmount, int actionAmount)
+        public void RestorePlayerResources(int manaAmount)
         {
             playerMana = Mathf.Min(playerMana + manaAmount, playerMaxMana);
-            playerActionPoints = Mathf.Min(playerActionPoints + actionAmount, playerMaxActionPoints);
 
-            Log($"💚 Player restored {manaAmount}M/{actionAmount}A, Current: {playerMana}M/{playerActionPoints}A");
+            Log($"💚 Player restored {manaAmount}M, Current: {playerMana}M");
             NotifyResourceChanged(true);
         }
 
@@ -248,12 +229,11 @@ namespace Game.Services
         /// </summary>
         /// <param name="manaAmount">회복할 마나</param>
         /// <param name="actionAmount">회복할 행동력</param>
-        public void RestoreEnemyResources(int manaAmount, int actionAmount)
+        public void RestoreEnemyResources(int manaAmount)
         {
             enemyMana = Mathf.Min(enemyMana + manaAmount, enemyMaxMana);
-            enemyActionPoints = Mathf.Min(enemyActionPoints + actionAmount, enemyMaxActionPoints);
 
-            Log($"💚 Enemy restored {manaAmount}M/{actionAmount}A, Current: {enemyMana}M/{enemyActionPoints}A");
+            Log($"💚 Enemy restored {manaAmount}M, Current: {enemyMana}M");
             NotifyResourceChanged(false);
         }
 
@@ -263,9 +243,8 @@ namespace Game.Services
         public void RefillPlayerResources()
         {
             playerMana = playerMaxMana;
-            playerActionPoints = playerMaxActionPoints;
 
-            Log($"🔋 Player resources refilled: {playerMana}M/{playerActionPoints}A");
+            Log($"🔋 Player resources refilled: {playerMana}M");
             NotifyResourceChanged(true);
         }
 
@@ -275,9 +254,8 @@ namespace Game.Services
         public void RefillEnemyResources()
         {
             enemyMana = enemyMaxMana;
-            enemyActionPoints = enemyMaxActionPoints;
 
-            Log($"🔋 Enemy resources refilled: {enemyMana}M/{enemyActionPoints}A");
+            Log($"🔋 Enemy resources refilled: {enemyMana}M");
             NotifyResourceChanged(false);
         }
 
@@ -325,12 +303,12 @@ namespace Game.Services
                 
                 case TurnPhase.EnemySummon:
                     // 적군 소환 페이즈 시작 시 일부 자원 회복
-                    RestoreEnemyResources(1, 1);
+                    RestoreEnemyResources(1);
                     break;
                 
                 case TurnPhase.AllySummon:
                     // 플레이어 소환 페이즈 시작 시 일부 자원 회복
-                    RestorePlayerResources(1, 1);
+                    RestorePlayerResources(1);
                     break;
                     
                 case TurnPhase.TurnEnd:
@@ -347,10 +325,6 @@ namespace Game.Services
         {
             // 매 턴 사용가능 Cost 1증가 (요구사항)
             IncreaseTurnlyMana();
-            
-            // 액션 포인트 전체 회복
-            playerActionPoints = playerMaxActionPoints;
-            enemyActionPoints = enemyMaxActionPoints;
             
             Log("🔄 Turn start - resources restored for new turn");
         }
@@ -406,9 +380,7 @@ namespace Game.Services
         private void ValidateResourceLimits()
         {
             playerMana = Mathf.Clamp(playerMana, 0, playerMaxMana);
-            playerActionPoints = Mathf.Clamp(playerActionPoints, 0, playerMaxActionPoints);
             enemyMana = Mathf.Clamp(enemyMana, 0, enemyMaxMana);
-            enemyActionPoints = Mathf.Clamp(enemyActionPoints, 0, enemyMaxActionPoints);
         }
 
         /// <summary>
@@ -419,11 +391,11 @@ namespace Game.Services
         {
             if (isPlayerTeam)
             {
-                OnPlayerResourcesChanged?.Invoke(playerMana, playerActionPoints);
+                OnPlayerResourcesChanged?.Invoke(playerMana);
             }
             else
             {
-                OnEnemyResourcesChanged?.Invoke(enemyMana, enemyActionPoints);
+                OnEnemyResourcesChanged?.Invoke(enemyMana);
             }
         }
 
@@ -455,8 +427,8 @@ namespace Game.Services
         {
             return $"ResourceManager Status:\n" +
                    $"- Initialized: {isInitialized}\n" +
-                   $"- Player: {playerMana}M/{playerMaxMana}M, {playerActionPoints}A/{playerMaxActionPoints}A\n" +
-                   $"- Enemy: {enemyMana}M/{enemyMaxMana}M, {enemyActionPoints}A/{enemyMaxActionPoints}A\n";
+                   $"- Player: {playerMana}M/{playerMaxMana}M\n" +
+                   $"- Enemy: {enemyMana}M/{enemyMaxMana}M\n";
         }
 
         /// <summary>
@@ -465,9 +437,7 @@ namespace Game.Services
         public void ResetResources()
         {
             playerMana = playerMaxMana;
-            playerActionPoints = playerMaxActionPoints;
             enemyMana = enemyMaxMana;
-            enemyActionPoints = enemyMaxActionPoints;
 
             Log("🔄 Resources reset to default values");
             NotifyResourceChanged(true);
@@ -503,11 +473,10 @@ namespace Game.Services
             // 플레이어 자원
             GUILayout.Label($"🔵 Player Resources:");
             GUILayout.Label($"  Mana: {playerMana}/{playerMaxMana}");
-            GUILayout.Label($"  Action: {playerActionPoints}/{playerMaxActionPoints}");
 
-            if (GUILayout.Button("Player +1M/+1A"))
+            if (GUILayout.Button("Player +1M"))
             {
-                RestorePlayerResources(1, 1);
+                RestorePlayerResources(1);
             }
             if (GUILayout.Button("Player Refill"))
             {
@@ -519,11 +488,10 @@ namespace Game.Services
             // 적군 자원
             GUILayout.Label($"🔴 Enemy Resources:");
             GUILayout.Label($"  Mana: {enemyMana}/{enemyMaxMana}");
-            GUILayout.Label($"  Action: {enemyActionPoints}/{enemyMaxActionPoints}");
 
-            if (GUILayout.Button("Enemy +1M/+1A"))
+            if (GUILayout.Button("Enemy +1M"))
             {
-                RestoreEnemyResources(1, 1);
+                RestoreEnemyResources(1);
             }
             if (GUILayout.Button("Enemy Refill"))
             {

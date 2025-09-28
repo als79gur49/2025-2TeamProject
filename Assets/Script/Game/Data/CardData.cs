@@ -165,7 +165,7 @@ namespace Game.Data
         public bool IsSpellCard => cardType == CardType.Spell;
 
         // ✅ 주문 관련 읽기 전용 속성
-        public SpellType SpellType => spellType;
+        public SpellType SpellCategory => spellType;
         public int SpellEffectValue => spellEffectValue;
         public float SpellRange => spellRange;
         public float SpellCooldown => spellCooldown;

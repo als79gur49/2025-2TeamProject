@@ -8,7 +8,7 @@ using Game.Data;
 /// 
 /// 마이그레이션 가이드:
 /// - CardData.CreateSpellCard() 팩토리 메서드 사용
-/// - CardSpawnService에서 cardData.SpellType, cardData.SpellEffectValue 등 직접 접근
+/// - CardSpawnService에서 cardData.SpellCategory, cardData.SpellEffectValue 등 직접 접근
 /// - SpellEffectFactory.CreateEffect(cardData) 또는 SpellEffectFactory.ExecuteSpellEffect(cardData, position) 사용
 /// </summary>
 [System.Obsolete("Use CardData instead. This class will be removed in future versions. See Phase 4 migration guide.")]

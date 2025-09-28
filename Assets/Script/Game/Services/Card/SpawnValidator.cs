@@ -173,7 +173,7 @@ namespace Game.Services
             }
 
             // 4. 자원 비용 검증
-            if (resourceManager != null && !resourceManager.CanAfford(true, cardData.ManaCost, 0))
+            if (resourceManager != null && !resourceManager.CanAfford(true, cardData.ManaCost))
             {
                 Log($"Insufficient resources for spell {cardData.CardName}: Mana={cardData.ManaCost}");
                 return false;
@@ -331,18 +331,18 @@ namespace Game.Services
             int manaCost = cardData.ManaCost;
 
             // 팀에 따라 자원 검증
-            bool canAfford = resourceManager.CanAfford(isPlayerUnit, manaCost, 0);
+            bool canAfford = resourceManager.CanAfford(isPlayerUnit, manaCost);
 
             if (!canAfford)
             {
                 string teamName = isPlayerUnit ? "Player" : "Enemy";
                 if (isPlayerUnit)
                 {
-                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.PlayerMana}M/{resourceManager.PlayerActionPoints}A");
+                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.PlayerMana}M");
                 }
                 else
                 {
-                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.EnemyMana}M/{resourceManager.EnemyActionPoints}A");
+                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.EnemyMana}M");
                 }
                 return false;
             }
