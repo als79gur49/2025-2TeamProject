@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Game.Interfaces;
+using Game.Core;
 using UnityEngine.UIElements;
 
 namespace Game.Components
@@ -150,6 +151,115 @@ namespace Game.Components
         {
             return gridState?.GetUnitsInRange(center, range) ?? new List<GameObject>();
         }
+
+        #region 팀 기반 유닛 조회 메서드들 (IGridTeamQuery 구현)
+
+        /// <summary>
+        /// 해당 위치에 유닛이 있는지 확인
+        /// </summary>
+        public bool HasUnit(Vector2Int position)
+        {
+            return GetUnitAtPosition(position) != null;
+        }
+
+        /// <summary>
+        /// 해당 위치에 플레이어 유닛이 있는지 확인
+        /// </summary>
+        public bool HasPlayerUnit(Vector2Int position)
+        {
+            return HasUnitWithTeam(position, TeamType.Player);
+        }
+
+        /// <summary>
+        /// 해당 위치에 적군 유닛이 있는지 확인
+        /// </summary>
+        public bool HasEnemyUnit(Vector2Int position)
+        {
+            return HasUnitWithTeam(position, TeamType.Enemy);
+        }
+
+        /// <summary>
+        /// 해당 위치에 특정 팀의 유닛이 있는지 확인 (확장성)
+        /// </summary>
+        public bool HasUnitWithTeam(Vector2Int position, TeamType team)
+        {
+            var unit = GetUnitAtPosition(position);
+            if (unit == null) return false;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            return teamComponent != null && teamComponent.Team == team;
+        }
+
+        /// <summary>
+        /// 해당 위치에 특정 관계의 유닛이 있는지 확인 (확장성)
+        /// </summary>
+        public bool HasUnitWithRelation(Vector2Int position, TeamType relativeTo, TeamRelation relation)
+        {
+            var unit = GetUnitAtPosition(position);
+            if (unit == null) return false;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            if (teamComponent == null) return false;
+
+            // 임시 TeamComponent 생성하여 관계 확인
+            var relativeTeamComponent = new TempTeamComponent(relativeTo);
+            return teamComponent.GetRelationTo(relativeTeamComponent) == relation;
+        }
+
+        /// <summary>
+        /// 해당 위치 유닛의 팀 타입 반환 (유닛이 없으면 None)
+        /// </summary>
+        public TeamType GetUnitTeam(Vector2Int position)
+        {
+            var unit = GetUnitAtPosition(position);
+            if (unit == null) return TeamType.None;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            return teamComponent?.Team ?? TeamType.None;
+        }
+
+        /// <summary>
+        /// 임시 팀 컴포넌트 (관계 확인용)
+        /// </summary>
+        private class TempTeamComponent : ITeamComponent
+        {
+            public TeamType Team { get; set; }
+            public string TeamName => Team.ToString();
+            public Color TeamColor => Color.white;
+
+            public event Action<TeamType, TeamType> OnTeamChanged;
+
+            public TempTeamComponent(TeamType team)
+            {
+                Team = team;
+            }
+
+            public TeamRelation GetRelationTo(ITeamComponent other)
+            {
+                if (other == null) return TeamRelation.Neutral;
+                if (other == this) return TeamRelation.Self;
+
+                return TeamRelationMatrix.GetRelation(Team, other.Team);
+            }
+
+            public bool IsSameTeam(ITeamComponent other)
+            {
+                return other != null && Team == other.Team && Team != TeamType.None;
+            }
+
+            public bool IsEnemy(ITeamComponent other)
+            {
+                return GetRelationTo(other) == TeamRelation.Enemy;
+            }
+
+            public bool IsAlly(ITeamComponent other)
+            {
+                var relation = GetRelationTo(other);
+                return relation == TeamRelation.Ally || relation == TeamRelation.Self;
+            }
+        }
+
+        #endregion
 
         // 유닛 이동 로직
         public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition)

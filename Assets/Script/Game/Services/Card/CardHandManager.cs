@@ -636,21 +636,6 @@ namespace Game.Services
                 AddCardToHand(testCardData);
             }
 
-            if (GUILayout.Button("Generate Test Cards"))
-            {
-                GenerateTestCards();
-            }
-
-            if (GUILayout.Button("Add Sample Spell Cards"))
-            {
-                AddSampleSpellCards();
-            }
-
-            if (GUILayout.Button("Add Sample Unit Cards"))
-            {
-                AddSampleUnitCards();
-            }
-
             if (GUILayout.Button("Clear Hand"))
             {
                 ClearHand();
@@ -673,85 +658,6 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 테스트용 카드 데이터 생성 메서드
-        /// </summary>
-        private void GenerateTestCards()
-        {
-            Log("🎴 Generating test card data...");
-
-            // 테스트 카드들을 핸드에 추가
-            var testCards = CreateTestCardData();
-            foreach (var card in testCards)
-            {
-                if (!IsHandFull())
-                {
-                    AddCardToHand(card);
-                }
-                else
-                {
-                    LogError("Hand is full, cannot add more test cards");
-                    break;
-                }
-            }
-
-            Log($"✅ Generated {testCards.Count} test cards");
-        }
-
-        /// <summary>
-        /// 샘플 주문 카드들 추가
-        /// </summary>
-        private void AddSampleSpellCards()
-        {
-            Log("🔥 Adding sample spell cards...");
-
-            var spellCards = CreateSampleSpellCards();
-            int added = 0;
-
-            foreach (var card in spellCards)
-            {
-                if (!IsHandFull())
-                {
-                    AddCardToHand(card);
-                    added++;
-                }
-                else
-                {
-                    LogError("Hand is full, cannot add more cards");
-                    break;
-                }
-            }
-
-            Log($"✅ Added {added} spell cards to hand");
-        }
-
-        /// <summary>
-        /// 샘플 유닛 카드들 추가 (UnitData 없이 테스트용)
-        /// </summary>
-        private void AddSampleUnitCards()
-        {
-            Log("⚔️ Adding sample unit cards...");
-
-            var unitCards = CreateSampleUnitCards();
-            int added = 0;
-
-            foreach (var card in unitCards)
-            {
-                if (!IsHandFull())
-                {
-                    AddCardToHand(card);
-                    added++;
-                }
-                else
-                {
-                    LogError("Hand is full, cannot add more cards");
-                    break;
-                }
-            }
-
-            Log($"✅ Added {added} unit cards to hand");
-        }
-
-        /// <summary>
         /// 기본 테스트 카드 데이터 생성
         /// </summary>
         private List<CardData> CreateTestCardData()
@@ -762,8 +668,8 @@ namespace Game.Services
             var fireball = CardData.CreateSpellCard(
                 "파이어볼",
                 "적에게 화염 피해를 입힙니다",
-                3, 1,
-                SpellType.Damage, 25, 5f, 2f
+                3,
+                CardData.SpellType.Damage, 25, 5f, 2f
             );
             testCards.Add(fireball);
 
@@ -771,8 +677,8 @@ namespace Game.Services
             var heal = CardData.CreateSpellCard(
                 "치유",
                 "아군을 회복시킵니다",
-                2, 1,
-                SpellType.Heal, 15, 3f, 1f
+                2,
+                CardData.SpellType.Heal, 15, 3f, 1f
             );
             testCards.Add(heal);
 
@@ -780,8 +686,8 @@ namespace Game.Services
             var shield = CardData.CreateSpellCard(
                 "마법 방패",
                 "아군에게 보호막을 생성합니다",
-                2, 1,
-                SpellType.Shield, 10, 4f, 3f
+                2,
+                CardData.SpellType.Shield, 10, 4f, 3f
             );
             testCards.Add(shield);
 
@@ -798,28 +704,28 @@ namespace Game.Services
             // 공격 주문들
             spellCards.Add(CardData.CreateSpellCard(
                 "번개 화살", "순간적으로 적을 타격합니다",
-                1, 1, SpellType.Damage, 12, 6f, 0f
+                1, CardData.SpellType.Damage, 12, 6f, 0f
             ));
 
             spellCards.Add(CardData.CreateSpellCard(
                 "얼음 창", "적을 얼려 둔화시킵니다",
-                2, 1, SpellType.Debuff, 8, 4f, 1.5f
+                2, CardData.SpellType.Debuff, 8, 4f, 1.5f
             ));
 
             spellCards.Add(CardData.CreateSpellCard(
                 "메테오", "광역 화염 피해를 입힙니다",
-                5, 2, SpellType.Damage, 40, 8f, 5f
+                5, CardData.SpellType.Damage, 40, 8f, 5f
             ));
 
             // 보조 주문들
             spellCards.Add(CardData.CreateSpellCard(
                 "신속", "아군을 강화합니다",
-                1, 1, SpellType.Buff, 5, 3f, 2f
+                1, CardData.SpellType.Buff, 5, 3f, 2f
             ));
 
             spellCards.Add(CardData.CreateSpellCard(
                 "순간이동", "아군을 다른 위치로 이동시킵니다",
-                2, 1, SpellType.Teleport, 0, 7f, 3f
+                2, CardData.SpellType.Teleport, 0, 7f, 3f
             ));
 
             return spellCards;
@@ -835,19 +741,19 @@ namespace Game.Services
             // UnitData가 없어도 테스트할 수 있도록 일반 카드로 생성
             var warrior = CardData.CreateSpellCard(
                 "전사", "근접 전투 유닛입니다",
-                2, 1, SpellType.Summon, 1, 0f, 0f
+                2, CardData.SpellType.Summon, 1, 0f, 0f
             );
             unitCards.Add(warrior);
 
             var archer = CardData.CreateSpellCard(
                 "궁수", "원거리 공격 유닛입니다",
-                2, 1, SpellType.Summon, 1, 0f, 0f
+                2, CardData.SpellType.Summon, 1, 0f, 0f
             );
             unitCards.Add(archer);
 
             var mage = CardData.CreateSpellCard(
                 "마법사", "마법 공격 유닛입니다",
-                3, 1, SpellType.Summon, 1, 0f, 0f
+                3, CardData.SpellType.Summon, 1, 0f, 0f
             );
             unitCards.Add(mage);
 

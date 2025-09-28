@@ -183,10 +183,10 @@ namespace Game.Card.UI
         {
             if (!isInteractable || cardData == null) return false;
 
-            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} ({cardData.CardType}) at position {gridPosition}");
+            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} ({cardData.Type}) at position {gridPosition}");
 
             // 카드 타입에 따른 처리 분기
-            switch (cardData.CardType)
+            switch (cardData.Type)
             {
                 case CardData.CardType.Unit:
                     return HandleUnitCardDrop(cardData, cardUI);
@@ -195,7 +195,7 @@ namespace Game.Card.UI
                     return HandleSpellCardDrop(cardData, cardUI);
 
                 default:
-                    Debug.LogWarning($"[TileDropHandler] Unsupported card type: {cardData.CardType}");
+                    Debug.LogWarning($"[TileDropHandler] Unsupported card type: {cardData.Type}");
                     PlayDropFailedFeedback();
                     return false;
             }
@@ -327,7 +327,7 @@ namespace Game.Card.UI
         {
             if (spawnValidator == null) return false;
 
-            switch (cardData.CardType)
+            switch (cardData.Type)
             {
                 case CardData.CardType.Unit:
                     return spawnValidator.CanSpawnUnit(cardData, gridPosition);

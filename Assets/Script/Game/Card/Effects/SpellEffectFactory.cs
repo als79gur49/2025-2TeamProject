@@ -26,17 +26,17 @@ public static class SpellEffectFactory
     /// </summary>
     /// <param name="type">주문 타입</param>
     /// <returns>생성된 주문 효과 인터페이스</returns>
-    public static ISpellEffect CreateEffect(SpellType type)
+    public static ISpellEffect CreateEffect(CardData.SpellType type)
     {
         return type switch
         {
-            SpellType.Damage => new DamageEffect(),
-            SpellType.Heal => new HealEffect(),
-            SpellType.Buff => new BuffEffect(),
-            SpellType.Debuff => new DebuffEffect(),
-            SpellType.Shield => new ShieldEffect(),
-            SpellType.Teleport => new TeleportEffect(),
-            SpellType.Summon => new SummonEffect(),
+            CardData.SpellType.Damage => new DamageEffect(),
+            CardData.SpellType.Heal => new HealEffect(),
+            CardData.SpellType.Buff => new BuffEffect(),
+            CardData.SpellType.Debuff => new DebuffEffect(),
+            CardData.SpellType.Shield => new ShieldEffect(),
+            CardData.SpellType.Teleport => new TeleportEffect(),
+            CardData.SpellType.Summon => new SummonEffect(),
             _ => null
         };
     }

@@ -325,7 +325,7 @@ namespace Game.Card.UI
         {
             if (spawnValidator == null) return false;
 
-            switch (cardData.CardType)
+            switch (cardData.Type)
             {
                 case CardData.CardType.Unit:
                     return spawnValidator.CanSpawnUnit(cardData, gridPosition);

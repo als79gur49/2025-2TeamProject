@@ -159,7 +159,7 @@ namespace Game.Services
             }
 
             // 2. 현재 플레이어의 턴인지 검증
-            if (turnService != null && !turnService.IsPlayerTurn())
+            if (turnService != null && !turnService.IsPlayerTurn)
             {
                 Log("Cannot use spell - not player's turn");
                 return false;
@@ -173,9 +173,9 @@ namespace Game.Services
             }
 
             // 4. 자원 비용 검증
-            if (resourceManager != null && !resourceManager.CanAfford(true, cardData.ManaCost, cardData.ActionCost))
+            if (resourceManager != null && !resourceManager.CanAfford(true, cardData.ManaCost, 0))
             {
-                Log($"Insufficient resources for spell {cardData.CardName}: Mana={cardData.ManaCost}, Action={cardData.ActionCost}");
+                Log($"Insufficient resources for spell {cardData.CardName}: Mana={cardData.ManaCost}");
                 return false;
             }
 
@@ -196,14 +196,14 @@ namespace Game.Services
         private bool ValidateSpellTarget(CardData cardData, Vector2Int targetPosition)
         {
             // 대상 타입에 따른 검증
-            switch (cardData.TargetType)
+            switch (cardData.Target)
             {
                 case CardData.TargetType.None:
                     return true; // 대상 지정 불필요
 
                 case CardData.TargetType.Ground:
                     // 빈 땅에만 사용 가능
-                    return gridController?.IsEmptyPosition(targetPosition) ?? true;
+                    return ! gridController?.IsPositionOccupied(targetPosition) ?? true;
 
                 case CardData.TargetType.Enemy:
                     // 적 유닛이 있는 위치에만 사용 가능
@@ -329,26 +329,25 @@ namespace Game.Services
             }
 
             int manaCost = cardData.ManaCost;
-            int actionCost = cardData.ActionCost;
 
             // 팀에 따라 자원 검증
-            bool canAfford = resourceManager.CanAfford(isPlayerUnit, manaCost, actionCost);
+            bool canAfford = resourceManager.CanAfford(isPlayerUnit, manaCost, 0);
 
             if (!canAfford)
             {
                 string teamName = isPlayerUnit ? "Player" : "Enemy";
                 if (isPlayerUnit)
                 {
-                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M/{actionCost}A, Have: {resourceManager.PlayerMana}M/{resourceManager.PlayerActionPoints}A");
+                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.PlayerMana}M/{resourceManager.PlayerActionPoints}A");
                 }
                 else
                 {
-                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M/{actionCost}A, Have: {resourceManager.EnemyMana}M/{resourceManager.EnemyActionPoints}A");
+                    Log($"❌ {teamName} insufficient resources for {cardData.CardName} - Need: {manaCost}M, Have: {resourceManager.EnemyMana}M/{resourceManager.EnemyActionPoints}A");
                 }
                 return false;
             }
 
-            Log($"✅ Cost validation passed for {cardData.CardName} - Required: {manaCost}M/{actionCost}A");
+            Log($"✅ Cost validation passed for {cardData.CardName} - Required: {manaCost}M");
             return true;
         }
 

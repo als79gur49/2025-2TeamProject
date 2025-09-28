@@ -1940,7 +1940,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45a088672ccd6ad4ea9dde2b1ade567f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 1451345833366059444}
   cardNameText: {fileID: 1847598309943173653}
   costText: {fileID: 7674699039221518974}
   descriptionText: {fileID: 0}

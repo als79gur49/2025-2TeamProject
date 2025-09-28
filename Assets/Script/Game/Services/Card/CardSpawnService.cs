@@ -2,7 +2,6 @@ using UnityEngine;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
-using Game.Card.Core;
 using Game.Components;
 
 namespace Game.Services
@@ -175,7 +174,7 @@ namespace Game.Services
             }
 
             // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerUnit, cardData.ManaCost, cardData.ActionCost))
+            if (resourceManager != null && !resourceManager.SpendResources(isPlayerUnit, cardData.ManaCost, 0))
             {
                 LogError($"❌ Failed to spend resources for {cardData.CardName}");
                 return false;
@@ -296,7 +295,7 @@ namespace Game.Services
             }
 
             // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerSpell, cardData.ManaCost, cardData.ActionCost))
+            if (resourceManager != null && !resourceManager.SpendResources(isPlayerSpell, cardData.ManaCost, 0))
             {
                 LogError($"❌ Failed to spend resources for spell {cardData.CardName}");
                 return false;
@@ -332,7 +331,7 @@ namespace Game.Services
                 Vector3 worldPosition = gridController.GridToWorldPosition(targetPosition);
                 
                 // 주문 타입에 따른 효과 실행
-                SpellType spellType = cardData.SpellType;
+                CardData.SpellType spellType = cardData.SpellType;
                 int effectValue = cardData.SpellEffectValue;
                 float effectRange = cardData.SpellRange;
                 
@@ -395,7 +394,7 @@ namespace Game.Services
         /// <param name="spellType">주문 타입</param>
         /// <param name="effectValue">효과값</param>
         /// <param name="isPlayerSpell">플레이어 주문인지 여부</param>
-        private void ApplySpellEffectToUnit(Unit unit, SpellType spellType, int effectValue, bool isPlayerSpell)
+        private void ApplySpellEffectToUnit(Unit unit, CardData.SpellType spellType, int effectValue, bool isPlayerSpell)
         {
             if (unit == null) return;
             
@@ -408,7 +407,7 @@ namespace Game.Services
             
             switch (spellType)
             {
-                case SpellType.Damage:
+                case CardData.SpellType.Damage:
                     // 데미지 적용 (체력이 있다면)
                     if (unit.TryGetComponent<HealthComponent>(out var health))
                     {
@@ -417,7 +416,7 @@ namespace Game.Services
                     }
                     break;
                     
-                case SpellType.Heal:
+                case CardData.SpellType.Heal:
                     // 힐 적용
                     if (unit.TryGetComponent<HealthComponent>(out var healthComp))
                     {
@@ -426,22 +425,22 @@ namespace Game.Services
                     }
                     break;
                     
-                case SpellType.Buff:
+                case CardData.SpellType.Buff:
                     // 버프 적용 (임시 구현 - 실제로는 더 복잡한 버프 시스템 필요)
                     Log($"⬆️ Applied buff to {unit.name} (value: {effectValue})");
                     break;
                     
-                case SpellType.Debuff:
+                case CardData.SpellType.Debuff:
                     // 디버프 적용
                     Log($"⬇️ Applied debuff to {unit.name} (value: {effectValue})");
                     break;
                     
-                case SpellType.Shield:
+                case CardData.SpellType.Shield:
                     // 실드 적용
                     Log($"🛡️ Applied shield to {unit.name} (value: {effectValue})");
                     break;
                     
-                case SpellType.Teleport:
+                case CardData.SpellType.Teleport:
                     // 텔레포트 (현재 위치에서 랜덤 이동)
                     Log($"🌀 Teleported {unit.name}");
                     break;
@@ -459,16 +458,16 @@ namespace Game.Services
         /// <param name="spellType">주문 타입</param>
         /// <param name="isPlayerSpell">플레이어 주문인지 여부</param>
         /// <returns>영향을 줄 수 있으면 true</returns>
-        private bool CanSpellAffectUnit(Unit unit, SpellType spellType, bool isPlayerSpell)
+        private bool CanSpellAffectUnit(Unit unit, CardData.SpellType spellType, bool isPlayerSpell)
         {
             // 기본적으로 같은 팀은 도움이 되는 주문, 다른 팀은 해로운 주문
-            bool isHelpfulSpell = spellType == SpellType.Heal || spellType == SpellType.Buff || spellType == SpellType.Shield;
-            bool isHarmfulSpell = spellType == SpellType.Damage || spellType == SpellType.Debuff;
+            bool isHelpfulSpell = spellType == CardData.SpellType.Heal || spellType == CardData.SpellType.Buff || spellType == CardData.SpellType.Shield;
+            bool isHarmfulSpell = spellType == CardData.SpellType.Damage || spellType == CardData.SpellType.Debuff;
             
             if (isPlayerSpell && unit.IsPlayerUnit)
             {
                 // 플레이어가 아군에게 사용 - 도움이 되는 주문만
-                return isHelpfulSpell || spellType == SpellType.Teleport;
+                return isHelpfulSpell || spellType == CardData.SpellType.Teleport;
             }
             else if (isPlayerSpell && !unit.IsPlayerUnit)
             {
@@ -478,7 +477,7 @@ namespace Game.Services
             else if (!isPlayerSpell && !unit.IsPlayerUnit)
             {
                 // 적군이 적군에게 사용 - 도움이 되는 주문만
-                return isHelpfulSpell || spellType == SpellType.Teleport;
+                return isHelpfulSpell || spellType == CardData.SpellType.Teleport;
             }
             else if (!isPlayerSpell && unit.IsPlayerUnit)
             {
@@ -522,13 +521,13 @@ namespace Game.Services
 
             if (isPlayerUnit)
             {
-                resourceManager.RestorePlayerResources(cardData.ManaCost, cardData.ActionCost);
-                Log($"🔄 Restored {cardData.ManaCost}M/{cardData.ActionCost}A to Player");
+                resourceManager.RestorePlayerResources(cardData.ManaCost, 0);
+                Log($"🔄 Restored {cardData.ManaCost}M to Player");
             }
             else
             {
-                resourceManager.RestoreEnemyResources(cardData.ManaCost, cardData.ActionCost);
-                Log($"🔄 Restored {cardData.ManaCost}M/{cardData.ActionCost}A to Enemy");
+                resourceManager.RestoreEnemyResources(cardData.ManaCost, 0);
+                Log($"🔄 Restored {cardData.ManaCost}M to Enemy");
             }
         }
 

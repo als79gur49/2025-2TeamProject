@@ -115,17 +115,13 @@ namespace Game.Interfaces
     }
 
     /// <summary>
-    /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
-    /// IGridManager 상속 제거로 책임 분리
+    /// 그리드 공간 쿼리 인터페이스 - 기본 공간 관련 조회
     /// </summary>
-    public interface IGridController
+    public interface IGridSpatialQuery
     {
         // 그리드 속성들
         Vector2Int GridSize { get; }
         float TileSize { get; }
-
-        // 의존성 초기화
-        void Initialize(IGridState gridState);
 
         // 위치 검증 메서드들
         bool IsValidPosition(Vector2Int gridPosition);
@@ -136,18 +132,48 @@ namespace Game.Interfaces
         GameObject GetUnitAtPosition(Vector2Int gridPosition);
         Vector2Int GetUnitPosition(GameObject unit);
         bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
-        bool RemoveUnit(GameObject unit);
 
         // 좌표 변환
         Vector3 GridToWorldPosition(Vector2Int gridPosition);
         Vector2Int WorldToGridPosition(Vector3 worldPosition);
 
-        // 타일 상태 관리
-        void SetTileBlocked(Vector2Int position, bool blocked);
-
         // 범위 검색
         List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true);
         List<GameObject> GetUnitsInRange(Vector2Int center, int range);
+    }
+
+    /// <summary>
+    /// 그리드 팀 쿼리 인터페이스 - 팀 기반 유닛 조회
+    /// </summary>
+    public interface IGridTeamQuery
+    {
+        // 팀별 유닛 존재 확인
+        bool HasUnit(Vector2Int position);
+        bool HasPlayerUnit(Vector2Int position);
+        bool HasEnemyUnit(Vector2Int position);
+
+        // 확장성을 위한 일반화된 메서드들
+        bool HasUnitWithTeam(Vector2Int position, TeamType team);
+        bool HasUnitWithRelation(Vector2Int position, TeamType relativeTo, TeamRelation relation);
+
+        // 팀 정보 조회
+        TeamType GetUnitTeam(Vector2Int position);
+    }
+
+    /// <summary>
+    /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
+    /// IGridManager 상속 제거로 책임 분리, ISP 적용으로 인터페이스 분리
+    /// </summary>
+    public interface IGridController : IGridSpatialQuery, IGridTeamQuery
+    {
+        // 의존성 초기화
+        void Initialize(IGridState gridState);
+
+        // 유닛 관리
+        bool RemoveUnit(GameObject unit);
+
+        // 타일 상태 관리
+        void SetTileBlocked(Vector2Int position, bool blocked);
 
         // 유닛 이동
         bool CanMoveUnit(GameObject unit, Vector2Int targetPosition);

@@ -1,6 +1,5 @@
 using UnityEngine;
 using Game.Data;
-using Game.Card.Core;
 
 /// <summary>
 /// CardData Phase 1 Implementation Test
@@ -38,7 +37,7 @@ public class CardDataPhase1Test : MonoBehaviour
                 "Fire Bolt", 
                 "Burns target", 
                 2, 1, 
-                SpellType.Damage, 
+                CardData.SpellType.Damage, 
                 50, 
                 3f, 
                 2f
@@ -50,11 +49,11 @@ public class CardDataPhase1Test : MonoBehaviour
             if (testSpellCard != null)
             {
                 // Test 2: Verify CardSpawnService compatibility - access spell properties
-                SpellType spellType = testSpellCard.SpellType;
+                CardData.SpellType spellType = testSpellCard.SpellType;
                 int effectValue = testSpellCard.SpellEffectValue;
                 float effectRange = testSpellCard.SpellRange;
 
-                testResult.spellTypeAccessible = spellType == SpellType.Damage;
+                testResult.spellTypeAccessible = spellType == CardData.SpellType.Damage;
                 testResult.spellEffectValueAccessible = effectValue == 50;
                 testResult.spellRangeAccessible = effectRange == 3f;
 

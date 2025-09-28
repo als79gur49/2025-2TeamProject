@@ -15,13 +15,13 @@ using Game.Data;
 public class Spell : BaseCard
 {
     [Header("Spell Properties")]
-    [SerializeField] private SpellType spellType;
+    [SerializeField] private CardData.SpellType spellType;
     [SerializeField] private int effectValue;
     [SerializeField] private float effectRange;
     [SerializeField] private float cooldown;
     [SerializeField] private GameObject spellEffectPrefab;
     
-    public SpellType SpellType => spellType;
+    public CardData.SpellType SpellType => spellType;
     public int EffectValue => effectValue;
     public float EffectRange => effectRange;
     public float Cooldown => cooldown;
@@ -30,7 +30,7 @@ public class Spell : BaseCard
     
     public static event Action<Spell, Vector3> OnSpellCast;
     
-    public Spell(string name, string desc, int cost, SpellType type, int effectValue, float range = 0f) 
+    public Spell(string name, string desc, int cost, CardData.SpellType type, int effectValue, float range = 0f) 
         : base(name, desc, cost, CardType.Spell)
     {
         this.spellType = type;
@@ -102,7 +102,7 @@ public class Spell : BaseCard
     {
         switch (spellType)
         {
-            case SpellType.Damage:
+            case CardData.SpellType.Damage:
                 if (effectValue <= 0)
                 {
                     failureReason = "데미지 스펠의 피해량은 0보다 커야 합니다.";
@@ -110,7 +110,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Heal:
+            case CardData.SpellType.Heal:
                 if (effectValue <= 0)
                 {
                     failureReason = "힐 스펠의 회복량은 0보다 커야 합니다.";
@@ -118,7 +118,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Buff:
+            case CardData.SpellType.Buff:
                 if (effectValue <= 0)
                 {
                     failureReason = "버프 스펠의 강화량은 0보다 커야 합니다.";
@@ -126,7 +126,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Debuff:
+            case CardData.SpellType.Debuff:
                 if (effectValue <= 0)
                 {
                     failureReason = "디버프 스펠의 약화량은 0보다 커야 합니다.";
@@ -134,7 +134,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Shield:
+            case CardData.SpellType.Shield:
                 if (effectValue <= 0)
                 {
                     failureReason = "실드 스펠의 보호량은 0보다 커야 합니다.";
@@ -142,7 +142,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Teleport:
+            case CardData.SpellType.Teleport:
                 if (effectRange <= 0)
                 {
                     failureReason = "텔레포트 스펠의 범위는 0보다 커야 합니다.";
@@ -150,7 +150,7 @@ public class Spell : BaseCard
                 }
                 break;
                 
-            case SpellType.Summon:
+            case CardData.SpellType.Summon:
                 if (effectValue <= 0)
                 {
                     failureReason = "소환 스펠의 소환 수는 0보다 커야 합니다.";

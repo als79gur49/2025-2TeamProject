@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Game.Card.Core;
 
 namespace Game.Data
 {
@@ -17,9 +16,9 @@ namespace Game.Data
         {
             Unit,       // 유닛 소환
             Spell,      // 주문
-            Equipment,  // 장비
-            Building,   // 건물
-            Event       // 이벤트
+        //    Equipment,  // 장비
+        //    Building,   // 건물
+         //   Event       // 이벤트
         }
 
         public enum CardRarity
@@ -44,11 +43,38 @@ namespace Game.Data
             All             // 모든 유닛
         }
 
+        /// <summary>
+        /// 주문 카드 타입 열거형 - Phase 4에서 확장 구현
+        /// CardSpawnService에서 주문 효과 적용에 사용됩니다.
+        /// </summary>
+        public enum SpellType
+        {
+            /// <summary>데미지 주문 - 대상에게 피해를 줍니다</summary>
+            Damage,
+
+            /// <summary>힐 주문 - 대상을 회복시킵니다</summary>
+            Heal,
+
+            /// <summary>버프 주문 - 대상을 강화합니다</summary>
+            Buff,
+
+            /// <summary>디버프 주문 - 대상을 약화시킵니다</summary>
+            Debuff,
+
+            /// <summary>실드 주문 - 대상에게 보호막을 제공합니다</summary>
+            Shield,
+
+            /// <summary>텔레포트 주문 - 대상을 이동시킵니다</summary>
+            Teleport,
+
+            /// <summary>소환 주문 - 새로운 유닛을 소환합니다</summary>
+            Summon
+        }
+
         // ✅ private 필드 + SerializeField로 Unity Inspector 지원하면서 캡슐화 유지
         [Header("기본 정보")]
         [SerializeField] private string cardName = "New Card";
         [SerializeField] private string description = "";
-        [SerializeField] private string flavorText = "";
         [SerializeField] private Sprite cardArt;
         [SerializeField] private Sprite iconSprite;
 
@@ -56,7 +82,6 @@ namespace Game.Data
         [SerializeField] private CardType cardType = CardType.Spell;
         [SerializeField] private CardRarity rarity = CardRarity.Common;
         [SerializeField] private int manaCost = 1;
-        [SerializeField] private int actionCost = 1;
 
         [Header("대상 및 범위")]
         [SerializeField] private TargetType targetType = TargetType.None;
@@ -116,13 +141,11 @@ namespace Game.Data
         // ✅ 읽기 전용 속성으로 안전한 외부 접근
         public string CardName => cardName;
         public string Description => description;
-        public string FlavorText => flavorText;
         public Sprite CardArt => cardArt;
         public Sprite IconSprite => iconSprite;
         public CardType Type => cardType;
         public CardRarity Rarity => rarity;
         public int ManaCost => manaCost;
-        public int ActionCost => actionCost;
         public TargetType Target => targetType;
         public int Range => range;
         public int AreaOfEffect => areaOfEffect;
@@ -150,14 +173,14 @@ namespace Game.Data
         public bool HasValidSpellData => cardType == CardType.Spell && spellEffectValue > 0;
 
         // ✅ 카드 비용 관련 메서드
-        public bool CanAfford(int availableMana, int availableActions)
+        public bool CanAfford(int availableMana)
         {
-            return availableMana >= manaCost && availableActions >= actionCost;
+            return availableMana >= manaCost;
         }
 
         public int GetTotalCost()
         {
-            return manaCost + actionCost;
+            return manaCost;
         }
 
         // ✅ 키워드 관련 안전한 메서드
@@ -285,7 +308,7 @@ namespace Game.Data
                 desc += "\n";
             }
             
-            desc += $"<b>비용:</b> 마나 {manaCost}, 행동력 {actionCost}\n";
+            desc += $"<b>비용:</b> 마나 {manaCost}\n";
             
             if (targetType != TargetType.None)
             {
@@ -300,10 +323,6 @@ namespace Game.Data
                 desc += $"<b>키워드:</b> {string.Join(", ", keywords)}\n";
             }
             
-            if (!string.IsNullOrEmpty(flavorText))
-            {
-                desc += $"\n<i>\"{flavorText}\"</i>";
-            }
             
             return desc;
         }
@@ -321,7 +340,6 @@ namespace Game.Data
         {
             bool baseValid = !string.IsNullOrEmpty(cardName) &&
                             manaCost >= 0 &&
-                            actionCost >= 0 &&
                             range >= 0 &&
                             areaOfEffect >= 0 &&
                             maxCopiesInDeck > 0;
@@ -340,7 +358,7 @@ namespace Game.Data
         // ✅ 디버깅용 ToString
         public override string ToString()
         {
-            return $"CardData[{cardName} ({cardType}, {rarity}), Cost: {manaCost}M/{actionCost}A]";
+            return $"CardData[{cardName} ({cardType}, {rarity}), Cost: {manaCost}M]";
         }
 
         // ✅ 에디터용 검증
@@ -355,7 +373,6 @@ namespace Game.Data
 
             // 비용과 범위는 음수가 될 수 없음
             manaCost = Mathf.Max(0, manaCost);
-            actionCost = Mathf.Max(0, actionCost);
             range = Mathf.Max(0, range);
             areaOfEffect = Mathf.Max(0, areaOfEffect);
             maxCopiesInDeck = Mathf.Max(1, maxCopiesInDeck);
@@ -402,14 +419,13 @@ namespace Game.Data
         #endif
 
         // ✅ 런타임 생성용 팩토리 메서드
-        public static CardData CreateSpellCard(string name, string desc, int manaCost, int actionCost, params CardEffect[] effects)
+        public static CardData CreateSpellCard(string name, string desc, int manaCost, params CardEffect[] effects)
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
             card.description = desc;
             card.cardType = CardType.Spell;
             card.manaCost = manaCost;
-            card.actionCost = actionCost;
             card.effects = effects?.ToList() ?? new List<CardEffect>();
             
             return card;
@@ -418,7 +434,7 @@ namespace Game.Data
         /// <summary>
         /// 주문 카드 생성을 위한 팩토리 메서드 (확장)
         /// </summary>
-        public static CardData CreateSpellCard(string name, string desc, int manaCost, int actionCost, 
+        public static CardData CreateSpellCard(string name, string desc, int manaCost,
             SpellType spellType, int effectValue, float range = 0f, float cooldown = 0f)
         {
             var card = CreateInstance<CardData>();
@@ -426,7 +442,6 @@ namespace Game.Data
             card.description = desc;
             card.cardType = CardType.Spell;
             card.manaCost = manaCost;
-            card.actionCost = actionCost;
             card.spellType = spellType;
             card.spellEffectValue = effectValue;
             card.spellRange = range;
@@ -435,14 +450,13 @@ namespace Game.Data
             return card;
         }
 
-        public static CardData CreateUnitCard(string name, UnitData unit, int manaCost, int actionCost)
+        public static CardData CreateUnitCard(string name, UnitData unit, int manaCost)
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
             card.cardType = CardType.Unit;
             card.unitToSummon = unit;
             card.manaCost = manaCost;
-            card.actionCost = actionCost;
             card.description = $"{unit.UnitName}을(를) 소환합니다.";
             
             return card;
