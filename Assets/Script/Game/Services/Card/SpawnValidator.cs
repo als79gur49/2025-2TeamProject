@@ -118,13 +118,16 @@ namespace Game.Services
             // 3. 비용 검증 (Mana, ActionPoint 충분한지)
             // 4. 플레이어/적군별 소환 영역 검증 (플레이어는 좌측 1열, 적군은 우측 1열)
 
-            // Phase 2: 완전한 검증 로직 구현
+            // Phase 2.11: 개선된 완전한 검증 로직 구현
             bool isValidPhase = ValidatePhaseForSpawn(isPlayerUnit);
             bool isValidPosition = ValidateSpawnPosition(gridPosition, isPlayerUnit);
             bool hasEnoughResources = ValidateSpawnCost(cardData, isPlayerUnit);
-            bool isValidRange = ValidateTargetRange(cardData, gridPosition, isPlayerUnit);
 
-            bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources && isValidRange;
+            // Phase 2.11: 통합된 타겟 검증 사용
+            Vector2Int basePosition = isPlayerUnit ? GetPlayerBasePosition() : GetEnemyBasePosition();
+            bool isValidTarget = ValidateTargetWithCardData(cardData, basePosition, gridPosition, isPlayerUnit);
+
+            bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources && isValidTarget;
 
             Log($"{(canSpawn ? "✅" : "❌")} Spawn validation result: {canSpawn}");
             return canSpawn;
@@ -180,17 +183,12 @@ namespace Game.Services
                 return false;
             }
 
-            // 5. 배치 대상 유효성 검증 (Phase 2.5: TargetType 의미 변경)
-            if (!ValidatePlacementTarget(cardData, targetPosition))
+            // 5. Phase 2.11: 통합된 배치 대상 및 거리 검증
+            // 플레이어 기준점을 사용하여 검증 (주문은 플레이어가 사용)
+            Vector2Int playerBasePosition = GetPlayerBasePosition();
+            if (!ValidateTargetWithCardData(cardData, playerBasePosition, targetPosition, true))
             {
-                Log($"Invalid placement target for {cardData.CardName} at {targetPosition}");
-                return false;
-            }
-
-            // 6. Phase 2.6: TargetRange 배치 거리 제한 검증
-            if (!ValidateTargetRange(cardData, targetPosition, true)) // 주문은 플레이어가 사용
-            {
-                Log($"Target position {targetPosition} is out of range for {cardData.CardName}");
+                Log($"Target validation failed for spell {cardData.CardName} at {targetPosition}");
                 return false;
             }
 
@@ -236,8 +234,9 @@ namespace Game.Services
         #region 내부 검증 메서드들 (Phase 2에서 구현)
 
         /// <summary>
-        /// Phase 2.6: TargetRange 배치 거리 제한 검증
+        /// Phase 2.11: TargetRange 배치 거리 제한 검증 (개선된 버전)
         /// 플레이어는 가장 왼쪽 유닛 기준, 적군은 가장 오른쪽 유닛 기준으로 거리 계산
+        /// CardData의 새로운 거리 계산 메서드를 활용
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
@@ -271,8 +270,8 @@ namespace Game.Services
                 basePosition = GetEnemyBasePosition();
             }
 
-            // 맨하탄 거리 계산
-            int distance = Mathf.Abs(targetPosition.x - basePosition.x) + Mathf.Abs(targetPosition.y - basePosition.y);
+            // Phase 2.11: CardData의 새로운 맨하탄 거리 계산 메서드 사용
+            int distance = CardData.CalculateManhattanDistance(basePosition, targetPosition);
 
             bool isInRange = distance <= cardData.TargetRange;
 
@@ -286,6 +285,42 @@ namespace Game.Services
             }
 
             return isInRange;
+        }
+
+        /// <summary>
+        /// Phase 2.11: CardData의 기본 유효성 검사를 활용한 통합 검증
+        /// CardData.IsValidTargetWithContext를 사용하여 일관성 있는 검증 수행
+        /// </summary>
+        /// <param name="cardData">카드 데이터</param>
+        /// <param name="originPosition">시전자 위치</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>통합 검증 결과</returns>
+        private bool ValidateTargetWithCardData(CardData cardData, Vector2Int originPosition, Vector2Int targetPosition, bool isPlayerCard)
+        {
+            // CardData의 기본 검증 먼저 수행
+            if (!cardData.IsValidTargetWithContext(originPosition, targetPosition, isPlayerCard))
+            {
+                Log($"❌ CardData basic validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            // 추가적인 SpawnValidator 전용 검증
+            if (!ValidatePlacementTarget(cardData, targetPosition))
+            {
+                Log($"❌ Placement target validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            // TargetRange 검증 (플레이어/적군 기준점 기반)
+            if (!ValidateTargetRange(cardData, targetPosition, isPlayerCard))
+            {
+                Log($"❌ Target range validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            Log($"✅ All target validations passed for {cardData.CardName}");
+            return true;
         }
 
         /// <summary>
@@ -486,6 +521,70 @@ namespace Game.Services
         #endregion
 
         #region 공개 API
+
+        /// <summary>
+        /// Phase 2.11: CardData의 TargetType과 TargetRange를 활용한 배치 유효성 검증
+        /// 외부에서 직접 호출할 수 있는 공개 메서드
+        /// </summary>
+        /// <param name="cardData">검증할 카드 데이터</param>
+        /// <param name="originPosition">시전자/소환자 위치</param>
+        /// <param name="targetPosition">목표 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>배치 가능 여부</returns>
+        public bool ValidateCardPlacement(CardData cardData, Vector2Int originPosition, Vector2Int targetPosition, bool isPlayerCard)
+        {
+            if (!isInitialized)
+            {
+                LogError("SpawnValidator not initialized for card placement validation");
+                return false;
+            }
+
+            if (cardData == null)
+            {
+                LogError("Cannot validate placement for null CardData");
+                return false;
+            }
+
+            Log($"🎯 Validating card placement: {cardData.CardName} from {originPosition} to {targetPosition} (Player: {isPlayerCard})");
+
+            return ValidateTargetWithCardData(cardData, originPosition, targetPosition, isPlayerCard);
+        }
+
+        /// <summary>
+        /// Phase 2.11: 새로운 TargetRange 시스템 테스트를 위한 검증 메서드
+        /// </summary>
+        /// <param name="cardData">테스트할 카드</param>
+        /// <param name="testPositions">테스트할 위치들</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>각 위치별 검증 결과</returns>
+        public System.Collections.Generic.Dictionary<Vector2Int, bool> TestTargetRangeValidation(
+            CardData cardData,
+            System.Collections.Generic.List<Vector2Int> testPositions,
+            bool isPlayerCard)
+        {
+            var results = new System.Collections.Generic.Dictionary<Vector2Int, bool>();
+
+            if (!isInitialized || cardData == null)
+            {
+                return results;
+            }
+
+            Vector2Int basePosition = isPlayerCard ? GetPlayerBasePosition() : GetEnemyBasePosition();
+
+            Log($"🧪 Testing TargetRange validation for {cardData.CardName}");
+            Log($"Base position: {basePosition}, TargetRange: {cardData.TargetRange}");
+
+            foreach (var testPos in testPositions)
+            {
+                int distance = CardData.CalculateManhattanDistance(basePosition, testPos);
+                bool isValid = ValidateTargetWithCardData(cardData, basePosition, testPos, isPlayerCard);
+
+                results[testPos] = isValid;
+                Log($"Position {testPos}: Distance={distance}, Valid={isValid}");
+            }
+
+            return results;
+        }
 
         /// <summary>
         /// 검증자 상태 정보 반환 (디버깅용)

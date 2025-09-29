@@ -66,41 +66,35 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
-        /// 영향받을 유닛들을 찾습니다.
+        /// Phase 2.12: GridController의 GetAffectedUnits() 메서드를 사용하여 영향받을 유닛들을 찾습니다.
         /// </summary>
-        private List<object> GetAffectedUnits(Vector2Int targetPos, GameContext context)
+        private List<GameObject> GetAffectedUnits(Vector2Int targetPos, GameContext context)
         {
-            var affectedUnits = new List<object>();
-
-            // AffectedRange가 0이면 단일 대상, 1+이면 범위 효과
-            if (_effectData.AffectedRange == 0)
+            if (context?.GridController == null)
             {
-                // 단일 대상
-                var unit = GetUnitAtPosition(targetPos, context);
-                if (unit != null && IsValidTarget(unit, context) && CanBeHealed(unit))
-                {
-                    affectedUnits.Add(unit);
-                }
+                Debug.LogError("HealEffect: GridController가 null입니다.");
+                return new List<GameObject>();
             }
-            else
-            {
-                // 범위 효과
-                for (int x = -_effectData.AffectedRange; x <= _effectData.AffectedRange; x++)
-                {
-                    for (int y = -_effectData.AffectedRange; y <= _effectData.AffectedRange; y++)
-                    {
-                        var checkPos = targetPos + new Vector2Int(x, y);
-                        var unit = GetUnitAtPosition(checkPos, context);
 
-                        if (unit != null && IsValidTarget(unit, context) && CanBeHealed(unit))
-                        {
-                            affectedUnits.Add(unit);
-                        }
-                    }
+            // Phase 2.12: 중앙화된 GetAffectedUnits 메서드 사용
+            var allAffectedUnits = context.GridController.GetAffectedUnits(
+                targetPos,
+                _effectData.AffectedType,
+                _effectData.AffectedRange,
+                context.PlayerId
+            );
+
+            // 회복 가능한 유닛들만 필터링
+            var healableUnits = new List<GameObject>();
+            foreach (var unit in allAffectedUnits)
+            {
+                if (CanBeHealed(unit))
+                {
+                    healableUnits.Add(unit);
                 }
             }
 
-            return affectedUnits;
+            return healableUnits;
         }
 
         /// <summary>
@@ -153,7 +147,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 유닛이 회복 가능한 상태인지 확인합니다.
         /// </summary>
-        private bool CanBeHealed(object unit)
+        private bool CanBeHealed(GameObject unit)
         {
             // TODO: 실제 유닛의 체력 상태 확인 로직 구현
             // - 최대 체력보다 낮은 체력인가?
@@ -165,7 +159,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 유닛에게 실제 회복을 적용합니다.
         /// </summary>
-        private void ApplyHealToUnit(object unit, int healAmount)
+        private void ApplyHealToUnit(GameObject unit, int healAmount)
         {
             // TODO: 실제 유닛에게 회복을 적용하는 로직 구현
             // - 현재 체력과 최대 체력 확인
@@ -180,7 +174,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 실제 회복량을 계산합니다 (오버힐 방지).
         /// </summary>
-        private int CalculateActualHealAmount(object unit, int requestedHeal)
+        private int CalculateActualHealAmount(GameObject unit, int requestedHeal)
         {
             // TODO: 실제 체력 상태를 확인하여 오버힐을 방지하는 로직 구현
             // var currentHealth = GetCurrentHealth(unit);

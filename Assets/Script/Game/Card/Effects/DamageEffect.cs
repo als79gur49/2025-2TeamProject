@@ -66,57 +66,45 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
-        /// 영향받을 유닛들을 찾습니다.
+        /// Phase 2.12: GridController의 GetAffectedUnits() 메서드를 사용하여 영향받을 유닛들을 찾습니다.
         /// </summary>
-        private List<object> GetAffectedUnits(Vector2Int targetPos, GameContext context)
+        private List<GameObject> GetAffectedUnits(Vector2Int targetPos, GameContext context)
         {
-            var affectedUnits = new List<object>();
-
-            // AffectedRange가 0이면 단일 대상, 1+이면 범위 효과
-            if (_effectData.AffectedRange == 0)
+            if (context?.GridController == null)
             {
-                // 단일 대상
-                var unit = GetUnitAtPosition(targetPos, context);
-                if (unit != null && IsValidTarget(unit, context))
-                {
-                    affectedUnits.Add(unit);
-                }
-            }
-            else
-            {
-                // 범위 효과
-                for (int x = -_effectData.AffectedRange; x <= _effectData.AffectedRange; x++)
-                {
-                    for (int y = -_effectData.AffectedRange; y <= _effectData.AffectedRange; y++)
-                    {
-                        var checkPos = targetPos + new Vector2Int(x, y);
-                        var unit = GetUnitAtPosition(checkPos, context);
-
-                        if (unit != null && IsValidTarget(unit, context))
-                        {
-                            affectedUnits.Add(unit);
-                        }
-                    }
-                }
+                Debug.LogError("DamageEffect: GridController가 null입니다.");
+                return new List<GameObject>();
             }
 
+            // Phase 2.12: 중앙화된 GetAffectedUnits 메서드 사용
+            var affectedUnits = context.GridController.GetAffectedUnits(
+                targetPos,
+                _effectData.AffectedType,
+                _effectData.AffectedRange,
+                context.PlayerId
+            );
+
+            // 데미지를 줄 수 있는 유닛들만 필터링 (필요시)
+            // 현재는 모든 대상 유닛에게 데미지를 줄 수 있다고 가정
             return affectedUnits;
         }
 
         /// <summary>
         /// 특정 위치의 유닛을 가져옵니다.
         /// </summary>
-        private object GetUnitAtPosition(Vector2Int position, GameContext context)
+        [System.Obsolete("Phase 2.12: GridController.GetUnitAtPosition()을 직접 사용하세요.")]
+        private GameObject GetUnitAtPosition(Vector2Int position, GameContext context)
         {
             // TODO: UnitService를 통해 실제 유닛 정보를 가져오는 로직 구현
             // 현재는 인터페이스만 정의된 상태이므로 placeholder 반환
-            return null;
+            return context?.GridController?.GetUnitAtPosition(position);
         }
 
         /// <summary>
         /// 유닛이 효과의 유효한 대상인지 확인합니다.
         /// </summary>
-        private bool IsValidTarget(object unit, GameContext context)
+        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 필터링이 자동으로 수행됩니다.")]
+        private bool IsValidTarget(GameObject unit, GameContext context)
         {
             if (unit == null) return false;
 
@@ -135,7 +123,8 @@ namespace Game.Card.Effects
         /// <summary>
         /// 아군 유닛인지 확인합니다.
         /// </summary>
-        private bool IsAllyUnit(object unit, int playerId)
+        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 확인이 자동으로 수행됩니다.")]
+        private bool IsAllyUnit(GameObject unit, int playerId)
         {
             // TODO: 실제 유닛의 소속 확인 로직 구현
             return true; // placeholder
@@ -144,7 +133,8 @@ namespace Game.Card.Effects
         /// <summary>
         /// 적군 유닛인지 확인합니다.
         /// </summary>
-        private bool IsEnemyUnit(object unit, int playerId)
+        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 확인이 자동으로 수행됩니다.")]
+        private bool IsEnemyUnit(GameObject unit, int playerId)
         {
             // TODO: 실제 유닛의 소속 확인 로직 구현
             return true; // placeholder
@@ -153,7 +143,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 유닛에게 실제 피해를 적용합니다.
         /// </summary>
-        private void ApplyDamageToUnit(object unit, int damage)
+        private void ApplyDamageToUnit(GameObject unit, int damage)
         {
             // TODO: 실제 유닛에게 피해를 적용하는 로직 구현
             // - 방어력 계산 (IgnoreArmor 옵션 고려)
@@ -167,7 +157,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 방어력을 고려한 최종 피해량을 계산합니다.
         /// </summary>
-        private int CalculateDamageWithArmor(object unit, int baseDamage)
+        private int CalculateDamageWithArmor(GameObject unit, int baseDamage)
         {
             // TODO: 실제 방어력 계산 로직 구현
             return baseDamage; // placeholder

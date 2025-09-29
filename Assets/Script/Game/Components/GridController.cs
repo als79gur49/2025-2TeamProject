@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using Game.Interfaces;
 using Game.Core;
+using Game.Card.Effects;
 using UnityEngine.UIElements;
 
 namespace Game.Components
@@ -256,6 +257,166 @@ namespace Game.Components
             {
                 var relation = GetRelationTo(other);
                 return relation == TeamRelation.Ally || relation == TeamRelation.Self;
+            }
+        }
+
+        #endregion
+
+        #region Phase 2.12: GetAffectedUnits() 메서드 구현
+
+        /// <summary>
+        /// Phase 2.12: AffectedType과 AffectedRange를 기반으로 영향받을 유닛 리스트를 반환합니다.
+        /// 카드 효과 시스템에서 사용되는 핵심 메서드입니다.
+        /// </summary>
+        /// <param name="targetPosition">효과의 중심 위치</param>
+        /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
+        /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
+        /// <param name="originPlayerId">효과를 발동시킨 플레이어 ID (팀 구분용)</param>
+        /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
+        public List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1)
+        {
+            var affectedUnits = new List<GameObject>();
+
+            if (affectedType == AffectedType.None)
+            {
+                return affectedUnits; // 아무도 영향받지 않음
+            }
+
+            List<Vector2Int> positionsToCheck;
+
+            // Phase 2.12: AffectedRange 기반 위치 계산
+            if (affectedRange == 0)
+            {
+                // 단일 대상: 타겟 위치만
+                positionsToCheck = new List<Vector2Int> { targetPosition };
+            }
+            else
+            {
+                // 범위 효과: 맨하탄 거리 기반 범위 내 모든 위치
+                positionsToCheck = GetPositionsInRange(targetPosition, affectedRange, true);
+            }
+
+            // 각 위치의 유닛들을 확인하여 조건에 맞는 유닛 수집
+            foreach (var position in positionsToCheck)
+            {
+                var unit = GetUnitAtPosition(position);
+                if (unit != null && IsUnitValidTarget(unit, affectedType, originPlayerId))
+                {
+                    affectedUnits.Add(unit);
+                }
+            }
+
+            return affectedUnits;
+        }
+
+        /// <summary>
+        /// Phase 2.12: 유닛이 AffectedType 조건에 맞는 유효한 대상인지 확인합니다.
+        /// </summary>
+        /// <param name="unit">확인할 유닛</param>
+        /// <param name="affectedType">대상 타입 조건</param>
+        /// <param name="originPlayerId">효과 발동자의 플레이어 ID</param>
+        /// <returns>유효한 대상이면 true</returns>
+        private bool IsUnitValidTarget(GameObject unit, AffectedType affectedType, int originPlayerId)
+        {
+            if (unit == null) return false;
+
+            // ITeamComponent를 통해 유닛의 팀 정보 획득
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            if (teamComponent == null)
+            {
+                Debug.LogWarning($"GetAffectedUnits: 유닛 {unit.name}에 ITeamComponent가 없습니다. 중립으로 처리합니다.");
+                // 팀 정보가 없는 경우 중립 유닛으로 간주하고 Any일 때만 대상으로 포함
+                return affectedType == AffectedType.Any;
+            }
+
+            // AffectedType에 따른 대상 필터링
+            return affectedType switch
+            {
+                AffectedType.Ally => IsAllyUnit(teamComponent, originPlayerId),
+                AffectedType.Enemy => IsEnemyUnit(teamComponent, originPlayerId),
+                AffectedType.Any => true, // 모든 유닛이 대상
+                AffectedType.None => false, // 아무도 대상 아님 (위에서 이미 처리됨)
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Phase 2.12: 유닛이 아군인지 확인합니다.
+        /// </summary>
+        /// <param name="teamComponent">유닛의 팀 컴포넌트</param>
+        /// <param name="originPlayerId">기준이 되는 플레이어 ID</param>
+        /// <returns>아군이면 true</returns>
+        private bool IsAllyUnit(ITeamComponent teamComponent, int originPlayerId)
+        {
+            if (teamComponent == null) return false;
+
+            // originPlayerId가 유효하지 않은 경우 Player 팀을 아군으로 간주
+            if (originPlayerId < 0)
+            {
+                return teamComponent.Team == TeamType.Player;
+            }
+
+            // TODO: 실제 플레이어 ID 기반 팀 확인 로직 구현 필요
+            // 현재는 Player 팀을 아군으로 간주하는 단순 로직 사용
+            return teamComponent.Team == TeamType.Player;
+        }
+
+        /// <summary>
+        /// Phase 2.12: 유닛이 적군인지 확인합니다.
+        /// </summary>
+        /// <param name="teamComponent">유닛의 팀 컴포넌트</param>
+        /// <param name="originPlayerId">기준이 되는 플레이어 ID</param>
+        /// <returns>적군이면 true</returns>
+        private bool IsEnemyUnit(ITeamComponent teamComponent, int originPlayerId)
+        {
+            if (teamComponent == null) return false;
+
+            // originPlayerId가 유효하지 않은 경우 Enemy 팀을 적군으로 간주
+            if (originPlayerId < 0)
+            {
+                return teamComponent.Team == TeamType.Enemy;
+            }
+
+            // TODO: 실제 플레이어 ID 기반 팀 확인 로직 구현 필요
+            // 현재는 Enemy 팀을 적군으로 간주하는 단순 로직 사용
+            return teamComponent.Team == TeamType.Enemy;
+        }
+
+        /// <summary>
+        /// Phase 2.12: 효과 범위 내 위치들의 맨하탄 거리 기반 필터링
+        /// AffectedRange 검증을 위한 헬퍼 메서드
+        /// </summary>
+        /// <param name="centerPosition">중심 위치</param>
+        /// <param name="checkPosition">확인할 위치</param>
+        /// <param name="maxRange">최대 범위</param>
+        /// <returns>범위 내에 있으면 true</returns>
+        public bool IsPositionInAffectedRange(Vector2Int centerPosition, Vector2Int checkPosition, int maxRange)
+        {
+            if (maxRange < 0) return false; // 잘못된 범위
+            if (maxRange == 0) return centerPosition == checkPosition; // 단일 대상
+
+            // 맨하탄 거리로 범위 확인
+            int distance = Mathf.Abs(centerPosition.x - checkPosition.x) + Mathf.Abs(centerPosition.y - checkPosition.y);
+            return distance <= maxRange;
+        }
+
+        /// <summary>
+        /// Phase 2.12: 디버깅을 위한 GetAffectedUnits 정보 출력
+        /// </summary>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="affectedType">영향 타입</param>
+        /// <param name="affectedRange">영향 범위</param>
+        /// <param name="originPlayerId">발동자 ID</param>
+        public void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1)
+        {
+            var units = GetAffectedUnits(targetPosition, affectedType, affectedRange, originPlayerId);
+            Debug.Log($"GetAffectedUnits Debug: 위치({targetPosition.x}, {targetPosition.y}), 타입:{affectedType}, 범위:{affectedRange}, 대상:{units.Count}개");
+
+            foreach (var unit in units)
+            {
+                var teamComp = unit.GetComponent<ITeamComponent>();
+                var teamName = teamComp?.Team.ToString() ?? "Unknown";
+                Debug.Log($"  - {unit.name} (팀: {teamName})");
             }
         }
 
