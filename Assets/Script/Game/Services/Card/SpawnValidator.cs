@@ -234,9 +234,8 @@ namespace Game.Services
         #region 내부 검증 메서드들 (Phase 2에서 구현)
 
         /// <summary>
-        /// Phase 2.11: TargetRange 배치 거리 제한 검증 (개선된 버전)
-        /// 플레이어는 가장 왼쪽 유닛 기준, 적군은 가장 오른쪽 유닛 기준으로 거리 계산
-        /// CardData의 새로운 거리 계산 메서드를 활용
+        /// Phase 3.15: TargetRange 배치 거리 제한 검증 (GridController 연동 버전)
+        /// GridController의 새로운 TargetRange 검증 메서드를 사용하여 일관성 있는 검증 수행
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
@@ -257,31 +256,16 @@ namespace Game.Services
                 return false;
             }
 
-            Vector2Int basePosition;
-
-            if (isPlayerUnit)
-            {
-                // 플레이어: 가장 왼쪽 유닛 기준
-                basePosition = GetPlayerBasePosition();
-            }
-            else
-            {
-                // 적군: 가장 오른쪽 유닛 기준
-                basePosition = GetEnemyBasePosition();
-            }
-
-            // Phase 2.11: CardData의 새로운 맨하탄 거리 계산 메서드 사용
-            int distance = CardData.CalculateManhattanDistance(basePosition, targetPosition);
-
-            bool isInRange = distance <= cardData.TargetRange;
+            // Phase 3.15: GridController의 통합 검증 메서드 사용
+            bool isInRange = gridController.ValidateCardTargetRange(cardData, targetPosition, isPlayerUnit);
 
             if (isInRange)
             {
-                Log($"✅ Target range validation passed for {cardData.CardName} - Distance: {distance}, Max: {cardData.TargetRange}");
+                Log($"✅ Target range validation passed for {cardData.CardName} via GridController");
             }
             else
             {
-                Log($"❌ Target out of range for {cardData.CardName} - Distance: {distance}, Max: {cardData.TargetRange}");
+                Log($"❌ Target out of range for {cardData.CardName} via GridController");
             }
 
             return isInRange;
@@ -324,56 +308,33 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 플레이어 기준점 계산 (가장 왼쪽 끝 기준)
+        /// Phase 3.15: 플레이어 기준점 계산 (GridController 위임)
+        /// GridController의 GetPlayerBasePosition 메서드를 사용하여 일관성 보장
         /// </summary>
         private Vector2Int GetPlayerBasePosition()
         {
-            // 플레이어는 가장 왼쪽 끝 (x=0)에서 가장 가까운 유닛 기준
-            // 유닛이 없으면 그리드 왼쪽 가운데를 기준점으로 사용
-            var gridSize = gridController.GridSize;
-
-            // 가장 왼쪽 열에서 플레이어 유닛 찾기
-            for (int y = 0; y < gridSize.y; y++)
+            if (gridController == null)
             {
-                Vector2Int pos = new Vector2Int(0, y);
-                if (gridController.HasPlayerUnit(pos))
-                {
-                    Log($"Player base position found at leftmost unit: {pos}");
-                    return pos;
-                }
+                LogError("❌ GridController not available for player base position");
+                return Vector2Int.zero;
             }
 
-            // 유닛이 없으면 왼쪽 가운데를 기준점으로 사용
-            Vector2Int fallbackPosition = new Vector2Int(0, gridSize.y / 2);
-            Log($"No player unit found, using fallback position: {fallbackPosition}");
-            return fallbackPosition;
+            return gridController.GetPlayerBasePosition();
         }
 
         /// <summary>
-        /// 적군 기준점 계산 (가장 오른쪽 끝 기준)
+        /// Phase 3.15: 적군 기준점 계산 (GridController 위임)
+        /// GridController의 GetEnemyBasePosition 메서드를 사용하여 일관성 보장
         /// </summary>
         private Vector2Int GetEnemyBasePosition()
         {
-            // 적군은 가장 오른쪽 끝에서 가장 가까운 유닛 기준
-            // 유닛이 없으면 그리드 오른쪽 가운데를 기준점으로 사용
-            var gridSize = gridController.GridSize;
-            int rightmostColumn = gridSize.x - 1;
-
-            // 가장 오른쪽 열에서 적군 유닛 찾기
-            for (int y = 0; y < gridSize.y; y++)
+            if (gridController == null)
             {
-                Vector2Int pos = new Vector2Int(rightmostColumn, y);
-                if (gridController.HasEnemyUnit(pos))
-                {
-                    Log($"Enemy base position found at rightmost unit: {pos}");
-                    return pos;
-                }
+                LogError("❌ GridController not available for enemy base position");
+                return Vector2Int.zero;
             }
 
-            // 유닛이 없으면 오른쪽 가운데를 기준점으로 사용
-            Vector2Int fallbackPosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
-            Log($"No enemy unit found, using fallback position: {fallbackPosition}");
-            return fallbackPosition;
+            return gridController.GetEnemyBasePosition();
         }
 
         /// <summary>
@@ -551,7 +512,8 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// Phase 2.11: 새로운 TargetRange 시스템 테스트를 위한 검증 메서드
+        /// Phase 3.15: 새로운 TargetRange 시스템 테스트를 위한 검증 메서드 (GridController 연동)
+        /// GridController의 디버깅 기능을 활용하여 일관성 있는 테스트 수행
         /// </summary>
         /// <param name="cardData">테스트할 카드</param>
         /// <param name="testPositions">테스트할 위치들</param>
@@ -564,23 +526,20 @@ namespace Game.Services
         {
             var results = new System.Collections.Generic.Dictionary<Vector2Int, bool>();
 
-            if (!isInitialized || cardData == null)
+            if (!isInitialized || cardData == null || gridController == null)
             {
                 return results;
             }
 
-            Vector2Int basePosition = isPlayerCard ? GetPlayerBasePosition() : GetEnemyBasePosition();
+            // Phase 3.15: GridController의 디버깅 기능 사용
+            gridController.DebugTargetRangeValidation(cardData, testPositions, isPlayerCard);
 
-            Log($"🧪 Testing TargetRange validation for {cardData.CardName}");
-            Log($"Base position: {basePosition}, TargetRange: {cardData.TargetRange}");
+            Log($"🧪 Testing TargetRange validation for {cardData.CardName} via GridController");
 
             foreach (var testPos in testPositions)
             {
-                int distance = CardData.CalculateManhattanDistance(basePosition, testPos);
-                bool isValid = ValidateTargetWithCardData(cardData, basePosition, testPos, isPlayerCard);
-
+                bool isValid = ValidateTargetWithCardData(cardData, GetPlayerBasePosition(), testPos, isPlayerCard);
                 results[testPos] = isValid;
-                Log($"Position {testPos}: Distance={distance}, Valid={isValid}");
             }
 
             return results;

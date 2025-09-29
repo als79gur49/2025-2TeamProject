@@ -6,7 +6,8 @@
       "Read(//mnt/c/Users/user/**)",
       "Bash(find:*)",
       "Bash(mkdir:*)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,12 +3,15 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Data;
 using Game.Components;
+using Game.Card.Effects;
+using System.Collections.Generic;
 
 namespace Game.Services
 {
     /// <summary>
-    /// 카드의 유닛 소환 및 주문 발동을 처리하는 서비스
-    /// 소환 후 UnitService에 유닛을 등록하여 게임 월드에 편입시키는 핵심 역할
+    /// Phase 3.14: 리팩토링된 카드 소환 서비스
+    /// EffectData 기반의 통합 카드 처리 시스템
+    /// CardData의 EffectData 리스트를 순회하며 팩토리를 통해 ICardEffect를 생성하고 실행하는 단순 실행자 역할
     /// </summary>
     public class CardSpawnService : MonoBehaviour, ICardSpawnService
     {
@@ -21,6 +24,9 @@ namespace Game.Services
         private IGridState gridState;
         private ISpawnValidator spawnValidator;
         private IResourceManager resourceManager;
+
+        // Phase 3.14: GameContext for effect execution
+        private GameContext gameContext;
 
         // 초기화 상태
         private bool isInitialized = false;
@@ -72,8 +78,18 @@ namespace Game.Services
 
             if (allDependenciesResolved)
             {
+                // Phase 3.14: Initialize GameContext for effect execution
+                gameContext = new GameContext(
+                    unitService,
+                    gridController,
+                    this,  // CardSpawnService itself
+                    spawnValidator,
+                    0,     // PlayerId - will be updated per card usage
+                    Vector2Int.zero // OriginPosition - will be updated per card usage
+                );
+
                 isInitialized = true;
-                Log("✅ CardSpawnService initialization completed");
+                Log("✅ CardSpawnService initialization completed with GameContext");
             }
             else
             {
@@ -121,27 +137,27 @@ namespace Game.Services
 
         #endregion
 
-        #region 유닛 소환 (Phase 2에서 구현)
+        #region Phase 3.14: 통합 카드 처리 (효과 기반)
 
         /// <summary>
-        /// 카드로부터 유닛을 소환하고 UnitService에 등록 (기본: 플레이어 유닛)
+        /// Phase 3.14: 카드를 사용하여 모든 효과를 실행 (기본: 플레이어)
         /// </summary>
-        /// <param name="cardData">소환할 카드 데이터</param>
-        /// <param name="gridPosition">소환할 그리드 위치</param>
-        /// <returns>소환 성공 여부</returns>
-        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition)
+        /// <param name="cardData">사용할 카드 데이터</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <returns>실행 성공 여부</returns>
+        public bool TryExecuteCard(CardData cardData, Vector2Int targetPosition)
         {
-            return TrySpawnUnitFromCard(cardData, gridPosition, true);
+            return TryExecuteCard(cardData, targetPosition, true);
         }
 
         /// <summary>
-        /// 카드로부터 유닛을 소환하고 UnitService에 등록 (플레이어/적군 구분)
+        /// Phase 3.14: 카드를 사용하여 모든 효과를 실행 (플레이어/적군 구분)
         /// </summary>
-        /// <param name="cardData">소환할 카드 데이터</param>
-        /// <param name="gridPosition">소환할 그리드 위치</param>
-        /// <param name="isPlayerUnit">플레이어 유닛인지 여부</param>
-        /// <returns>소환 성공 여부</returns>
-        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition, bool isPlayerUnit)
+        /// <param name="cardData">사용할 카드 데이터</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>실행 성공 여부</returns>
+        public bool TryExecuteCard(CardData cardData, Vector2Int targetPosition, bool isPlayerCard)
         {
             if (!isInitialized)
             {
@@ -151,359 +167,146 @@ namespace Game.Services
 
             if (cardData == null)
             {
-                LogError("Cannot spawn unit from null CardData");
+                LogError("Cannot execute null CardData");
                 return false;
             }
 
-            // 유닛 카드인지 확인
-            if (!cardData.CanSummonUnit)
+            // Phase 3.14: Check if card uses new effect system
+            if (!cardData.IsEffectBasedCard)
             {
-                LogError($"Card {cardData.CardName} is not a unit card or has no unit data");
+                LogError($"Card {cardData.CardName} does not use new effect system (no EffectData)");
                 return false;
             }
 
-            Log($"🎯 Attempting to spawn unit from card: {cardData.CardName} at position {gridPosition} (Player: {isPlayerUnit})");
+            Log($"🎯 Executing card: {cardData.CardName} at position {targetPosition} (Player: {isPlayerCard})");
 
-            // Phase 2: 완전한 소환 구현
-            
-            // 1. 소환 위치 및 조건 검증 by SpawnValidator
-            if (spawnValidator != null && !spawnValidator.CanSpawnUnit(cardData, gridPosition, isPlayerUnit))
-            {
-                Log($"❌ Spawn validation failed for {cardData.CardName}");
-                return false;
-            }
+            // Phase 3.14: Update GameContext for this card execution
+            UpdateGameContext(isPlayerCard ? 0 : 1, targetPosition);
 
-            // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerUnit, cardData.ManaCost))
+            // 1. Resource validation and spending
+            if (resourceManager != null && !resourceManager.SpendResources(isPlayerCard, cardData.ManaCost))
             {
                 LogError($"❌ Failed to spend resources for {cardData.CardName}");
                 return false;
             }
 
-            // 3. 유닛 프리팹 인스턴스화
-            var unitData = cardData.GetUnitToSummon();
-            if (unitData?.Prefab == null)
+            // 2. Execute all card effects using factory pattern
+            bool allEffectsSuccess = ExecuteAllCardEffects(cardData, targetPosition, isPlayerCard);
+
+            if (!allEffectsSuccess)
             {
-                LogError($"❌ Unit prefab not found for {cardData.CardName}");
-                // 자원 복구
-                RestoreResources(cardData, isPlayerUnit);
+                LogError($"❌ One or more effects failed for {cardData.CardName}");
+                // Restore resources on failure
+                RestoreResources(cardData, isPlayerCard);
                 return false;
             }
 
-            // 월드 위치 계산
-            Vector3 worldPosition = gridController.GridToWorldPosition(gridPosition);
-            
-            // 유닛 생성
-            GameObject spawnedUnitGO = Instantiate(unitData.Prefab, worldPosition, Quaternion.identity);
-            if (spawnedUnitGO == null)
-            {
-                LogError($"❌ Failed to instantiate unit prefab for {cardData.CardName}");
-                // 자원 복구
-                RestoreResources(cardData, isPlayerUnit);
-                return false;
-            }
-
-            // 4. 유닛 초기화
-            Unit unitComponent = spawnedUnitGO.GetComponent<Unit>();
-            if (unitComponent == null)
-            {
-                LogError($"❌ Unit component not found on spawned prefab for {cardData.CardName}");
-                Destroy(spawnedUnitGO);
-                // 자원 복구
-                RestoreResources(cardData, isPlayerUnit);
-                return false;
-            }
-
-            // 유닛 이름 설정
-            spawnedUnitGO.name = $"{cardData.CardName}_{(isPlayerUnit ? "Player" : "Enemy")}";
-
-            // 그리드 위치 설정
-            if (!gridState.SetUnitPosition(spawnedUnitGO, gridPosition))
-            {
-                LogError($"❌ Failed to set unit position for {cardData.CardName}");
-                Destroy(spawnedUnitGO);
-                // 자원 복구
-                RestoreResources(cardData, isPlayerUnit);
-                return false;
-            }
-
-            // 5. UnitService에 신규 유닛 등록 (핵심)
-            if (unitService != null)
-            {
-                unitService.RegisterUnit(unitComponent);
-                Log($"✅ Unit {cardData.CardName} successfully spawned and registered at {gridPosition}");
-                return true;
-            }
-            else
-            {
-                LogError("❌ UnitService not available - cannot register spawned unit");
-                Destroy(spawnedUnitGO);
-                // 자원 복구
-                RestoreResources(cardData, isPlayerUnit);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 주문 카드 발동 (Phase 4에서 완전 구현)
-        /// </summary>
-        /// <param name="cardData">발동할 주문 카드 데이터</param>
-        /// <param name="targetPosition">대상 위치</param>
-        /// <returns>발동 성공 여부</returns>
-        public bool TryActivateSpellFromCard(CardData cardData, Vector2Int targetPosition)
-        {
-            return TryActivateSpellFromCard(cardData, targetPosition, true);
-        }
-        
-        /// <summary>
-        /// 주문 카드 발동 (플레이어/적군 구분)
-        /// </summary>
-        /// <param name="cardData">발동할 주문 카드 데이터</param>
-        /// <param name="targetPosition">대상 위치</param>
-        /// <param name="isPlayerSpell">플레이어가 사용하는 주문인지 여부</param>
-        /// <returns>발동 성공 여부</returns>
-        public bool TryActivateSpellFromCard(CardData cardData, Vector2Int targetPosition, bool isPlayerSpell)
-        {
-            if (!isInitialized)
-            {
-                LogError("CardSpawnService not initialized");
-                return false;
-            }
-
-            if (cardData == null)
-            {
-                LogError("Cannot activate spell from null CardData");
-                return false;
-            }
-
-            // 주문 카드인지 확인
-            if (!cardData.IsSpellCard)
-            {
-                LogError($"Card {cardData.CardName} is not a spell card");
-                return false;
-            }
-
-            Log($"🔮 Attempting to activate spell: {cardData.CardName} at position {targetPosition} (Player: {isPlayerSpell})");
-
-            // Phase 4: 완전한 주문 발동 구현
-            
-            // 1. 주문 사용 위치 및 조건 검증
-            if (spawnValidator != null && !spawnValidator.CanUseSpell(cardData, targetPosition))
-            {
-                Log($"❌ Spell validation failed for {cardData.CardName}");
-                return false;
-            }
-
-            // 2. 자원 소모
-            if (resourceManager != null && !resourceManager.SpendResources(isPlayerSpell, cardData.ManaCost))
-            {
-                LogError($"❌ Failed to spend resources for spell {cardData.CardName}");
-                return false;
-            }
-
-            // 3. 주문 효과 실행
-            bool effectSuccess = ExecuteSpellEffect(cardData, targetPosition, isPlayerSpell);
-            
-            if (!effectSuccess)
-            {
-                LogError($"❌ Spell effect execution failed for {cardData.CardName}");
-                // 자원 복구
-                RestoreResources(cardData, isPlayerSpell);
-                return false;
-            }
-
-            Log($"✅ Spell {cardData.CardName} successfully activated at {targetPosition}");
+            Log($"✅ Card {cardData.CardName} successfully executed at {targetPosition}");
             return true;
         }
-        
+
         /// <summary>
-        /// 주문 효과를 실제로 실행합니다.
+        /// Phase 3.14: 기존 유닛 소환 메서드 호환성 유지 (TryExecuteCard 에 위임)
         /// </summary>
-        /// <param name="cardData">주문 카드 데이터</param>
-        /// <param name="targetPosition">대상 위치</param>
-        /// <param name="isPlayerSpell">플레이어 주문인지 여부</param>
-        /// <returns>실행 성공 여부</returns>
-        private bool ExecuteSpellEffect(CardData cardData, Vector2Int targetPosition, bool isPlayerSpell)
+        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
+        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition)
         {
-            try
+            return TryExecuteCard(cardData, gridPosition, true);
+        }
+
+        /// <summary>
+        /// Phase 3.14: 기존 유닛 소환 메서드 호환성 유지 (TryExecuteCard 에 위임)
+        /// </summary>
+        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
+        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition, bool isPlayerUnit)
+        {
+            return TryExecuteCard(cardData, gridPosition, isPlayerUnit);
+        }
+
+        /// <summary>
+        /// Phase 3.14: 기존 주문 발동 메서드 호환성 유지 (TryExecuteCard 에 위임)
+        /// </summary>
+        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
+        public bool TryActivateSpellFromCard(CardData cardData, Vector2Int targetPosition)
+        {
+            return TryExecuteCard(cardData, targetPosition, true);
+        }
+
+        /// <summary>
+        /// Phase 3.14: GameContext 업데이트
+        /// </summary>
+        /// <param name="playerId">플레이어 ID</param>
+        /// <param name="originPosition">원점 위치</param>
+        private void UpdateGameContext(int playerId, Vector2Int originPosition)
+        {
+            if (gameContext != null)
             {
-                // 월드 좌표로 변환
-                Vector3 worldPosition = gridController.GridToWorldPosition(targetPosition);
-                
-                // 주문 타입에 따른 효과 실행
-                CardData.SpellType spellType = cardData.SpellCategory;
-                int effectValue = cardData.SpellEffectValue;
-                float effectRange = cardData.SpellRange;
-                
-                Log($"🎯 Executing {spellType} spell with value {effectValue} and range {effectRange}");
-                
-                // 영향 받는 유닛들 찾기
-                var affectedUnits = GetUnitsInRange(worldPosition, effectRange);
-                
-                // 주문 효과 적용
-                foreach (var unit in affectedUnits)
-                {
-                    ApplySpellEffectToUnit(unit, spellType, effectValue, isPlayerSpell);
-                }
-                
-                // 시각적 효과 표시
-                ShowSpellVisualEffect(cardData, worldPosition);
-                
-                Log($"✅ Spell effect applied to {affectedUnits.Count} units");
-                return true;
+                // GameContext는 immutable이므로 새로 생성
+                gameContext = new GameContext(
+                    unitService,
+                    gridController,
+                    this,
+                    spawnValidator,
+                    playerId,
+                    originPosition
+                );
             }
-            catch (System.Exception ex)
+        }
+
+        /// <summary>
+        /// Phase 3.14: 카드의 모든 효과를 실행하는 핵심 메서드
+        /// </summary>
+        /// <param name="cardData">카드 데이터</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>모든 효과 실행 성공 여부</returns>
+        private bool ExecuteAllCardEffects(CardData cardData, Vector2Int targetPosition, bool isPlayerCard)
+        {
+            var effectDataList = cardData.EffectDataList;
+            if (effectDataList.Count == 0)
             {
-                LogError($"❌ Exception during spell effect execution: {ex.Message}");
+                LogError($"Card {cardData.CardName} has no effects to execute");
                 return false;
             }
-        }
-        
-        /// <summary>
-        /// 지정된 범위 내의 유닛들을 찾습니다.
-        /// </summary>
-        /// <param name="centerPosition">중심 위치</param>
-        /// <param name="range">범위</param>
-        /// <returns>범위 내의 유닛 리스트</returns>
-        private System.Collections.Generic.List<Unit> GetUnitsInRange(Vector3 centerPosition, float range)
-        {
-            var unitsInRange = new System.Collections.Generic.List<Unit>();
-            
-            if (unitService != null)
+
+            Log($"🔄 Executing {effectDataList.Count} effects for {cardData.CardName}");
+
+            // 팩토리를 통해 ICardEffect 인스턴스들을 생성
+            var cardEffects = CardEffectFactory.CreateEffects(effectDataList);
+            if (cardEffects.Count == 0)
             {
-                var allUnits = unitService.GetActiveUnits();
-                foreach (var unit in allUnits)
+                LogError($"Failed to create any effects for {cardData.CardName}");
+                return false;
+            }
+
+            // 우선순위 순으로 모든 효과 실행
+            int successCount = 0;
+            foreach (var effect in cardEffects)
+            {
+                try
                 {
-                    Vector3 unitPosition = new Vector3(unit.X, 0, unit.Y); // 그리드 좌표를 월드 좌표로
-                    float distance = Vector3.Distance(centerPosition, unitPosition);
-                    
-                    if (distance <= range)
+                    // 효과 실행 가능 여부 확인
+                    if (!effect.CanExecute(targetPosition, gameContext))
                     {
-                        unitsInRange.Add(unit);
+                        LogError($"❌ Effect {effect.GetType().Name} cannot be executed at {targetPosition}");
+                        continue; // 다음 효과로 진행 (부분 실패 허용)
                     }
+
+                    // 효과 실행
+                    effect.Execute(targetPosition, gameContext);
+                    Log($"✅ Effect {effect.GetType().Name} executed successfully");
+                    successCount++;
+                }
+                catch (System.Exception ex)
+                {
+                    LogError($"❌ Exception executing effect {effect.GetType().Name}: {ex.Message}");
+                    // 예외 발생 시 계속 진행하지 않음
+                    return false;
                 }
             }
-            
-            return unitsInRange;
-        }
-        
-        /// <summary>
-        /// 특정 유닛에게 주문 효과를 적용합니다.
-        /// </summary>
-        /// <param name="unit">대상 유닛</param>
-        /// <param name="spellType">주문 타입</param>
-        /// <param name="effectValue">효과값</param>
-        /// <param name="isPlayerSpell">플레이어 주문인지 여부</param>
-        private void ApplySpellEffectToUnit(Unit unit, CardData.SpellType spellType, int effectValue, bool isPlayerSpell)
-        {
-            if (unit == null) return;
-            
-            // 아군/적군 주문이 영향을 주는 대상 확인
-            bool canAffectUnit = CanSpellAffectUnit(unit, spellType, isPlayerSpell);
-            if (!canAffectUnit)
-            {
-                return;
-            }
-            
-            switch (spellType)
-            {
-                case CardData.SpellType.Damage:
-                    // 데미지 적용 (체력이 있다면)
-                    if (unit.TryGetComponent<HealthComponent>(out var health))
-                    {
-                        health.TakeDamage(effectValue);
-                        Log($"💥 Applied {effectValue} damage to {unit.name}");
-                    }
-                    break;
-                    
-                case CardData.SpellType.Heal:
-                    // 힐 적용
-                    if (unit.TryGetComponent<HealthComponent>(out var healthComp))
-                    {
-                        healthComp.Heal(effectValue);
-                        Log($"💚 Healed {unit.name} for {effectValue} HP");
-                    }
-                    break;
-                    
-                case CardData.SpellType.Buff:
-                    // 버프 적용 (임시 구현 - 실제로는 더 복잡한 버프 시스템 필요)
-                    Log($"⬆️ Applied buff to {unit.name} (value: {effectValue})");
-                    break;
-                    
-                case CardData.SpellType.Debuff:
-                    // 디버프 적용
-                    Log($"⬇️ Applied debuff to {unit.name} (value: {effectValue})");
-                    break;
-                    
-                case CardData.SpellType.Shield:
-                    // 실드 적용
-                    Log($"🛡️ Applied shield to {unit.name} (value: {effectValue})");
-                    break;
-                    
-                case CardData.SpellType.Teleport:
-                    // 텔레포트 (현재 위치에서 랜덤 이동)
-                    Log($"🌀 Teleported {unit.name}");
-                    break;
-                    
-                default:
-                    Log($"❓ Unknown spell type: {spellType}");
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// 주문이 특정 유닛에게 영향을 줄 수 있는지 확인합니다.
-        /// </summary>
-        /// <param name="unit">대상 유닛</param>
-        /// <param name="spellType">주문 타입</param>
-        /// <param name="isPlayerSpell">플레이어 주문인지 여부</param>
-        /// <returns>영향을 줄 수 있으면 true</returns>
-        private bool CanSpellAffectUnit(Unit unit, CardData.SpellType spellType, bool isPlayerSpell)
-        {
-            // 기본적으로 같은 팀은 도움이 되는 주문, 다른 팀은 해로운 주문
-            bool isHelpfulSpell = spellType == CardData.SpellType.Heal || spellType == CardData.SpellType.Buff || spellType == CardData.SpellType.Shield;
-            bool isHarmfulSpell = spellType == CardData.SpellType.Damage || spellType == CardData.SpellType.Debuff;
-            
-            if (isPlayerSpell && unit.IsPlayerUnit)
-            {
-                // 플레이어가 아군에게 사용 - 도움이 되는 주문만
-                return isHelpfulSpell || spellType == CardData.SpellType.Teleport;
-            }
-            else if (isPlayerSpell && !unit.IsPlayerUnit)
-            {
-                // 플레이어가 적군에게 사용 - 해로운 주문만
-                return isHarmfulSpell;
-            }
-            else if (!isPlayerSpell && !unit.IsPlayerUnit)
-            {
-                // 적군이 적군에게 사용 - 도움이 되는 주문만
-                return isHelpfulSpell || spellType == CardData.SpellType.Teleport;
-            }
-            else if (!isPlayerSpell && unit.IsPlayerUnit)
-            {
-                // 적군이 아군에게 사용 - 해로운 주문만
-                return isHarmfulSpell;
-            }
-            
-            return false;
-        }
-        
-        /// <summary>
-        /// 주문의 시각적 효과를 표시합니다.
-        /// </summary>
-        /// <param name="cardData">주문 카드 데이터</param>
-        /// <param name="position">위치</param>
-        private void ShowSpellVisualEffect(CardData cardData, Vector3 position)
-        {
-            // 간단한 시각적 효과 - 실제 게임에서는 더 화려한 이팩트 사용
-            Log($"✨ Showing visual effect for {cardData.CardName} at {position}");
-            
-            // TODO: 파티클 시스템이나 이팩트 프리팹 사용
-            // if (cardData.SpellEffectPrefab != null)
-            // {
-            //     GameObject effect = Instantiate(cardData.SpellEffectPrefab, position, Quaternion.identity);
-            //     Destroy(effect, 3f);
-            // }
+
+            Log($"📊 {successCount}/{cardEffects.Count} effects executed successfully for {cardData.CardName}");
+            return successCount > 0; // 최소 하나의 효과는 성공해야 함
         }
 
         #endregion
@@ -562,7 +365,8 @@ namespace Game.Services
                    $"- UnitService Available: {(unitService != null ? "✅" : "❌")}\n" +
                    $"- GridController Available: {(gridController != null ? "✅" : "❌")}\n" +
                    $"- SpawnValidator Available: {(spawnValidator != null ? "✅" : "❌")}\n" +
-                   $"- ResourceManager Available: {(resourceManager != null ? "✅" : "❌")}\n";
+                   $"- ResourceManager Available: {(resourceManager != null ? "✅" : "❌")}\n" +
+                   $"- GameContext Available: {(gameContext != null ? "✅" : "❌")}\n";
         }
 
         #endregion

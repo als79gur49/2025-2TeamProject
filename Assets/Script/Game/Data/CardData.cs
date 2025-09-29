@@ -679,17 +679,31 @@ namespace Game.Data
             };
         }
 
-        // ✅ UI용 상세 설명 생성
+        /// <summary>
+        /// Phase 3.16: UI용 상세 설명 생성 - 새로운 카드 구조에 맞게 완전히 재작성
+        /// </summary>
         public string GetDetailedDescription()
         {
             var desc = $"<b><color=#{ColorUtility.ToHtmlStringRGB(GetRarityColor())}>{cardName}</color></b>\n";
             desc += $"<i>{cardType} - {rarity}</i>\n\n";
-            desc += $"{description}\n\n";
-            
-            
-            if (effects.Count > 0)
+
+            // 기본 설명
+            if (!string.IsNullOrEmpty(description))
+            {
+                desc += $"{description}\n\n";
+            }
+
+            // Phase 3.16: 새로운 EffectData 시스템 우선 표시 (레거시 시스템보다 우선)
+            if (IsEffectBasedCard)
             {
                 desc += "<b>효과:</b>\n";
+                desc += GenerateEffectDataDescriptions();
+                desc += "\n";
+            }
+            // 레거시 효과 시스템 (호환성용)
+            else if (effects.Count > 0)
+            {
+                desc += "<b>레거시 효과:</b>\n";
                 foreach (var effect in effects)
                 {
                     desc += $"• {effect}\n";
@@ -697,64 +711,190 @@ namespace Game.Data
                 desc += "\n";
             }
 
-            // EffectData 시스템 정보 표시 (Phase 2.4 + 2.8)
-            if (effectDataList.Count > 0)
-            {
-                desc += "<b>새로운 효과 시스템:</b>\n";
-                foreach (var effectData in effectDataList)
-                {
-                    desc += $"• {effectData.GetDescription()}";
+            // 비용 정보
+            desc += $"<b>비용:</b> <color=#FFD700>{manaCost}</color> 마나\n";
 
-                    // Phase 2.8: AffectedType과 AffectedRange 정보 추가
-                    if (effectData.AffectedType != AffectedType.None)
-                    {
-                        string affectedTypeDesc = effectData.AffectedType switch
-                        {
-                            AffectedType.Ally => "아군",
-                            AffectedType.Enemy => "적군",
-                            AffectedType.Any => "모두",
-                            _ => effectData.AffectedType.ToString()
-                        };
-                        desc += $" ({affectedTypeDesc} 대상";
+            // 타겟팅 시스템 정보
+            desc += GenerateTargetingDescription();
 
-                        if (effectData.AffectedRange > 0)
-                        {
-                            desc += $", 효과범위: {effectData.AffectedRange}";
-                        }
-                        desc += ")";
-                    }
-                    desc += "\n";
-                }
-                desc += "\n";
-            }
-            
-            desc += $"<b>비용:</b> 마나 {manaCost}\n";
-            
-            if (targetType != TargetType.None)
-            {
-                string targetDescription = targetType switch
-                {
-                    TargetType.Ally => "아군 위치에만 배치 가능",
-                    TargetType.Enemy => "적군 위치에만 배치 가능",
-                    TargetType.Any => "아군/적군 위치 모두 배치 가능",
-                    TargetType.Ground => "타일이 있는 곳 어디든 배치 가능",
-                    _ => targetType.ToString()
-                };
-                desc += $"<b>배치 제한:</b> {targetDescription}";
-                if (range > 0) desc += $" (사거리: {range})";
-                if (targetRange >= 0) desc += $" (배치 거리: {targetRange})";
-                if (areaOfEffect > 0) desc += $" (범위: {areaOfEffect})";
-                if (affectedRange > 0) desc += $" (효과 범위: {affectedRange})";
-                desc += "\n";
-            }
-            
+            // 키워드
             if (keywords.Count > 0)
             {
-                desc += $"<b>키워드:</b> {string.Join(", ", keywords)}\n";
+                desc += $"<b>키워드:</b> <color=#87CEEB>{string.Join(", ", keywords)}</color>\n";
             }
-            
-            
+
+            // 데크 제한
+            if (maxCopiesInDeck < 3)
+            {
+                desc += $"<color=#FF6B6B>데크에 최대 {maxCopiesInDeck}장 보유 가능</color>\n";
+            }
+
             return desc;
+        }
+
+        /// <summary>
+        /// Phase 3.16: EffectData 시스템 기반 효과 설명 생성
+        /// </summary>
+        private string GenerateEffectDataDescriptions()
+        {
+            var effectDesc = "";
+
+            // 효과 타입별로 그룹화하여 표시
+            var groupedEffects = effectDataList.GroupBy(e => e.Type);
+
+            foreach (var group in groupedEffects)
+            {
+                var effectType = group.Key;
+                var effects = group.ToList();
+
+                string effectIcon = GetEffectTypeIcon(effectType);
+                string effectColor = GetEffectTypeColor(effectType);
+
+                if (effects.Count == 1)
+                {
+                    var effect = effects[0];
+                    effectDesc += $"• <color={effectColor}>{effectIcon} {GenerateSingleEffectDescription(effect)}</color>\n";
+                }
+                else
+                {
+                    // 같은 타입의 여러 효과
+                    var totalValue = effects.Sum(e => e.Value);
+                    effectDesc += $"• <color={effectColor}>{effectIcon} {GetEffectTypeName(effectType)} {totalValue}</color>";
+
+                    // 복합 효과의 세부사항
+                    effectDesc += " (";
+                    effectDesc += string.Join(" + ", effects.Select(e => e.Value.ToString()));
+                    effectDesc += ")\n";
+                }
+            }
+
+            return effectDesc;
+        }
+
+        /// <summary>
+        /// Phase 3.16: 개별 효과 설명 생성
+        /// </summary>
+        private string GenerateSingleEffectDescription(EffectData effect)
+        {
+            var desc = $"{GetEffectTypeName(effect.Type)} {effect.Value}";
+
+            // 대상 정보 추가
+            if (effect.AffectedType != AffectedType.None)
+            {
+                string targetDesc = effect.AffectedType switch
+                {
+                    AffectedType.Ally => "아군",
+                    AffectedType.Enemy => "적군",
+                    AffectedType.Any => "모든 유닛",
+                    _ => effect.AffectedType.ToString()
+                };
+                desc += $" ({targetDesc}";
+
+                // 범위 정보 추가
+                if (effect.AffectedRange > 0)
+                {
+                    desc += $", 범위 {effect.AffectedRange}";
+                }
+                desc += ")";
+            }
+
+            // 소환 효과의 경우 특별 처리
+            if (effect.Type == EffectType.Summon && effect.UnitToSummon != null)
+            {
+                desc = $"{effect.UnitToSummon.UnitName} 소환";
+                if (effect.AffectedRange > 0)
+                {
+                    desc += $" (소환 범위 {effect.AffectedRange})";
+                }
+            }
+
+            return desc;
+        }
+
+        /// <summary>
+        /// Phase 3.16: 타겟팅 시스템 설명 생성
+        /// </summary>
+        private string GenerateTargetingDescription()
+        {
+            var targetDesc = "";
+
+            // 배치 제한 정보
+            if (targetType != TargetType.None)
+            {
+                string placementDesc = targetType switch
+                {
+                    TargetType.Ally => "아군 위치에만",
+                    TargetType.Enemy => "적군 위치에만",
+                    TargetType.Any => "아군/적군 위치에",
+                    TargetType.Ground => "빈 타일에",
+                    _ => targetType.ToString()
+                };
+
+                targetDesc += $"<b>배치:</b> {placementDesc} 사용 가능";
+
+                // 거리 제한
+                if (targetRange >= 0)
+                {
+                    targetDesc += $" <color=#FFA500>(거리 제한: {targetRange})</color>";
+                }
+                else if (range > 0)  // 레거시 range 필드
+                {
+                    targetDesc += $" <color=#FFA500>(사거리: {range})</color>";
+                }
+
+                targetDesc += "\n";
+            }
+
+            // 범위 효과 정보
+            var maxRange = GetMaxAffectedRange();
+            if (maxRange > 0)
+            {
+                targetDesc += $"<b>효과 범위:</b> <color=#32CD32>주변 {maxRange}칸</color>\n";
+            }
+
+            return targetDesc;
+        }
+
+        /// <summary>
+        /// Phase 3.16: 효과 타입별 아이콘 반환
+        /// </summary>
+        private string GetEffectTypeIcon(EffectType effectType)
+        {
+            return effectType switch
+            {
+                EffectType.Damage => "⚔️",
+                EffectType.Heal => "💚",
+                EffectType.Summon => "🛡️",
+                _ => "✨"
+            };
+        }
+
+        /// <summary>
+        /// Phase 3.16: 효과 타입별 색상 반환
+        /// </summary>
+        private string GetEffectTypeColor(EffectType effectType)
+        {
+            return effectType switch
+            {
+                EffectType.Damage => "#FF6B6B",
+                EffectType.Heal => "#51CF66",
+                EffectType.Summon => "#4DABF7",
+                _ => "#ADB5BD"
+            };
+        }
+
+        /// <summary>
+        /// Phase 3.16: 효과 타입별 이름 반환
+        /// </summary>
+        private string GetEffectTypeName(EffectType effectType)
+        {
+            return effectType switch
+            {
+                EffectType.Damage => "피해",
+                EffectType.Heal => "회복",
+                EffectType.Summon => "소환",
+                _ => effectType.ToString()
+            };
         }
 
         // ✅ 카드 복사 (덱 구성용)

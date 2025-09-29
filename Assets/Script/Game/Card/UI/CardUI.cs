@@ -108,25 +108,123 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// 카드 UI 정보 업데이트
+        /// Phase 3.16: 카드 UI 정보 업데이트 - 새로운 카드 구조 반영
         /// </summary>
         private void UpdateCardUI()
         {
             if (cardData == null) return;
 
-            // 카드 정보 표시
+            // 카드 기본 정보 표시
             if (cardNameText != null)
                 cardNameText.text = cardData.CardName;
-            
-            if (costText != null)
-                costText.text = cardData.ManaCost.ToString();
-            
-            if (descriptionText != null)
-                descriptionText.text = cardData.Description;
 
-            // 카드 이미지 설정 (있는 경우)
+            // 비용 정보 (색상 포함)
+            if (costText != null)
+            {
+                costText.text = cardData.ManaCost.ToString();
+                // 비용에 따른 색상 적용
+                costText.color = GetManaCostColor(cardData.ManaCost);
+            }
+
+            // Phase 3.16: 새로운 GetDetailedDescription() 메서드 사용
+            if (descriptionText != null)
+            {
+                if (cardData.IsEffectBasedCard)
+                {
+                    // 새로운 EffectData 시스템 사용
+                    descriptionText.text = cardData.GetDetailedDescription();
+                }
+                else
+                {
+                    // 레거시 시스템 또는 기본 설명
+                    descriptionText.text = !string.IsNullOrEmpty(cardData.Description)
+                        ? cardData.Description
+                        : "효과 정보 없음";
+                }
+            }
+
+            // 카드 이미지 설정
             if (cardImage != null && cardData.CardArt != null)
                 cardImage.sprite = cardData.CardArt;
+
+            // Phase 3.16: 카드 레어리티에 따른 테두리 색상 적용
+            ApplyRarityVisualEffects();
+
+            // Phase 3.16: EffectData 기반 추가 시각적 표현
+            ApplyEffectTypeVisualCues();
+        }
+
+        /// <summary>
+        /// Phase 3.16: 마나 비용에 따른 색상 반환
+        /// </summary>
+        private Color GetManaCostColor(int manaCost)
+        {
+            return manaCost switch
+            {
+                <= 1 => Color.white,
+                <= 3 => Color.yellow,
+                <= 5 => Color.cyan,
+                <= 7 => Color.magenta,
+                _ => Color.red
+            };
+        }
+
+        /// <summary>
+        /// Phase 3.16: 카드 레어리티에 따른 시각적 효과 적용
+        /// </summary>
+        private void ApplyRarityVisualEffects()
+        {
+            if (cardData == null) return;
+
+            // 카드 테두리나 배경색 적용 (카드 이미지 컴포넌트 사용)
+            if (cardImage != null)
+            {
+                var rarityColor = cardData.GetRarityColor();
+
+                // 카드 이미지의 색조 조정 (미묘하게 적용)
+                var imageColor = cardImage.color;
+                imageColor = Color.Lerp(imageColor, rarityColor, 0.2f);
+                cardImage.color = imageColor;
+            }
+
+            // 글로우 효과가 있다면 레어리티 색상으로 조정
+            if (glowEffect != null)
+            {
+                var glowRenderer = glowEffect.GetComponent<Renderer>();
+                if (glowRenderer != null)
+                {
+                    glowRenderer.material.color = cardData.GetRarityColor();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Phase 3.16: 효과 타입에 따른 시각적 단서 적용
+        /// </summary>
+        private void ApplyEffectTypeVisualCues()
+        {
+            if (cardData == null || !cardData.IsEffectBasedCard) return;
+
+            // 주요 효과 타입 가져오기
+            var primaryEffect = cardData.GetPrimaryEffectType();
+            if (primaryEffect == null) return;
+
+            // 카드 이름 텍스트에 효과 타입 아이콘 추가
+            if (cardNameText != null)
+            {
+                string icon = primaryEffect switch
+                {
+                    Game.Card.Effects.EffectType.Damage => "⚔️",
+                    Game.Card.Effects.EffectType.Heal => "💚",
+                    Game.Card.Effects.EffectType.Summon => "🛡️",
+                    _ => ""
+                };
+
+                if (!string.IsNullOrEmpty(icon))
+                {
+                    cardNameText.text = $"{icon} {cardData.CardName}";
+                }
+            }
         }
 
         #endregion
@@ -319,12 +417,107 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// 카드 타입에 따른 드롭 유효성 검사
+        /// Phase 3.16: 카드 드롭 유효성 검사 - 새로운 EffectData 시스템 적용
         /// </summary>
         private bool ValidateCardDrop(CardData cardData, Vector2Int gridPosition)
         {
             if (spawnValidator == null) return false;
 
+            // Phase 3.16: 새로운 EffectData 시스템 우선 사용
+            if (cardData.IsEffectBasedCard)
+            {
+                return ValidateEffectBasedCardDrop(cardData, gridPosition);
+            }
+
+            // 레거시 시스템 폴백
+            return ValidateLegacyCardDrop(cardData, gridPosition);
+        }
+
+        /// <summary>
+        /// Phase 3.16: EffectData 기반 카드 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateEffectBasedCardDrop(CardData cardData, Vector2Int gridPosition)
+        {
+            if (!cardData.IsEffectBasedCard) return false;
+
+            // 각 효과별로 드롭 유효성 검사
+            var effects = cardData.EffectDataList;
+            bool anyEffectValid = false;
+
+            foreach (var effect in effects)
+            {
+                bool effectValid = effect.Type switch
+                {
+                    Game.Card.Effects.EffectType.Summon => ValidateSummonEffect(cardData, effect, gridPosition),
+                    Game.Card.Effects.EffectType.Damage => ValidateDamageEffect(cardData, effect, gridPosition),
+                    Game.Card.Effects.EffectType.Heal => ValidateHealEffect(cardData, effect, gridPosition),
+                    _ => false
+                };
+
+                if (effectValid)
+                {
+                    anyEffectValid = true;
+                    break; // 하나라도 유효하면 드롭 가능
+                }
+            }
+
+            return anyEffectValid;
+        }
+
+        /// <summary>
+        /// Phase 3.16: 소환 효과 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateSummonEffect(CardData cardData, Game.Card.Effects.EffectData effect, Vector2Int gridPosition)
+        {
+            // 유닛 소환 위치 검증
+            return spawnValidator.CanSpawnUnit(cardData, gridPosition);
+        }
+
+        /// <summary>
+        /// Phase 3.16: 데미지 효과 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateDamageEffect(CardData cardData, Game.Card.Effects.EffectData effect, Vector2Int gridPosition)
+        {
+            // 데미지 대상 검증 (적군 대상인지, 범위 내에 적이 있는지 등)
+            if (effect.AffectedType == Game.Card.Effects.AffectedType.Enemy)
+            {
+                // 적군이 있는 위치이거나 범위 내에 적이 있어야 함
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+            else if (effect.AffectedType == Game.Card.Effects.AffectedType.Any)
+            {
+                // 모든 유닛 대상이므로 유닛이 있는 곳이면 OK
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+
+            return true; // 기타 경우는 배치 가능
+        }
+
+        /// <summary>
+        /// Phase 3.16: 회복 효과 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateHealEffect(CardData cardData, Game.Card.Effects.EffectData effect, Vector2Int gridPosition)
+        {
+            // 회복 대상 검증 (아군 대상인지 확인)
+            if (effect.AffectedType == Game.Card.Effects.AffectedType.Ally)
+            {
+                // 아군이 있는 위치이거나 범위 내에 아군이 있어야 함
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+            else if (effect.AffectedType == Game.Card.Effects.AffectedType.Any)
+            {
+                // 모든 유닛 대상이므로 유닛이 있는 곳이면 OK
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+
+            return true; // 기타 경우는 배치 가능
+        }
+
+        /// <summary>
+        /// Phase 3.16: 레거시 시스템 카드 드롭 유효성 검사
+        /// </summary>
+        private bool ValidateLegacyCardDrop(CardData cardData, Vector2Int gridPosition)
+        {
             switch (cardData.Type)
             {
                 case CardData.CardType.Unit:

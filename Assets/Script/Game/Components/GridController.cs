@@ -422,6 +422,233 @@ namespace Game.Components
 
         #endregion
 
+        #region Phase 3.15: TargetRange 거리 계산 메서드들
+
+        /// <summary>
+        /// Phase 3.15: 플레이어 기준점에서 대상 위치까지의 거리 계산
+        /// 플레이어는 가장 왼쪽 유닛을 기준으로 맨하탄 거리 계산
+        /// </summary>
+        /// <param name="targetPosition">목표 위치</param>
+        /// <returns>플레이어 기준점에서의 거리</returns>
+        public int GetDistanceFromPlayerBase(Vector2Int targetPosition)
+        {
+            Vector2Int playerBasePosition = GetPlayerBasePosition();
+            return CalculateManhattanDistance(playerBasePosition, targetPosition);
+        }
+
+        /// <summary>
+        /// Phase 3.15: 적군 기준점에서 대상 위치까지의 거리 계산
+        /// 적군은 가장 오른쪽 유닛을 기준으로 맨하탄 거리 계산
+        /// </summary>
+        /// <param name="targetPosition">목표 위치</param>
+        /// <returns>적군 기준점에서의 거리</returns>
+        public int GetDistanceFromEnemyBase(Vector2Int targetPosition)
+        {
+            Vector2Int enemyBasePosition = GetEnemyBasePosition();
+            return CalculateManhattanDistance(enemyBasePosition, targetPosition);
+        }
+
+        /// <summary>
+        /// Phase 3.15: 플레이어 기준점 위치 반환
+        /// 가장 왼쪽 열에서 플레이어 유닛을 찾아 기준점으로 사용
+        /// </summary>
+        /// <returns>플레이어 기준점 위치</returns>
+        public Vector2Int GetPlayerBasePosition()
+        {
+            if (gridState == null)
+            {
+                Debug.LogWarning("[GridController] GridState가 null입니다. 기본 플레이어 위치 반환");
+                return new Vector2Int(0, GridSize.y / 2);
+            }
+
+            var gridSize = GridSize;
+
+            // 가장 왼쪽 열에서 플레이어 유닛 찾기
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int pos = new Vector2Int(0, y);
+                if (HasPlayerUnit(pos))
+                {
+                    Debug.Log($"[GridController] Player base position found at leftmost unit: {pos}");
+                    return pos;
+                }
+            }
+
+            // 유닛이 없으면 왼쪽 가운데를 기준점으로 사용
+            Vector2Int fallbackPosition = new Vector2Int(0, gridSize.y / 2);
+            Debug.Log($"[GridController] No player unit found, using fallback position: {fallbackPosition}");
+            return fallbackPosition;
+        }
+
+        /// <summary>
+        /// Phase 3.15: 적군 기준점 위치 반환
+        /// 가장 오른쪽 열에서 적군 유닛을 찾아 기준점으로 사용
+        /// </summary>
+        /// <returns>적군 기준점 위치</returns>
+        public Vector2Int GetEnemyBasePosition()
+        {
+            if (gridState == null)
+            {
+                Debug.LogWarning("[GridController] GridState가 null입니다. 기본 적군 위치 반환");
+                return new Vector2Int(GridSize.x - 1, GridSize.y / 2);
+            }
+
+            var gridSize = GridSize;
+            int rightmostColumn = gridSize.x - 1;
+
+            // 가장 오른쪽 열에서 적군 유닛 찾기
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int pos = new Vector2Int(rightmostColumn, y);
+                if (HasEnemyUnit(pos))
+                {
+                    Debug.Log($"[GridController] Enemy base position found at rightmost unit: {pos}");
+                    return pos;
+                }
+            }
+
+            // 유닛이 없으면 오른쪽 가운데를 기준점으로 사용
+            Vector2Int fallbackPosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
+            Debug.Log($"[GridController] No enemy unit found, using fallback position: {fallbackPosition}");
+            return fallbackPosition;
+        }
+
+        /// <summary>
+        /// Phase 3.15: 맨하탄 거리 계산 헬퍼 메서드
+        /// CardData.CalculateManhattanDistance와 동일한 로직
+        /// </summary>
+        /// <param name="from">시작 위치</param>
+        /// <param name="to">목표 위치</param>
+        /// <returns>맨하탄 거리</returns>
+        public static int CalculateManhattanDistance(Vector2Int from, Vector2Int to)
+        {
+            return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+        }
+
+        /// <summary>
+        /// Phase 3.15: CardData의 TargetRange 검증을 위한 통합 메서드
+        /// SpawnValidator에서 사용할 수 있는 공통 검증 로직
+        /// </summary>
+        /// <param name="cardData">검증할 카드 데이터</param>
+        /// <param name="targetPosition">목표 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>TargetRange 검증 결과</returns>
+        public bool ValidateCardTargetRange(CardData cardData, Vector2Int targetPosition, bool isPlayerCard)
+        {
+            if (cardData == null)
+            {
+                Debug.LogError("[GridController] CardData가 null입니다.");
+                return false;
+            }
+
+            // TargetRange가 -1이면 거리 제한 없음
+            if (cardData.TargetRange < 0)
+            {
+                Debug.Log($"[GridController] {cardData.CardName}: TargetRange 제한 없음");
+                return true;
+            }
+
+            int distance;
+            string teamName;
+
+            if (isPlayerCard)
+            {
+                // 플레이어 카드: 플레이어 기준점에서의 거리
+                distance = GetDistanceFromPlayerBase(targetPosition);
+                teamName = "Player";
+            }
+            else
+            {
+                // 적군 카드: 적군 기준점에서의 거리
+                distance = GetDistanceFromEnemyBase(targetPosition);
+                teamName = "Enemy";
+            }
+
+            bool isInRange = distance <= cardData.TargetRange;
+
+            if (isInRange)
+            {
+                Debug.Log($"[GridController] {teamName} {cardData.CardName}: TargetRange 검증 통과 - Distance: {distance}, Max: {cardData.TargetRange}");
+            }
+            else
+            {
+                Debug.Log($"[GridController] {teamName} {cardData.CardName}: TargetRange 범위 초과 - Distance: {distance}, Max: {cardData.TargetRange}");
+            }
+
+            return isInRange;
+        }
+
+        /// <summary>
+        /// Phase 3.15: 플레이어/적군 기준점에서 지정된 거리 내의 모든 유효한 위치 반환
+        /// </summary>
+        /// <param name="maxRange">최대 거리</param>
+        /// <param name="isPlayerBased">플레이어 기준점 사용 여부</param>
+        /// <param name="includeOccupied">점유된 위치 포함 여부</param>
+        /// <returns>거리 내 유효한 위치들</returns>
+        public List<Vector2Int> GetPositionsWithinRange(int maxRange, bool isPlayerBased, bool includeOccupied = true)
+        {
+            var positions = new List<Vector2Int>();
+
+            if (maxRange < 0) return positions; // 잘못된 범위
+
+            Vector2Int basePosition = isPlayerBased ? GetPlayerBasePosition() : GetEnemyBasePosition();
+
+            // 그리드 내 모든 위치 검사
+            var gridSize = GridSize;
+            for (int x = 0; x < gridSize.x; x++)
+            {
+                for (int y = 0; y < gridSize.y; y++)
+                {
+                    Vector2Int pos = new Vector2Int(x, y);
+
+                    // 유효한 위치인지 확인
+                    if (!IsValidPosition(pos)) continue;
+
+                    // 점유 상태 확인
+                    if (!includeOccupied && IsPositionOccupied(pos)) continue;
+
+                    // 거리 확인
+                    int distance = CalculateManhattanDistance(basePosition, pos);
+                    if (distance <= maxRange)
+                    {
+                        positions.Add(pos);
+                    }
+                }
+            }
+
+            string teamName = isPlayerBased ? "Player" : "Enemy";
+            Debug.Log($"[GridController] {teamName} 기준점 {basePosition}에서 거리 {maxRange} 내 위치 {positions.Count}개 발견");
+
+            return positions;
+        }
+
+        /// <summary>
+        /// Phase 3.15: TargetRange 검증 디버깅을 위한 상세 정보 출력
+        /// </summary>
+        /// <param name="cardData">테스트할 카드</param>
+        /// <param name="testPositions">테스트할 위치들</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        public void DebugTargetRangeValidation(CardData cardData, List<Vector2Int> testPositions, bool isPlayerCard)
+        {
+            if (cardData == null || testPositions == null) return;
+
+            string teamName = isPlayerCard ? "Player" : "Enemy";
+            Vector2Int basePosition = isPlayerCard ? GetPlayerBasePosition() : GetEnemyBasePosition();
+
+            Debug.Log($"[GridController] === {teamName} {cardData.CardName} TargetRange 검증 디버깅 ===");
+            Debug.Log($"기준점: {basePosition}, TargetRange: {cardData.TargetRange}");
+
+            foreach (var testPos in testPositions)
+            {
+                int distance = CalculateManhattanDistance(basePosition, testPos);
+                bool isValid = ValidateCardTargetRange(cardData, testPos, isPlayerCard);
+
+                Debug.Log($"  위치 {testPos}: 거리={distance}, 유효={isValid}");
+            }
+        }
+
+        #endregion
+
         // 유닛 이동 로직
         public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition)
         {
