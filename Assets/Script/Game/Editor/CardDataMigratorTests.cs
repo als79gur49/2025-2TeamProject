@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEditor;
 using Game.Data;
 using Game.Card.Effects;
+using System.Linq;
 
 namespace Game.Editor
 {

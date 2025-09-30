@@ -65,7 +65,7 @@ namespace Game.Editor
             EditorGUILayout.LabelField("변환 규칙", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "• Unit 카드 → Summon 효과 (unitToSummon 필드 기반)\n" +
-                "• Spell 카드 → Damage/Heal 효과 (SpellType 필드 기반)\n" +
+                "• Spell 카드 → Damage/Heal 효과 (레거시 효과 필드 기반)\n" +
                 "  - Damage → Damage 효과\n" +
                 "  - Heal → Heal 효과\n" +
                 "  - Summon → Summon 효과\n" +

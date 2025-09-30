@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Game.Data;
+using Game.Card.Effects;
 
 namespace Game.Interfaces
 {
@@ -115,7 +117,7 @@ namespace Game.Interfaces
     }
 
     /// <summary>
-    /// 그리드 공간 쿼리 인터페이스 - 기본 공간 관련 조회
+    /// 그리드 공간 쿼리 인터페이스 - 기본 공간 관련 조회 및 거리 계산
     /// </summary>
     public interface IGridSpatialQuery
     {
@@ -140,10 +142,20 @@ namespace Game.Interfaces
         // 범위 검색
         List<Vector2Int> GetPositionsInRange(Vector2Int center, int range, bool includeOccupied = true);
         List<GameObject> GetUnitsInRange(Vector2Int center, int range);
+
+        // Phase 3.15: 거리 계산 메서드들 (공간 쿼리의 핵심 기능)
+        /// <summary>플레이어 기준점에서 대상 위치까지의 맨하탄 거리</summary>
+        int GetDistanceFromPlayerBase(Vector2Int targetPosition);
+
+        /// <summary>적군 기준점에서 대상 위치까지의 맨하탄 거리</summary>
+        int GetDistanceFromEnemyBase(Vector2Int targetPosition);
+
+        /// <summary>지정된 거리 내의 모든 유효한 위치 반환</summary>
+        List<Vector2Int> GetPositionsWithinRange(int maxRange, bool isPlayerBased, bool includeOccupied = true);
     }
 
     /// <summary>
-    /// 그리드 팀 쿼리 인터페이스 - 팀 기반 유닛 조회
+    /// 그리드 팀 쿼리 인터페이스 - 팀 기반 유닛 조회 및 기준점 위치
     /// </summary>
     public interface IGridTeamQuery
     {
@@ -158,13 +170,60 @@ namespace Game.Interfaces
 
         // 팀 정보 조회
         TeamType GetUnitTeam(Vector2Int position);
+
+        // Phase 3.15: 팀 기준점 위치 조회 (팀 쿼리의 핵심 기능)
+        /// <summary>플레이어 팀의 기준점 위치 반환 (가장 왼쪽 유닛)</summary>
+        Vector2Int GetPlayerBasePosition();
+
+        /// <summary>적군 팀의 기준점 위치 반환 (가장 오른쪽 유닛)</summary>
+        Vector2Int GetEnemyBasePosition();
+    }
+
+    /// <summary>
+    /// 그리드 카드 효과 쿼리 인터페이스 - 카드 효과 시스템 전용 쿼리
+    /// Phase 2.12 & 3.15: 카드 효과 대상 결정 및 범위 검증 로직
+    /// </summary>
+    public interface IGridEffectQuery
+    {
+        // Phase 2.12: 카드 효과 대상 해결
+        /// <summary>
+        /// AffectedType과 AffectedRange를 기반으로 영향받을 유닛 리스트를 반환
+        /// </summary>
+        /// <param name="targetPosition">효과의 중심 위치</param>
+        /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
+        /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
+        /// <param name="originPlayerId">효과를 발동시킨 플레이어 ID (팀 구분용)</param>
+        /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
+        List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1);
+
+        // Phase 3.15: 카드 타겟 범위 검증
+        /// <summary>
+        /// 카드의 TargetRange를 검증하여 대상 위치가 카드 사용 가능 범위 내인지 확인
+        /// </summary>
+        /// <param name="cardData">검증할 카드 데이터</param>
+        /// <param name="targetPosition">목표 위치</param>
+        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <returns>TargetRange 검증 결과</returns>
+        bool ValidateCardTargetRange(CardData cardData, Vector2Int targetPosition, bool isPlayerCard);
+
+        // 디버깅 유틸리티
+        /// <summary>
+        /// GetAffectedUnits의 결과를 디버그 로그로 출력
+        /// </summary>
+        void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1);
+
+        /// <summary>
+        /// TargetRange 검증 디버깅을 위한 상세 정보 출력
+        /// </summary>
+        void DebugTargetRangeValidation(CardData cardData, List<Vector2Int> testPositions, bool isPlayerCard);
     }
 
     /// <summary>
     /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
     /// IGridManager 상속 제거로 책임 분리, ISP 적용으로 인터페이스 분리
+    /// Phase 3.16: IGridEffectQuery 추가로 카드 효과 로직 분리
     /// </summary>
-    public interface IGridController : IGridSpatialQuery, IGridTeamQuery
+    public interface IGridController : IGridSpatialQuery, IGridTeamQuery, IGridEffectQuery
     {
         // 의존성 초기화
         void Initialize(IGridState gridState);

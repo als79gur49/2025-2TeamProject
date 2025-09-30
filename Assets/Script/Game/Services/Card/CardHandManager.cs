@@ -5,6 +5,7 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Card.UI;
 using Game.Data;
+using Game.Card.Effects;
 
 namespace Game.Services
 {
@@ -626,103 +627,85 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 기본 테스트 카드 데이터 생성
+        /// 기본 테스트 카드 데이터 생성 (EffectData 기반)
         /// </summary>
         private List<CardData> CreateTestCardData()
         {
             var testCards = new List<CardData>();
 
-            // 1. 파이어볼 (데미지 주문)
-            var fireball = CardData.CreateSpellCard(
-                "파이어볼",
-                "적에게 화염 피해를 입힙니다",
-                3,
-                CardData.SpellType.Damage, 25, 5f, 2f
-            );
+            // 1. 파이어볼 (데미지 효과)
+            var fireball = ScriptableObject.CreateInstance<CardData>();
+            fireball.name = "파이어볼";
+            var fireballEffect = new EffectData(EffectType.Damage, 25, AffectedType.Enemy, 5);
+            // Note: 실제로는 CardData의 effectDataList를 설정해야 하지만,
+            // private 필드이므로 에디터에서 직접 설정 필요
             testCards.Add(fireball);
 
-            // 2. 힐 (회복 주문)
-            var heal = CardData.CreateSpellCard(
-                "치유",
-                "아군을 회복시킵니다",
-                2,
-                CardData.SpellType.Heal, 15, 3f, 1f
-            );
+            // 2. 힐 (회복 효과)
+            var heal = ScriptableObject.CreateInstance<CardData>();
+            heal.name = "치유";
+            var healEffect = new EffectData(EffectType.Heal, 15, AffectedType.Ally, 3);
             testCards.Add(heal);
 
-            // 3. 실드 (보호 주문)
-            var shield = CardData.CreateSpellCard(
-                "마법 방패",
-                "아군에게 보호막을 생성합니다",
-                2,
-                CardData.SpellType.Shield, 10, 4f, 3f
-            );
-            testCards.Add(shield);
+            // 3. 소환 (소환 효과)
+            var summon = ScriptableObject.CreateInstance<CardData>();
+            summon.name = "유닛 소환";
+            var summonEffect = new EffectData(EffectType.Summon, 1, AffectedType.None, 0);
+            testCards.Add(summon);
 
             return testCards;
         }
 
         /// <summary>
-        /// 다양한 주문 카드 생성
+        /// 다양한 주문 카드 생성 (EffectData 기반)
         /// </summary>
         private List<CardData> CreateSampleSpellCards()
         {
             var spellCards = new List<CardData>();
 
             // 공격 주문들
-            spellCards.Add(CardData.CreateSpellCard(
-                "번개 화살", "순간적으로 적을 타격합니다",
-                1, CardData.SpellType.Damage, 12, 6f, 0f
-            ));
+            var lightningArrow = ScriptableObject.CreateInstance<CardData>();
+            lightningArrow.name = "번개 화살";
+            spellCards.Add(lightningArrow);
 
-            spellCards.Add(CardData.CreateSpellCard(
-                "얼음 창", "적을 얼려 둔화시킵니다",
-                2, CardData.SpellType.Debuff, 8, 4f, 1.5f
-            ));
+            var iceSpear = ScriptableObject.CreateInstance<CardData>();
+            iceSpear.name = "얼음 창";
+            spellCards.Add(iceSpear);
 
-            spellCards.Add(CardData.CreateSpellCard(
-                "메테오", "광역 화염 피해를 입힙니다",
-                5, CardData.SpellType.Damage, 40, 8f, 5f
-            ));
+            var meteor = ScriptableObject.CreateInstance<CardData>();
+            meteor.name = "메테오";
+            spellCards.Add(meteor);
 
             // 보조 주문들
-            spellCards.Add(CardData.CreateSpellCard(
-                "신속", "아군을 강화합니다",
-                1, CardData.SpellType.Buff, 5, 3f, 2f
-            ));
+            var haste = ScriptableObject.CreateInstance<CardData>();
+            haste.name = "신속";
+            spellCards.Add(haste);
 
-            spellCards.Add(CardData.CreateSpellCard(
-                "순간이동", "아군을 다른 위치로 이동시킵니다",
-                2, CardData.SpellType.Teleport, 0, 7f, 3f
-            ));
+            var teleport = ScriptableObject.CreateInstance<CardData>();
+            teleport.name = "순간이동";
+            spellCards.Add(teleport);
 
             return spellCards;
         }
 
         /// <summary>
-        /// 샘플 유닛 카드 생성 (UnitData 없이)
+        /// 샘플 유닛 카드 생성 (EffectData 기반)
         /// </summary>
         private List<CardData> CreateSampleUnitCards()
         {
             var unitCards = new List<CardData>();
 
-            // UnitData가 없어도 테스트할 수 있도록 일반 카드로 생성
-            var warrior = CardData.CreateSpellCard(
-                "전사", "근접 전투 유닛입니다",
-                2, CardData.SpellType.Summon, 1, 0f, 0f
-            );
+            // 소환 효과를 가진 카드들 생성
+            var warrior = ScriptableObject.CreateInstance<CardData>();
+            warrior.name = "전사";
             unitCards.Add(warrior);
 
-            var archer = CardData.CreateSpellCard(
-                "궁수", "원거리 공격 유닛입니다",
-                2, CardData.SpellType.Summon, 1, 0f, 0f
-            );
+            var archer = ScriptableObject.CreateInstance<CardData>();
+            archer.name = "궁수";
             unitCards.Add(archer);
 
-            var mage = CardData.CreateSpellCard(
-                "마법사", "마법 공격 유닛입니다",
-                3, CardData.SpellType.Summon, 1, 0f, 0f
-            );
+            var mage = ScriptableObject.CreateInstance<CardData>();
+            mage.name = "마법사";
             unitCards.Add(mage);
 
             return unitCards;

@@ -5,6 +5,7 @@ using UnityEngine;
 using Game.Interfaces;
 using Game.Core;
 using Game.Card.Effects;
+using Game.Data;
 using UnityEngine.UIElements;
 
 namespace Game.Components
