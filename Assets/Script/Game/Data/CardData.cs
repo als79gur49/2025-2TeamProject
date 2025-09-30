@@ -69,10 +69,9 @@ namespace Game.Data
         [SerializeField] private int affectedRange = 0; // 0: 단일 대상, 1+: 범위 효과
 
         [Header("효과")]
-        [SerializeField] private List<CardEffect> effects = new List<CardEffect>();
         [SerializeField] private List<string> keywords = new List<string>();
 
-        [Header("새로운 효과 시스템 (Phase 2.4)")]
+        [Header("효과 시스템 (Phase 2.4)")]
         [SerializeField] private List<EffectData> effectDataList = new List<EffectData>();
 
         [Header("제약사항")]
@@ -81,37 +80,6 @@ namespace Game.Data
         [SerializeField] private List<string> requiredTags = new List<string>();
 
 
-
-        // ✅ 카드 효과 정의
-        [System.Serializable]
-        public class CardEffect
-        {
-            [SerializeField] private string effectType = "Damage";
-            [SerializeField] private int value = 1;
-            [SerializeField] private string targetFilter = "";
-            [SerializeField] private bool isInstant = true;
-            [SerializeField] private float duration = 0f;
-
-            public string EffectType => effectType;
-            public int Value => value;
-            public string TargetFilter => targetFilter;
-            public bool IsInstant => isInstant;
-            public float Duration => duration;
-
-            public CardEffect(string type, int val, string filter = "", bool instant = true, float dur = 0f)
-            {
-                effectType = type;
-                value = val;
-                targetFilter = filter;
-                isInstant = instant;
-                duration = dur;
-            }
-
-            public override string ToString()
-            {
-                return $"{effectType}: {value} {(IsInstant ? "(즉시)" : $"({duration}s)")}";
-            }
-        }
 
         // ✅ 읽기 전용 속성으로 안전한 외부 접근
         public string CardName => cardName;
@@ -128,7 +96,6 @@ namespace Game.Data
         public int AffectedRange => affectedRange;
         public int MaxCopiesInDeck => maxCopiesInDeck;
         public bool IsPlayableFromHand => isPlayableFromHand;
-        public IReadOnlyList<CardEffect> Effects => effects.AsReadOnly();
         public IReadOnlyList<string> Keywords => keywords.AsReadOnly();
         public IReadOnlyList<string> RequiredTags => requiredTags.AsReadOnly();
 
@@ -233,21 +200,6 @@ namespace Game.Data
             return true;
         }
 
-        // ✅ 효과 관련 메서드
-        public List<CardEffect> GetEffectsOfType(string effectType)
-        {
-            return effects.Where(e => e.EffectType.Equals(effectType, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-
-        public int GetTotalEffectValue(string effectType)
-        {
-            return GetEffectsOfType(effectType).Sum(e => e.Value);
-        }
-
-        public bool HasEffect(string effectType)
-        {
-            return effects.Any(e => e.EffectType.Equals(effectType, StringComparison.OrdinalIgnoreCase));
-        }
 
         // ✅ 새로운 EffectData 시스템 메서드들 (Phase 2.4)
 
@@ -693,21 +645,11 @@ namespace Game.Data
                 desc += $"{description}\n\n";
             }
 
-            // Phase 3.16: 새로운 EffectData 시스템 우선 표시 (레거시 시스템보다 우선)
+            // Phase 3.16: EffectData 시스템 표시
             if (IsEffectBasedCard)
             {
                 desc += "<b>효과:</b>\n";
                 desc += GenerateEffectDataDescriptions();
-                desc += "\n";
-            }
-            // 레거시 효과 시스템 (호환성용)
-            else if (effects.Count > 0)
-            {
-                desc += "<b>레거시 효과:</b>\n";
-                foreach (var effect in effects)
-                {
-                    desc += $"• {effect}\n";
-                }
                 desc += "\n";
             }
 
@@ -998,18 +940,6 @@ namespace Game.Data
         }
         #endif
 
-        // ✅ 런타임 생성용 팩토리 메서드
-        public static CardData CreateSpellCard(string name, string desc, int manaCost, params CardEffect[] effects)
-        {
-            var card = CreateInstance<CardData>();
-            card.cardName = name;
-            card.description = desc;
-            card.cardType = CardType.Spell;
-            card.manaCost = manaCost;
-            card.effects = effects?.ToList() ?? new List<CardEffect>();
-            
-            return card;
-        }
 
 
         public static CardData CreateUnitCard(string name, int manaCost, UnitData unitData = null)
