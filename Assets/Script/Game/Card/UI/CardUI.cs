@@ -514,21 +514,28 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// Phase 3.16: 레거시 시스템 카드 드롭 유효성 검사
+        /// Phase 3.16: 레거시 시스템 카드 드롭 유효성 검사 (폴백)
         /// </summary>
         private bool ValidateLegacyCardDrop(CardData cardData, Vector2Int gridPosition)
         {
-            switch (cardData.Type)
+            // 효과가 없는 카드는 배치 불가
+            if (!cardData.IsEffectBasedCard)
             {
-                case CardData.CardType.Unit:
-                    return spawnValidator.CanSpawnUnit(cardData, gridPosition);
-
-                case CardData.CardType.Spell:
-                    return spawnValidator.CanUseSpell(cardData, gridPosition);
-
-                default:
-                    return false;
+                return false;
             }
+
+            // 효과 타입에 따라 기본적인 검증 수행
+            if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            {
+                return spawnValidator.CanSpawnUnit(cardData, gridPosition);
+            }
+            else if (cardData.HasEffectType(Game.Card.Effects.EffectType.Damage) ||
+                     cardData.HasEffectType(Game.Card.Effects.EffectType.Heal))
+            {
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+
+            return false;
         }
 
         #endregion

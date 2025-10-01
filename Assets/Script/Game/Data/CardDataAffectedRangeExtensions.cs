@@ -18,7 +18,7 @@ namespace Game.Data
         {
             if (!card.IsEffectBasedCard)
             {
-                return card.AffectedRange; // 레거시 시스템 사용
+                return 0; // 효과가 없으면 0
             }
 
             return card.EffectDataList.Max(e => e.AffectedRange);
@@ -33,8 +33,7 @@ namespace Game.Data
 
             if (!card.IsEffectBasedCard)
             {
-                // 레거시 시스템: areaOfEffect 사용
-                AddPositionsInRange(allPositions, targetPosition, card.AreaOfEffect);
+                // 효과가 없으면 빈 집합 반환
                 return allPositions;
             }
 
@@ -56,8 +55,7 @@ namespace Game.Data
 
             if (!card.IsEffectBasedCard)
             {
-                // 레거시 시스템은 효과 타입 구분이 없으므로 모든 위치 반환
-                AddPositionsInRange(positions, targetPosition, card.AreaOfEffect);
+                // 효과가 없으면 빈 리스트 반환
                 return positions;
             }
 
@@ -87,8 +85,8 @@ namespace Game.Data
         {
             if (!card.IsEffectBasedCard)
             {
-                // 레거시 시스템 사용
-                return IsWithinRange(targetPosition, checkPosition, card.AreaOfEffect);
+                // 효과가 없으면 false
+                return false;
             }
 
             var effectsOfType = card.GetEffectsByType(effectType);
@@ -102,7 +100,7 @@ namespace Game.Data
         {
             if (!card.IsEffectBasedCard)
             {
-                return IsWithinRange(targetPosition, checkPosition, card.AreaOfEffect);
+                return false; // 효과가 없으면 false
             }
 
             return card.EffectDataList.Any(effect => IsWithinRange(targetPosition, checkPosition, effect.AffectedRange));
@@ -115,16 +113,8 @@ namespace Game.Data
         {
             if (!card.IsEffectBasedCard)
             {
-                // 레거시 시스템은 TargetType 기반으로 판단
-                return card.Target switch
-                {
-                    CardData.TargetType.None => false,
-                    CardData.TargetType.Ally => casterPlayerId == targetPlayerId,
-                    CardData.TargetType.Enemy => casterPlayerId != targetPlayerId,
-                    CardData.TargetType.Any => true,
-                    CardData.TargetType.Ground => true,
-                    _ => false
-                };
+                // 효과가 없으면 false
+                return false;
             }
 
             var relevantEffects = effectType.HasValue
@@ -141,7 +131,7 @@ namespace Game.Data
         {
             if (!card.IsEffectBasedCard)
             {
-                return card.AreaOfEffect >= 0; // 레거시 시스템 검증
+                return false; // 효과가 없으면 유효하지 않음
             }
 
             // 모든 EffectData의 AffectedRange가 유효한지 확인

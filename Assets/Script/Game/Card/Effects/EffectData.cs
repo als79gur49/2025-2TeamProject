@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Game.Data;
+using UnityEditor.PackageManager.Requests;
 
 namespace Game.Card.Effects
 {
@@ -32,8 +33,14 @@ namespace Game.Card.Effects
         [SerializeField] private GameObject effectPrefab;
         [SerializeField] private string effectAnimation = "";
 
+        [Header("초기화 상태 (Unity Serialization 대응)")]
+        [SerializeField] private bool initialized = false;
+
         /// <summary>효과 타입</summary>
         public EffectType Type => type;
+
+        /// <summary>초기화 완료 여부</summary>
+        public bool Initialized => initialized;
 
         /// <summary>효과 값 (데미지량, 회복량, 소환 개수 등)</summary>
         public int Value => value;
@@ -63,7 +70,48 @@ namespace Game.Card.Effects
         public string EffectAnimation => effectAnimation;
 
         /// <summary>
-        /// 효과 데이터 생성자
+        /// 기본 생성자 (Unity 직렬화용)
+        /// Unity Inspector에서 + 버튼 또는 Size 변경 시 이 생성자를 사용합니다.
+        /// 필드의 기본값이 자동으로 적용됩니다.
+        /// </summary>
+        public EffectData()
+        {
+            // 필드 초기화는 SerializeField의 기본값으로 자동 처리됨
+            // type = EffectType.Damage (기본값)
+            // value = 1 (기본값)
+            // affectedType = AffectedType.Enemy (기본값)
+            // affectedRange = 0 (기본값)
+            type = EffectType.Damage;
+            value = 1;
+            affectedType = AffectedType.Enemy;
+            affectedRange = 0;
+        }
+        public void Reset()
+        {
+            value = 1; // 원하는 초기값 설정
+        }
+
+        /// <summary>
+        /// Unity Inspector에서 추가된 인스턴스를 초기화합니다.
+        /// OnValidate()에서 호출되어 기본값을 설정합니다.
+        /// </summary>
+        public void Initialize()
+        {
+            if (!initialized)
+            {
+                type = EffectType.Damage;
+                value = 1;
+                affectedType = AffectedType.Enemy;
+                affectedRange = 0;
+                priority = 0;
+                ignoreArmor = false;
+                duration = 0f;
+                initialized = true;
+            }
+        }
+
+        /// <summary>
+        /// 효과 데이터 생성자 (코드에서 사용)
         /// </summary>
         public EffectData(EffectType effectType, int effectValue, AffectedType targetType = AffectedType.Enemy, int range = 0)
         {
@@ -71,6 +119,7 @@ namespace Game.Card.Effects
             value = effectValue;
             affectedType = targetType;
             affectedRange = range;
+            initialized = true; // 코드로 생성된 인스턴스는 초기화 완료 표시
         }
 
         /// <summary>

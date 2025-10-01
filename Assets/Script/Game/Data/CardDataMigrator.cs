@@ -219,7 +219,7 @@ namespace Game.Data
 
             try
             {
-                Debug.Log($"CardDataMigrator: 카드 마이그레이션 시작 - {cardData.CardName} ({cardData.Type})");
+                Debug.Log($"CardDataMigrator: 카드 마이그레이션 시작 - {cardData.CardName}");
 
                 // 1. 이미 마이그레이션된 카드인지 확인
                 if (cardData.IsEffectBasedCard)
@@ -228,27 +228,14 @@ namespace Game.Data
                     return (true, true, "", "이미 새로운 EffectData 시스템을 사용 중입니다.");
                 }
 
-                // 2. 카드 타입별 마이그레이션
+                // 2. 효과 타입 추론 및 마이그레이션
                 var newEffects = new List<EffectData>();
                 string warningMessage = "";
 
-                switch (cardData.Type)
-                {
-                    case CardData.CardType.Unit:
-                        var unitResult = MigrateUnitCard(cardData);
-                        newEffects = unitResult.effects;
-                        warningMessage = unitResult.warning;
-                        break;
-
-                    case CardData.CardType.Spell:
-                        var spellResult = MigrateSpellCard(cardData);
-                        newEffects = spellResult.effects;
-                        warningMessage = spellResult.warning;
-                        break;
-
-                    default:
-                        return (false, false, $"지원되지 않는 카드 타입: {cardData.Type}", "");
-                }
+                // 레거시 필드에서 효과 타입 추론
+                var inferredResult = InferEffectsFromLegacyData(cardData);
+                newEffects = inferredResult.effects;
+                warningMessage = inferredResult.warning;
 
                 if (newEffects.Count == 0)
                 {
@@ -276,15 +263,48 @@ namespace Game.Data
         }
 
         /// <summary>
-        /// 유닛 카드를 Summon 효과로 마이그레이션
+        /// 레거시 데이터에서 효과 타입 추론
         /// </summary>
-        private static (List<EffectData> effects, string warning) MigrateUnitCard(CardData cardData)
+        private static (List<EffectData> effects, string warning) InferEffectsFromLegacyData(CardData cardData)
         {
             var effects = new List<EffectData>();
             string warning = "";
 
-            // 레거시 unitToSummon 필드 값을 reflection으로 읽기 시도
+            // 레거시 unitToSummon 필드가 있는지 확인 (유닛 카드)
             var unitToSummon = GetLegacyFieldValue<UnitData>(cardData, "unitToSummon");
+            if (unitToSummon != null)
+            {
+                var unitResult = MigrateAsUnitCard(cardData, unitToSummon);
+                effects.AddRange(unitResult.effects);
+                warning = unitResult.warning;
+                return (effects, warning);
+            }
+
+            // 레거시 spellType 필드가 있는지 확인 (주문 카드)
+            var spellType = GetLegacyFieldValue<int>(cardData, "spellType", -1);
+            if (spellType >= 0)
+            {
+                var spellResult = MigrateAsSpellCard(cardData, spellType);
+                effects.AddRange(spellResult.effects);
+                warning = spellResult.warning;
+                return (effects, warning);
+            }
+
+            // 추론 실패 - 기본 데미지 효과로 생성
+            warning = "카드 타입을 추론할 수 없습니다. 기본 데미지 효과로 생성됩니다.";
+            effects.Add(new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0));
+            Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
+
+            return (effects, warning);
+        }
+
+        /// <summary>
+        /// 유닛 카드로 마이그레이션
+        /// </summary>
+        private static (List<EffectData> effects, string warning) MigrateAsUnitCard(CardData cardData, UnitData unitToSummon)
+        {
+            var effects = new List<EffectData>();
+            string warning = "";
 
             if (unitToSummon != null)
             {
@@ -310,15 +330,14 @@ namespace Game.Data
         }
 
         /// <summary>
-        /// 주문 카드를 Damage/Heal 효과로 마이그레이션
+        /// 주문 카드로 마이그레이션
         /// </summary>
-        private static (List<EffectData> effects, string warning) MigrateSpellCard(CardData cardData)
+        private static (List<EffectData> effects, string warning) MigrateAsSpellCard(CardData cardData, int spellType)
         {
             var effects = new List<EffectData>();
             string warning = "";
 
-            // 레거시 spellType과 spellEffectValue 필드 읽기
-            var spellType = GetLegacyFieldValue<int>(cardData, "spellType", -1);
+            // 레거시 필드 읽기
             var spellEffectValue = GetLegacyFieldValue<int>(cardData, "spellEffectValue", 1);
             var spellRange = GetLegacyFieldValue<int>(cardData, "spellRange", 0);
 
@@ -326,57 +345,46 @@ namespace Game.Data
             var legacyTargetType = (LegacyTargetType)GetLegacyFieldValue<int>(cardData, "targetType", 3); // 기본값: Enemy
             var affectedType = ConvertLegacyTargetTypeToAffectedType(legacyTargetType);
 
-            if (spellType >= 0)
+            var legacySpellType = (LegacySpellType)spellType;
+
+            switch (legacySpellType)
             {
-                var legacySpellType = (LegacySpellType)spellType;
+                case LegacySpellType.Damage:
+                    var damageEffect = new EffectData(EffectType.Damage, spellEffectValue, affectedType, spellRange);
+                    effects.Add(damageEffect);
+                    Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → {spellEffectValue} 데미지");
+                    break;
 
-                switch (legacySpellType)
-                {
-                    case LegacySpellType.Damage:
-                        var damageEffect = new EffectData(EffectType.Damage, spellEffectValue, affectedType, spellRange);
-                        effects.Add(damageEffect);
-                        Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → {spellEffectValue} 데미지");
-                        break;
+                case LegacySpellType.Heal:
+                    var healEffect = new EffectData(EffectType.Heal, spellEffectValue, affectedType, spellRange);
+                    effects.Add(healEffect);
+                    Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → {spellEffectValue} 회복");
+                    break;
 
-                    case LegacySpellType.Heal:
-                        var healEffect = new EffectData(EffectType.Heal, spellEffectValue, affectedType, spellRange);
-                        effects.Add(healEffect);
-                        Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → {spellEffectValue} 회복");
-                        break;
+                case LegacySpellType.Summon:
+                    // 주문 타입의 소환 효과를 Summon으로 변환
+                    var summonEffect = new EffectData(EffectType.Summon, spellEffectValue, AffectedType.None, 0);
+                    effects.Add(summonEffect);
+                    Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → 소환 효과");
+                    break;
 
-                    case LegacySpellType.Summon:
-                        // 주문 타입의 소환 효과를 Summon으로 변환
-                        var summonEffect = new EffectData(EffectType.Summon, spellEffectValue, AffectedType.None, 0);
-                        effects.Add(summonEffect);
-                        Debug.Log($"CardDataMigrator: 주문 카드 변환 - {cardData.CardName} → 소환 효과");
-                        break;
+                case LegacySpellType.Buff:
+                case LegacySpellType.Debuff:
+                case LegacySpellType.Shield:
+                case LegacySpellType.Teleport:
+                    // 현재 새로운 시스템에서 지원하지 않는 효과들
+                    warning = $"지원되지 않는 주문 타입입니다 ({legacySpellType}). Damage 효과로 대체됩니다.";
+                    var fallbackEffect = new EffectData(EffectType.Damage, spellEffectValue, affectedType, spellRange);
+                    effects.Add(fallbackEffect);
+                    Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
+                    break;
 
-                    case LegacySpellType.Buff:
-                    case LegacySpellType.Debuff:
-                    case LegacySpellType.Shield:
-                    case LegacySpellType.Teleport:
-                        // 현재 새로운 시스템에서 지원하지 않는 효과들
-                        warning = $"지원되지 않는 주문 타입입니다 ({legacySpellType}). Damage 효과로 대체됩니다.";
-                        var fallbackEffect = new EffectData(EffectType.Damage, spellEffectValue, affectedType, spellRange);
-                        effects.Add(fallbackEffect);
-                        Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
-                        break;
-
-                    default:
-                        warning = $"알 수 없는 주문 타입입니다 ({spellType}). 기본 데미지 효과로 생성됩니다.";
-                        var defaultEffect = new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0);
-                        effects.Add(defaultEffect);
-                        Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
-                        break;
-                }
-            }
-            else
-            {
-                // spellType이 설정되지 않은 경우 기본 효과 생성
-                warning = "spellType이 설정되지 않았습니다. 기본 데미지 효과로 생성됩니다.";
-                var defaultEffect = new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0);
-                effects.Add(defaultEffect);
-                Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
+                default:
+                    warning = $"알 수 없는 주문 타입입니다 ({spellType}). 기본 데미지 효과로 생성됩니다.";
+                    var defaultEffect = new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0);
+                    effects.Add(defaultEffect);
+                    Debug.LogWarning($"CardDataMigrator: {cardData.CardName} - {warning}");
+                    break;
             }
 
             return (effects, warning);
@@ -575,18 +583,29 @@ namespace Game.Data
             {
                 Debug.LogWarning($"CardDataMigrator: 런타임 마이그레이션은 제한적입니다 - {cardData.CardName}");
 
-                // 런타임에서는 기본적인 변환만 수행
+                // 런타임에서는 레거시 필드 추론 시도
                 var newEffects = new List<EffectData>();
 
-                if (cardData.Type == CardData.CardType.Unit)
+                // unitToSummon 필드 확인
+                var unitToSummon = GetLegacyFieldValue<UnitData>(cardData, "unitToSummon");
+                if (unitToSummon != null)
                 {
-                    // 기본 소환 효과 생성
                     newEffects.Add(new EffectData(EffectType.Summon, 1, AffectedType.None, 0));
                 }
-                else if (cardData.Type == CardData.CardType.Spell)
+                else
                 {
-                    // 기본 데미지 효과 생성 (spellType을 읽을 수 없으므로)
-                    newEffects.Add(new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0));
+                    // spellType 필드 확인
+                    var spellType = GetLegacyFieldValue<int>(cardData, "spellType", -1);
+                    if (spellType >= 0)
+                    {
+                        // 기본 효과 생성 (상세 변환은 에디터에서만 가능)
+                        newEffects.Add(new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0));
+                    }
+                    else
+                    {
+                        // 추론 실패 - 기본 데미지 효과
+                        newEffects.Add(new EffectData(EffectType.Damage, 1, AffectedType.Enemy, 0));
+                    }
                 }
 
                 if (newEffects.Count > 0)
@@ -617,7 +636,6 @@ namespace Game.Data
             }
 
             Debug.Log($"=== {cardData.CardName} 마이그레이션 상태 ===");
-            Debug.Log($"카드 타입: {cardData.Type}");
             Debug.Log($"새로운 시스템 사용: {cardData.IsEffectBasedCard}");
             Debug.Log($"EffectData 개수: {cardData.EffectDataList.Count}");
 

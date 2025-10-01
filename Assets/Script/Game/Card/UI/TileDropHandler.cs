@@ -177,27 +177,36 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// 카드 드롭 처리 (CardUI에서 직접 호출) - Unit과 Spell 카드 모두 지원
+        /// 카드 드롭 처리 (CardUI에서 직접 호출) - EffectData 기반 처리
         /// </summary>
         public bool HandleCardDrop(CardData cardData, CardUI cardUI)
         {
             if (!isInteractable || cardData == null) return false;
 
-            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} ({cardData.Type}) at position {gridPosition}");
+            Debug.Log($"[TileDropHandler] Attempting to drop {cardData.CardName} at position {gridPosition}");
 
-            // 카드 타입에 따른 처리 분기
-            switch (cardData.Type)
+            if (!cardData.IsEffectBasedCard)
             {
-                case CardData.CardType.Unit:
-                    return HandleUnitCardDrop(cardData, cardUI);
+                Debug.LogWarning($"[TileDropHandler] Card {cardData.CardName} has no effects");
+                PlayDropFailedFeedback();
+                return false;
+            }
 
-                case CardData.CardType.Spell:
-                    return HandleSpellCardDrop(cardData, cardUI);
-
-                default:
-                    Debug.LogWarning($"[TileDropHandler] Unsupported card type: {cardData.Type}");
-                    PlayDropFailedFeedback();
-                    return false;
+            // 효과 타입에 따른 처리 분기
+            if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            {
+                return HandleUnitCardDrop(cardData, cardUI);
+            }
+            else if (cardData.HasEffectType(Game.Card.Effects.EffectType.Damage) ||
+                     cardData.HasEffectType(Game.Card.Effects.EffectType.Heal))
+            {
+                return HandleSpellCardDrop(cardData, cardUI);
+            }
+            else
+            {
+                Debug.LogWarning($"[TileDropHandler] Unsupported effect types in card {cardData.CardName}");
+                PlayDropFailedFeedback();
+                return false;
             }
         }
 
@@ -321,23 +330,29 @@ namespace Game.Card.UI
         #region 카드 드롭 유효성 검사
 
         /// <summary>
-        /// 카드 드롭 유효성 검사 (카드 타입에 따른 분기 처리)
+        /// 카드 드롭 유효성 검사 (효과 타입에 따른 분기 처리)
         /// </summary>
         private bool ValidateCardDrop(CardData cardData)
         {
             if (spawnValidator == null) return false;
 
-            switch (cardData.Type)
+            if (!cardData.IsEffectBasedCard)
             {
-                case CardData.CardType.Unit:
-                    return spawnValidator.CanSpawnUnit(cardData, gridPosition);
-
-                case CardData.CardType.Spell:
-                    return spawnValidator.CanUseSpell(cardData, gridPosition);
-
-                default:
-                    return false;
+                return false;
             }
+
+            // 효과 타입에 따른 검증
+            if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            {
+                return spawnValidator.CanSpawnUnit(cardData, gridPosition);
+            }
+            else if (cardData.HasEffectType(Game.Card.Effects.EffectType.Damage) ||
+                     cardData.HasEffectType(Game.Card.Effects.EffectType.Heal))
+            {
+                return spawnValidator.CanUseSpell(cardData, gridPosition);
+            }
+
+            return false;
         }
 
         #endregion

@@ -130,6 +130,11 @@ namespace Game.Services
             bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources && isValidTarget;
 
             Log($"{(canSpawn ? "✅" : "❌")} Spawn validation result: {canSpawn}");
+            if(canSpawn == false)
+            {
+                LogError($"isValidPhase{isValidPhase}, isValidPosition{isValidPosition}, hasEnoughResources{hasEnoughResources}, isValidTarget{isValidTarget}");
+            }
+
             return canSpawn;
         }
 
@@ -155,12 +160,6 @@ namespace Game.Services
 
             Log($"🔮 Validating spell use: {cardData.CardName} at {targetPosition}");
 
-            // 1. 주문 카드인지 확인
-            if (!cardData.IsSpellCard)
-            {
-                LogError($"Card {cardData.CardName} is not a spell card");
-                return false;
-            }
 
             // 2. 현재 플레이어의 턴인지 검증
             if (turnService != null && !turnService.IsPlayerTurn)

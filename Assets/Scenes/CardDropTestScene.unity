@@ -546,7 +546,8 @@ MonoBehaviour:
   cardSpacing: 120
   arrangeCardsInArc: 1
   arcRadius: 800
-  availableCards: []
+  availableCards:
+  - {fileID: 11400000, guid: 339b900f0d3c681458612928e5566c46, type: 2}
   enablePlayerInteraction: 1
   showHandDebugInfo: 1
   testCardData: {fileID: 0}

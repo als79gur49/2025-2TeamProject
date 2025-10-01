@@ -72,7 +72,7 @@ public class Unit : MonoBehaviour
     /// Unit을 ServiceLocator와 연결하고 초기화 수행
     /// 외부에서 호출하여 초기화 타이밍 제어 가능
     /// </summary>
-    public void Init(IGridManager igridManager, IGameServiceManager igameServiceManager)
+    public void Init(UnitData unitData, Vector2Int position, bool isPlayerUnit)
     {
         if (isInitialized)
         {
@@ -80,12 +80,57 @@ public class Unit : MonoBehaviour
             return;
         }
 
-        InitializeGridManager(igridManager);
-        RegisterWithGameServiceManager(igameServiceManager);
-      
+        // UnitData로부터 스탯 설정
+        if (unitData != null)
+        {
+            health = unitData.MaxHealth;
+            legacyMaxHealth = unitData.MaxHealth;
+            attackPower = unitData.AttackPower;
+            movementRange = unitData.MovementRange;
+            this.isPlayerUnit = isPlayerUnit;
+
+            // 컴포넌트 시스템 사용 시 컴포넌트에도 적용
+            if (useComponentSystem)
+            {
+                if (healthComponent != null)
+                {
+                    healthComponent.SetMaxHealth(unitData.MaxHealth);
+                    healthComponent.SetHealth(unitData.MaxHealth);
+                }
+                if (combatComponent != null)
+                {
+                    combatComponent.SetBaseAttackPower(unitData.AttackPower);
+                }
+                if (movementComponent != null)
+                {
+                    movementComponent.SetMovementRange(unitData.MovementRange);
+                }
+                if (teamComponent != null)
+                {
+                    teamComponent.Team = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
+                }
+            }
+
+            Debug.Log($"[Unit] {gameObject.name} initialized with UnitData: HP={unitData.MaxHealth}, ATK={unitData.AttackPower}, MOV={unitData.MovementRange}, Team={isPlayerUnit}");
+        }
+
+        // ServiceLocator에서 필요한 서비스 가져오기
+        var gridManager = ServiceLocator.Get<IGridManager>();
+        var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+
+        if (gridManager != null && gameServiceManager != null)
+        {
+            InitializeGridManager(gridManager);
+            RegisterWithGameServiceManager(gameServiceManager);
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} could not get services from ServiceLocator");
+        }
+
         isInitialized = true;
-        
-        Debug.Log($"[Unit] {gameObject.name} initialization completed - 프레임: {Time.frameCount}");
+
+        Debug.Log($"[Unit] {gameObject.name} initialization completed at position ({position.x}, {position.y}) - 프레임: {Time.frameCount}");
     }
        
     /// <summary>

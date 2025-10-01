@@ -12,16 +12,6 @@ namespace Game.Data
     [CreateAssetMenu(fileName = "New Card", menuName = "Game/Card Data", order = 2)]
     public class CardData : ScriptableObject
     {
-        // ✅ 카드 타입 열거형
-        public enum CardType
-        {
-            Unit,       // 유닛 소환
-            Spell,      // 주문
-        //    Equipment,  // 장비
-        //    Building,   // 건물
-         //   Event       // 이벤트
-        }
-
         public enum CardRarity
         {
             Common,     // 일반
@@ -41,32 +31,26 @@ namespace Game.Data
             Ally,           // 아군 위치에서만 배치 가능
             Enemy,          // 적군 위치에서만 배치 가능
             Any,            // 적군, 아군 모두 배치 가능
-            Ground          // 타일이 있는 곳 어디든 배치 가능
+            Ground          // 타일이 있는 곳 어디든 배치 가능 (빈 곳)
         }
 
 
         // ✅ private 필드 + SerializeField로 Unity Inspector 지원하면서 캡슐화 유지
         [Header("기본 정보")]
         [SerializeField] private string cardName = "New Card";
-        [SerializeField] private string description = "";
+        [SerializeField] private string description = "New Description";
         [SerializeField] private Sprite cardArt;
         [SerializeField] private Sprite iconSprite;
 
         [Header("카드 속성")]
-        [SerializeField] private CardType cardType = CardType.Spell;
         [SerializeField] private CardRarity rarity = CardRarity.Common;
         [SerializeField] private int manaCost = 1;
 
         [Header("대상 및 범위")]
         [SerializeField] private TargetType targetType = TargetType.None;
-        [SerializeField] private int range = 0;
-        [SerializeField] private int areaOfEffect = 0; // 0 = 단일 대상, 1+ = 범위 효과
 
         [Header("Phase 2.6: 배치 거리 제한")]
         [SerializeField] private int targetRange = -1; // -1: 거리 무관, 0+: 해당 거리까지
-
-        [Header("Phase 2.7: 효과 범위")]
-        [SerializeField] private int affectedRange = 0; // 0: 단일 대상, 1+: 범위 효과
 
         [Header("효과")]
         [SerializeField] private List<string> keywords = new List<string>();
@@ -86,14 +70,10 @@ namespace Game.Data
         public string Description => description;
         public Sprite CardArt => cardArt;
         public Sprite IconSprite => iconSprite;
-        public CardType Type => cardType;
         public CardRarity Rarity => rarity;
         public int ManaCost => manaCost;
         public TargetType Target => targetType;
-        public int Range => range;
-        public int AreaOfEffect => areaOfEffect;
         public int TargetRange => targetRange;
-        public int AffectedRange => affectedRange;
         public int MaxCopiesInDeck => maxCopiesInDeck;
         public bool IsPlayableFromHand => isPlayableFromHand;
         public IReadOnlyList<string> Keywords => keywords.AsReadOnly();
@@ -101,8 +81,6 @@ namespace Game.Data
 
         // ✅ 새로운 EffectData 시스템 접근자 (Phase 2.4)
         public IReadOnlyList<EffectData> EffectDataList => effectDataList.AsReadOnly();
-
-        public bool IsSpellCard => cardType == CardType.Spell;
 
 
         // ✅ 카드 비용 관련 메서드
@@ -150,16 +128,6 @@ namespace Game.Data
             {
                 int distance = CalculateManhattanDistance(casterPosition, targetPosition);
                 if (distance > targetRange)
-                {
-                    return false;
-                }
-            }
-
-            // 레거시 range 필드와의 호환성 (Phase 2.11에서 점진적으로 제거 예정)
-            if (range > 0)
-            {
-                float euclideanDistance = Vector2Int.Distance(casterPosition, targetPosition);
-                if (euclideanDistance > range)
                 {
                     return false;
                 }
@@ -306,7 +274,7 @@ namespace Game.Data
         /// </summary>
         public int GetMaxAffectedRange()
         {
-            if (effectDataList.Count == 0) return affectedRange; // 레거시 시스템 fallback
+            if (effectDataList.Count == 0) return 0; // 효과가 없으면 0
 
             return effectDataList.Max(e => e.AffectedRange);
         }
@@ -464,85 +432,13 @@ namespace Game.Data
             return executableEffects;
         }
 
-        // ✅ Phase 2.10: 기존 시스템과의 호환성을 위한 브리지 메서드들
-
         /// <summary>
-        /// Phase 2.10: 레거시 CardSpawnService와의 호환성을 위한 브리지 메서드
-        /// 카드가 Unit 타입일 때 기존 소환 시스템을 사용합니다
-        /// </summary>
-        /// <param name="targetPosition">소환 위치</param>
-        /// <param name="context">게임 컨텍스트</param>
-        /// <returns>소환 성공 여부</returns>
-        [System.Obsolete("새로운 ExecuteEffects 메서드를 사용하세요. 이 메서드는 호환성을 위해서만 제공됩니다.")]
-        public bool ExecuteLegacyUnitSummon(Vector2Int targetPosition, GameContext context)
-        {
-            // Unit 타입이고 Summon 효과가 있는 경우에만 실행
-            if (cardType == CardType.Unit && HasEffectType(EffectType.Summon))
-            {
-                var summonEffects = GetEffectsByType(EffectType.Summon);
-                if (summonEffects.Count > 0 && summonEffects[0].UnitToSummon != null)
-                {
-                    Debug.Log($"CardData[{cardName}]: 레거시 유닛 소환 시스템 사용");
-
-                    // 기존 CardSpawnService를 통한 소환 (이전 방식과 호환)
-                    if (context?.CardSpawnService != null)
-                    {
-                        // TODO: 실제 CardSpawnService의 소환 메서드 호출
-                        // return context.CardSpawnService.SummonUnit(summonEffects[0].UnitToSummon, targetPosition, context.PlayerId);
-                        Debug.Log($"CardData[{cardName}]: 레거시 소환 시스템을 통해 {summonEffects[0].UnitToSummon.UnitName} 소환");
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Phase 2.10: 레거시 주문 시스템과의 호환성을 위한 브리지 메서드
-        /// 카드가 Spell 타입일 때 기존 주문 처리 시스템과 연동합니다
-        /// </summary>
-        /// <param name="targetPosition">주문 대상 위치</param>
-        /// <param name="context">게임 컨텍스트</param>
-        /// <returns>주문 실행 성공 여부</returns>
-        [System.Obsolete("새로운 ExecuteEffects 메서드를 사용하세요. 이 메서드는 호환성을 위해서만 제공됩니다.")]
-        public bool ExecuteLegacySpell(Vector2Int targetPosition, GameContext context)
-        {
-            // Spell 타입이고 Damage나 Heal 효과가 있는 경우에만 실행
-            if (cardType == CardType.Spell && (HasEffectType(EffectType.Damage) || HasEffectType(EffectType.Heal)))
-            {
-                Debug.Log($"CardData[{cardName}]: 레거시 주문 시스템 사용");
-
-                // 기존 주문 효과 처리 방식 (이전 코드와 호환)
-                if (HasEffectType(EffectType.Damage))
-                {
-                    var damageValue = GetTotalEffectValue(EffectType.Damage);
-                    Debug.Log($"CardData[{cardName}]: 레거시 데미지 효과 {damageValue} 적용");
-                    // TODO: 기존 데미지 처리 로직 호출
-                    return true;
-                }
-
-                if (HasEffectType(EffectType.Heal))
-                {
-                    var healValue = GetTotalEffectValue(EffectType.Heal);
-                    Debug.Log($"CardData[{cardName}]: 레거시 회복 효과 {healValue} 적용");
-                    // TODO: 기존 회복 처리 로직 호출
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Phase 2.10: 새로운 효과 시스템과 레거시 시스템을 통합한 카드 실행 메서드
-        /// 자동으로 적절한 시스템을 선택하여 카드 효과를 실행합니다
+        /// Phase 2.10: 카드 효과 실행 메서드
         /// </summary>
         /// <param name="targetPosition">실행 위치</param>
         /// <param name="context">게임 컨텍스트</param>
-        /// <param name="useNewSystem">true면 새 시스템 강제 사용, false면 자동 선택</param>
         /// <returns>실행 성공 여부</returns>
-        public bool ExecuteCard(Vector2Int targetPosition, GameContext context, bool useNewSystem = true)
+        public bool ExecuteCard(Vector2Int targetPosition, GameContext context)
         {
             if (context == null || !context.IsValid())
             {
@@ -550,38 +446,27 @@ namespace Game.Data
                 return false;
             }
 
-            // 새로운 시스템 사용 (Phase 2.10+)
-            if (useNewSystem && IsEffectBasedCard)
+            // 새로운 EffectData 시스템 사용
+            if (IsEffectBasedCard)
             {
                 int executedEffects = ExecuteEffects(targetPosition, context);
                 bool success = executedEffects > 0;
 
                 if (success)
                 {
-                    Debug.Log($"CardData[{cardName}]: 새로운 효과 시스템으로 성공적으로 실행됨 ({executedEffects}개 효과)");
+                    Debug.Log($"CardData[{cardName}]: 효과 시스템으로 성공적으로 실행됨 ({executedEffects}개 효과)");
+                }
+                else
+                {
+                    Debug.LogWarning($"CardData[{cardName}]: 실행된 효과가 없습니다.");
                 }
 
                 return success;
             }
-            // 레거시 시스템 폴백 (기존 코드와의 호환성)
             else
             {
-                Debug.LogWarning($"CardData[{cardName}]: 레거시 시스템으로 폴백합니다.");
-
-                // 카드 타입별 레거시 처리
-                bool legacyResult = cardType switch
-                {
-                    CardType.Unit => ExecuteLegacyUnitSummon(targetPosition, context),
-                    CardType.Spell => ExecuteLegacySpell(targetPosition, context),
-                    _ => false
-                };
-
-                if (!legacyResult)
-                {
-                    Debug.LogError($"CardData[{cardName}]: 레거시 시스템으로도 실행할 수 없습니다.");
-                }
-
-                return legacyResult;
+                Debug.LogError($"CardData[{cardName}]: EffectData가 설정되지 않았습니다.");
+                return false;
             }
         }
 
@@ -590,9 +475,8 @@ namespace Game.Data
         /// </summary>
         /// <param name="targetPosition">실행 위치</param>
         /// <param name="context">게임 컨텍스트</param>
-        /// <param name="useNewSystem">새 시스템 사용 여부</param>
         /// <returns>실행 가능하면 true</returns>
-        public bool CanExecuteCard(Vector2Int targetPosition, GameContext context, bool useNewSystem = true)
+        public bool CanExecuteCard(Vector2Int targetPosition, GameContext context)
         {
             if (context == null || !context.IsValid())
             {
@@ -603,17 +487,14 @@ namespace Game.Data
             // TODO: 실제 플레이어 마나 체크 로직 구현 필요
             // if (!CanAfford(context.GetAvailableMana(context.PlayerId))) return false;
 
-            // 새로운 시스템 사용 시
-            if (useNewSystem && IsEffectBasedCard)
+            // EffectData 시스템 사용
+            if (IsEffectBasedCard)
             {
                 return CanExecuteAllEffects(targetPosition, context);
             }
-            // 레거시 시스템 사용 시
-            else
-            {
-                // 기본적인 위치 유효성만 체크 (레거시 호환성)
-                return IsValidTarget(context.OriginPosition, targetPosition);
-            }
+
+            // 효과가 없는 경우
+            return false;
         }
 
 
@@ -637,7 +518,7 @@ namespace Game.Data
         public string GetDetailedDescription()
         {
             var desc = $"<b><color=#{ColorUtility.ToHtmlStringRGB(GetRarityColor())}>{cardName}</color></b>\n";
-            desc += $"<i>{cardType} - {rarity}</i>\n\n";
+            desc += $"<i>{rarity}</i>\n\n";
 
             // 기본 설명
             if (!string.IsNullOrEmpty(description))
@@ -662,13 +543,13 @@ namespace Game.Data
             // 키워드
             if (keywords.Count > 0)
             {
-                desc += $"<b>키워드:</b> <color=#87CEEB>{string.Join(", ", keywords)}</color>\n";
+                desc += $"\n<b>키워드:</b> <color=#87CEEB>{string.Join(", ", keywords)}</color>\n";
             }
 
             // 데크 제한
             if (maxCopiesInDeck < 3)
             {
-                desc += $"<color=#FF6B6B>데크에 최대 {maxCopiesInDeck}장 보유 가능</color>\n";
+                desc += $"\n<color=#FF6B6B>데크에 최대 {maxCopiesInDeck}장 보유 가능</color>\n";
             }
 
             return desc;
@@ -779,10 +660,6 @@ namespace Game.Data
                 {
                     targetDesc += $" <color=#FFA500>(거리 제한: {targetRange})</color>";
                 }
-                else if (range > 0)  // 레거시 range 필드
-                {
-                    targetDesc += $" <color=#FFA500>(사거리: {range})</color>";
-                }
 
                 targetDesc += "\n";
             }
@@ -852,33 +729,20 @@ namespace Game.Data
         {
             bool baseValid = !string.IsNullOrEmpty(cardName) &&
                             manaCost >= 0 &&
-                            range >= 0 &&
-                            areaOfEffect >= 0 &&
                             targetRange >= -1 &&
-                            affectedRange >= 0 &&
                             maxCopiesInDeck > 0;
 
             // Phase 2.9: 새로운 EffectData 시스템 기반 검증
-            bool typeValid = true;
-            if (cardType == CardType.Unit || cardType == CardType.Spell)
-            {
-                typeValid = effectDataList.Count > 0; // 새로운 효과 시스템 필수
-            }
+            bool effectDataValid = effectDataList.Count > 0 &&
+                                   effectDataList.All(e => e.IsValid() && e.AffectedRange >= 0);
 
-            // EffectData 시스템 검증 (Phase 2.4 + 2.8)
-            bool effectDataValid = true;
-            if (effectDataList.Count > 0)
-            {
-                effectDataValid = effectDataList.All(e => e.IsValid() && e.AffectedRange >= 0);
-            }
-
-            return baseValid && typeValid && effectDataValid;
+            return baseValid && effectDataValid;
         }
 
         // ✅ 디버깅용 ToString
         public override string ToString()
         {
-            return $"CardData[{cardName} ({cardType}, {rarity}), Cost: {manaCost}M]";
+            return $"CardData[{cardName} ({rarity}), Cost: {manaCost}M, Effects: {effectDataList.Count}]";
         }
 
         // ✅ 에디터용 검증
@@ -893,13 +757,10 @@ namespace Game.Data
 
             // 비용과 범위는 음수가 될 수 없음 (targetRange는 -1 허용)
             manaCost = Mathf.Max(0, manaCost);
-            range = Mathf.Max(0, range);
-            areaOfEffect = Mathf.Max(0, areaOfEffect);
             targetRange = Mathf.Max(-1, targetRange); // -1은 거리 무관을 의미
-            affectedRange = Mathf.Max(0, affectedRange); // 0은 단일 대상을 의미
             maxCopiesInDeck = Mathf.Max(1, maxCopiesInDeck);
 
-            // Phase 2.9: 레거시 주문 관련 필드들 제거 완료
+            // Phase 2.12: 레거시 필드들 완전 제거 완료
             // 새로운 EffectData 시스템만 사용
 
             // 중복 키워드 제거
@@ -921,21 +782,30 @@ namespace Game.Data
             // EffectData 검증 및 정리 (Phase 2.4)
             if (effectDataList != null)
             {
-                // 무효한 EffectData 제거
-                effectDataList = effectDataList.Where(e => e != null && e.IsValid()).ToList();
-
-                // 중복 효과 제거 (같은 타입과 값을 가진 효과)
-                var distinctEffects = new List<EffectData>();
+                // Unity Inspector에서 추가된 새 EffectData 인스턴스 초기화
                 foreach (var effect in effectDataList)
                 {
-                    if (!distinctEffects.Any(de => de.Type == effect.Type &&
-                                                  de.Value == effect.Value &&
-                                                  de.AffectedType == effect.AffectedType))
+                    if (effect != null && !effect.Initialized)
                     {
-                        distinctEffects.Add(effect);
+                        effect.Initialize();
                     }
                 }
-                effectDataList = distinctEffects;
+
+                // 무효한 EffectData 제거
+                effectDataList = effectDataList.Where(e => e != null && e.IsValid()).ToList();
+                
+                //// 중복 효과 제거 (같은 타입과 값을 가진 효과) 필요 시 로그를 통해 알리는 방식으로 변경.
+                //var distinctEffects = new List<EffectData>();
+                //foreach (var effect in effectDataList)
+                //{
+                //    if (!distinctEffects.Any(de => de.Type == effect.Type &&
+                //                                  de.Value == effect.Value &&
+                //                                  de.AffectedType == effect.AffectedType))
+                //    {
+                //        distinctEffects.Add(effect);
+                //    }
+                //}
+                //effectDataList = distinctEffects;
             }
         }
         #endif
@@ -946,13 +816,18 @@ namespace Game.Data
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
-            card.cardType = CardType.Unit;
             card.manaCost = manaCost;
 
-            // Phase 2.10: 새로운 EffectData 시스템으로 유닛 소환 효과 추가
+            // Phase 2.12: 새로운 EffectData 시스템으로 유닛 소환 효과 추가
             var summonEffect = new EffectData(EffectType.Summon, 1, AffectedType.None, 0);
-            // UnitToSummon은 private field이므로 reflection이나 별도 setter가 필요
-            // 현재는 Inspector에서 설정하거나 별도 방법으로 설정해야 함
+
+            // UnitToSummon 설정 (reflection 사용)
+            if (unitData != null)
+            {
+                var field = typeof(EffectData).GetField("unitToSummon",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                field?.SetValue(summonEffect, unitData);
+            }
 
             card.effectDataList = new List<EffectData> { summonEffect };
             card.description = unitData != null ? $"{unitData.UnitName}을(를) 소환합니다." : "유닛을 소환합니다.";
@@ -963,15 +838,14 @@ namespace Game.Data
         /// <summary>
         /// Phase 2.10: 새로운 효과 시스템 기반 데미지 카드 생성 팩토리 메서드
         /// </summary>
-        public static CardData CreateDamageCard(string name, string desc, int manaCost, int damageValue, AffectedType targetType = AffectedType.Enemy, int range = 0)
+        public static CardData CreateDamageCard(string name, string desc, int manaCost, int damageValue, AffectedType affectedType = AffectedType.Enemy, int affectedRange = 0)
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
             card.description = desc;
-            card.cardType = CardType.Spell;
             card.manaCost = manaCost;
 
-            var damageEffect = new EffectData(EffectType.Damage, damageValue, targetType, range);
+            var damageEffect = new EffectData(EffectType.Damage, damageValue, affectedType, affectedRange);
             card.effectDataList = new List<EffectData> { damageEffect };
 
             return card;
@@ -980,15 +854,14 @@ namespace Game.Data
         /// <summary>
         /// Phase 2.10: 새로운 효과 시스템 기반 회복 카드 생성 팩토리 메서드
         /// </summary>
-        public static CardData CreateHealCard(string name, string desc, int manaCost, int healValue, AffectedType targetType = AffectedType.Ally, int range = 0)
+        public static CardData CreateHealCard(string name, string desc, int manaCost, int healValue, AffectedType affectedType = AffectedType.Ally, int affectedRange = 0)
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
             card.description = desc;
-            card.cardType = CardType.Spell;
             card.manaCost = manaCost;
 
-            var healEffect = new EffectData(EffectType.Heal, healValue, targetType, range);
+            var healEffect = new EffectData(EffectType.Heal, healValue, affectedType, affectedRange);
             card.effectDataList = new List<EffectData> { healEffect };
 
             return card;
@@ -997,12 +870,11 @@ namespace Game.Data
         /// <summary>
         /// Phase 2.10: 복합 효과를 가진 카드 생성 팩토리 메서드
         /// </summary>
-        public static CardData CreateMultiEffectCard(string name, string desc, CardType type, int manaCost, params EffectData[] effects)
+        public static CardData CreateMultiEffectCard(string name, string desc, int manaCost, params EffectData[] effects)
         {
             var card = CreateInstance<CardData>();
             card.cardName = name;
             card.description = desc;
-            card.cardType = type;
             card.manaCost = manaCost;
             card.effectDataList = effects?.ToList() ?? new List<EffectData>();
 

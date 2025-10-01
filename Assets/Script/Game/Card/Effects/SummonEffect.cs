@@ -47,6 +47,11 @@ namespace Game.Card.Effects
             var availablePositions = GetAvailableSummonPositions(targetPos, context);
             var requiredPositions = _effectData.Value; // Value는 소환할 유닛 개수
 
+            if(availablePositions.Count < requiredPositions)
+            {
+                Debug.LogError($"소환 가능 위치가 필요 위치 개수보다 적다. availablePositions:{availablePositions.Count}, requirePositions:{requiredPositions}");
+            }
+
             return availablePositions.Count >= requiredPositions;
         }
 
@@ -109,26 +114,20 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// 특정 위치에서 소환이 가능한지 확인합니다.
+        /// GridController를 통해 실제 유효성 검사를 수행합니다.
         /// </summary>
         private bool IsValidSummonPosition(Vector2Int position, GameContext context)
         {
-            // SpawnValidator를 통해 소환 유효성 검사
-            if (context.SpawnValidator == null)
+            if (context.GridController == null)
             {
-                Debug.LogWarning("SummonEffect: SpawnValidator가 null입니다.");
+                Debug.LogWarning("SummonEffect: GridController가 null입니다.");
                 return false;
             }
 
-            // TODO: SpawnValidator를 통한 실제 검증 로직 구현
-            // - 그리드 경계 내부인가?
-            // - 이미 유닛이 있는 위치인가?
-            // - 지형이 소환 가능한가?
-            // - AffectedType에 따른 소환 권한이 있는가?
-
+            // 그리드 경계 내부인지, 비어있는지, 블록되지 않았는지 확인
             return IsPositionInBounds(position, context) &&
                    IsPositionEmpty(position, context) &&
-                   IsValidTerrainForSummon(position, context) &&
-                   HasSummonPermission(position, context);
+                   IsValidTerrainForSummon(position, context);
         }
 
         /// <summary>
@@ -136,8 +135,10 @@ namespace Game.Card.Effects
         /// </summary>
         private bool IsPositionInBounds(Vector2Int position, GameContext context)
         {
-            // TODO: GridController를 통한 실제 경계 확인 로직 구현
-            return true; // placeholder
+            if (context.GridController == null)
+                return false;
+
+            return context.GridController.IsValidPosition(position);
         }
 
         /// <summary>
@@ -145,72 +146,71 @@ namespace Game.Card.Effects
         /// </summary>
         private bool IsPositionEmpty(Vector2Int position, GameContext context)
         {
-            // TODO: UnitService를 통한 실제 유닛 존재 확인 로직 구현
-            return true; // placeholder
+            if (context.GridController == null)
+                return false;
+
+            return !context.GridController.IsPositionOccupied(position);
         }
 
         /// <summary>
-        /// 지형이 소환에 적합한지 확인합니다.
+        /// 지형이 소환에 적합한지 확인합니다 (블록되지 않았는지).
         /// </summary>
         private bool IsValidTerrainForSummon(Vector2Int position, GameContext context)
         {
-            // TODO: GridController를 통한 실제 지형 확인 로직 구현
-            return true; // placeholder
-        }
+            if (context.GridController == null)
+                return false;
 
-        /// <summary>
-        /// 해당 위치에서 소환할 권한이 있는지 확인합니다.
-        /// </summary>
-        private bool HasSummonPermission(Vector2Int position, GameContext context)
-        {
-            // AffectedType에 따른 소환 권한 확인
-            return _effectData.AffectedType switch
-            {
-                AffectedType.Ally => IsAllyTerritory(position, context.PlayerId),
-                AffectedType.Enemy => IsEnemyTerritory(position, context.PlayerId),
-                AffectedType.Any => true,
-                AffectedType.None => false,
-                _ => false
-            };
-        }
-
-        /// <summary>
-        /// 아군 영역인지 확인합니다.
-        /// </summary>
-        private bool IsAllyTerritory(Vector2Int position, int playerId)
-        {
-            // TODO: 실제 영역 소속 확인 로직 구현
-            return true; // placeholder
-        }
-
-        /// <summary>
-        /// 적군 영역인지 확인합니다.
-        /// </summary>
-        private bool IsEnemyTerritory(Vector2Int position, int playerId)
-        {
-            // TODO: 실제 영역 소속 확인 로직 구현
-            return true; // placeholder
+            return !context.GridController.IsPositionBlocked(position);
         }
 
         /// <summary>
         /// 특정 위치에 유닛을 소환합니다.
+        /// UnitData의 Prefab을 인스턴스화하고 GridController와 UnitService에 등록합니다.
         /// </summary>
         private void SummonUnitAtPosition(Vector2Int position, GameContext context)
         {
-            // TODO: 실제 유닛 소환 로직 구현
-            // - UnitService를 통한 유닛 생성
-            // - 그리드에 유닛 배치
-            // - 소환된 유닛의 소유권 설정
-            // - 유닛 초기화 및 활성화
-
-            Debug.Log($"SummonEffect: {position}에 {_effectData.UnitToSummon.UnitName} 소환 완료");
-
-            // CardSpawnService를 통한 소환 (기존 시스템과의 호환성)
-            if (context.CardSpawnService != null)
+            if (_effectData.UnitToSummon == null || _effectData.UnitToSummon.Prefab == null)
             {
-                // TODO: CardSpawnService의 실제 소환 메서드 호출
-                // context.CardSpawnService.SummonUnit(_effectData.UnitToSummon, position, context.PlayerId);
+                Debug.LogError("SummonEffect: UnitToSummon 또는 Prefab이 null입니다.");
+                return;
             }
+
+            if (context.GridController == null || context.UnitService == null)
+            {
+                Debug.LogError("SummonEffect: GridController 또는 UnitService가 null입니다.");
+                return;
+            }
+
+            // 유닛 프리팹 인스턴스화
+            Vector3 worldPosition = context.GridController.GridToWorldPosition(position);
+            var unitObject = Object.Instantiate(_effectData.UnitToSummon.Prefab, worldPosition, Quaternion.identity);
+
+            if (unitObject == null)
+            {
+                Debug.LogError($"SummonEffect: {_effectData.UnitToSummon.UnitName} 프리팹 인스턴스화 실패");
+                return;
+            }
+
+            // Unit 컴포넌트 가져오기
+            var unit = unitObject.GetComponent<Unit>();
+            if (unit == null)
+            {
+                Debug.LogError($"SummonEffect: {unitObject.name}에 Unit 컴포넌트가 없습니다.");
+                Object.Destroy(unitObject);
+                return;
+            }
+
+            // 유닛 초기화 (플레이어 ID 기반으로 팀 결정)
+            bool isPlayerUnit = (context.PlayerId == 0); // PlayerId 0이 플레이어라고 가정
+            unit.Init(_effectData.UnitToSummon, position, isPlayerUnit);
+
+            // GridController에 유닛 위치 설정 (월드 좌표 및 시각적 배치)
+            context.GridController.SetUnitWorldPosition(unitObject, position);
+
+            // UnitService에 유닛 등록
+            context.UnitService.RegisterUnit(unit);
+
+            Debug.Log($"SummonEffect: {position}에 {_effectData.UnitToSummon.UnitName} 소환 완료 (Player: {isPlayerUnit})");
         }
 
         /// <summary>
