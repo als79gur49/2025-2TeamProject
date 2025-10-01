@@ -89,78 +89,65 @@ namespace Game.Card.Effects
             return affectedUnits;
         }
 
-        /// <summary>
-        /// 특정 위치의 유닛을 가져옵니다.
-        /// </summary>
-        [System.Obsolete("Phase 2.12: GridController.GetUnitAtPosition()을 직접 사용하세요.")]
-        private GameObject GetUnitAtPosition(Vector2Int position, GameContext context)
-        {
-            // TODO: UnitService를 통해 실제 유닛 정보를 가져오는 로직 구현
-            // 현재는 인터페이스만 정의된 상태이므로 placeholder 반환
-            return context?.GridController?.GetUnitAtPosition(position);
-        }
-
-        /// <summary>
-        /// 유닛이 효과의 유효한 대상인지 확인합니다.
-        /// </summary>
-        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 필터링이 자동으로 수행됩니다.")]
-        private bool IsValidTarget(GameObject unit, GameContext context)
-        {
-            if (unit == null) return false;
-
-            // TODO: 실제 유닛의 소속을 확인하는 로직 구현
-            // AffectedType에 따라 아군/적군/모두 필터링
-            return _effectData.AffectedType switch
-            {
-                AffectedType.Ally => IsAllyUnit(unit, context.PlayerId),
-                AffectedType.Enemy => IsEnemyUnit(unit, context.PlayerId),
-                AffectedType.Any => true,
-                AffectedType.None => false,
-                _ => false
-            };
-        }
-
-        /// <summary>
-        /// 아군 유닛인지 확인합니다.
-        /// </summary>
-        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 확인이 자동으로 수행됩니다.")]
-        private bool IsAllyUnit(GameObject unit, int playerId)
-        {
-            // TODO: 실제 유닛의 소속 확인 로직 구현
-            return true; // placeholder
-        }
-
-        /// <summary>
-        /// 적군 유닛인지 확인합니다.
-        /// </summary>
-        [System.Obsolete("Phase 2.12: GridController.GetAffectedUnits()에서 팀 확인이 자동으로 수행됩니다.")]
-        private bool IsEnemyUnit(GameObject unit, int playerId)
-        {
-            // TODO: 실제 유닛의 소속 확인 로직 구현
-            return true; // placeholder
-        }
 
         /// <summary>
         /// 유닛에게 실제 피해를 적용합니다.
         /// </summary>
         private void ApplyDamageToUnit(GameObject unit, int damage)
         {
-            // TODO: 실제 유닛에게 피해를 적용하는 로직 구현
-            // - 방어력 계산 (IgnoreArmor 옵션 고려)
-            // - 실제 체력 감소
-            // - 유닛 상태 업데이트
+            if (unit == null)
+            {
+                Debug.LogError("DamageEffect: 유닛이 null입니다.");
+                return;
+            }
 
-            var finalDamage = _effectData.IgnoreArmor ? damage : CalculateDamageWithArmor(unit, damage);
-            Debug.Log($"DamageEffect: 유닛에게 {finalDamage} 피해 적용 (원본: {damage}, 방어력 무시: {_effectData.IgnoreArmor})");
+            var healthComponent = unit.GetComponent<Game.Components.HealthComponent>();
+            if (healthComponent == null)
+            {
+                Debug.LogError($"DamageEffect: 유닛 {unit.name}에 HealthComponent가 없습니다.");
+                return;
+            }
+
+            // 방어력 계산 (IgnoreArmor 옵션 고려)
+            int finalDamage = _effectData.IgnoreArmor ? damage : CalculateDamageWithArmor(healthComponent, damage);
+
+            Debug.Log($"DamageEffect: 유닛 {unit.name}에게 {finalDamage} 피해 적용 (원본: {damage}, 방어력 무시: {_effectData.IgnoreArmor})");
+
+            // DamageInfo 구조체를 사용하여 피해 적용
+            var damageInfo = new Game.Interfaces.DamageInfo(
+                damage,
+                Game.Interfaces.DamageType.Physical,
+                null,
+                false,
+                _effectData.IgnoreArmor
+            );
+
+            // HealthComponent의 ProcessDamage는 private이므로 TakeDamage 사용
+            // TakeDamage는 내부적으로 방어력을 계산하므로, IgnoreArmor일 경우 직접 SetHealth 사용
+            if (_effectData.IgnoreArmor)
+            {
+                int newHealth = Mathf.Max(0, healthComponent.CurrentHealth - finalDamage);
+                healthComponent.SetHealth(newHealth);
+            }
+            else
+            {
+                healthComponent.TakeDamage(damage);
+            }
         }
 
         /// <summary>
         /// 방어력을 고려한 최종 피해량을 계산합니다.
         /// </summary>
-        private int CalculateDamageWithArmor(GameObject unit, int baseDamage)
+        private int CalculateDamageWithArmor(Game.Components.HealthComponent healthComponent, int baseDamage)
         {
-            // TODO: 실제 방어력 계산 로직 구현
-            return baseDamage; // placeholder
+            if (healthComponent == null)
+            {
+                Debug.LogWarning("DamageEffect: HealthComponent가 null입니다. 기본 피해량 반환.");
+                return baseDamage;
+            }
+
+            // HealthComponent의 CalculateDamageAfterArmor 메서드를 사용
+            return healthComponent.CalculateDamageAfterArmor(baseDamage);
         }
 
         /// <summary>

@@ -290,6 +290,7 @@ namespace Game.Components
             {
                 // 단일 대상: 타겟 위치만
                 positionsToCheck = new List<Vector2Int> { targetPosition };
+                Debug.Log($"LLLLL {positionsToCheck.Count}");
             }
             else
             {
@@ -306,7 +307,7 @@ namespace Game.Components
                     affectedUnits.Add(unit);
                 }
             }
-
+            Debug.Log($"LLLLLLL {affectedUnits.Count}");
             return affectedUnits;
         }
 

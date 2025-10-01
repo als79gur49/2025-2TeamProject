@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Game.Interfaces;
 
 namespace Game.Card.Effects
 {
@@ -98,62 +99,33 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
-        /// 특정 위치의 유닛을 가져옵니다.
-        /// </summary>
-        private object GetUnitAtPosition(Vector2Int position, GameContext context)
-        {
-            // TODO: UnitService를 통해 실제 유닛 정보를 가져오는 로직 구현
-            // 현재는 인터페이스만 정의된 상태이므로 placeholder 반환
-            return null;
-        }
-
-        /// <summary>
-        /// 유닛이 효과의 유효한 대상인지 확인합니다.
-        /// </summary>
-        private bool IsValidTarget(object unit, GameContext context)
-        {
-            if (unit == null) return false;
-
-            // TODO: 실제 유닛의 소속을 확인하는 로직 구현
-            // AffectedType에 따라 아군/적군/모두 필터링
-            return _effectData.AffectedType switch
-            {
-                AffectedType.Ally => IsAllyUnit(unit, context.PlayerId),
-                AffectedType.Enemy => IsEnemyUnit(unit, context.PlayerId),
-                AffectedType.Any => true,
-                AffectedType.None => false,
-                _ => false
-            };
-        }
-
-        /// <summary>
-        /// 아군 유닛인지 확인합니다.
-        /// </summary>
-        private bool IsAllyUnit(object unit, int playerId)
-        {
-            // TODO: 실제 유닛의 소속 확인 로직 구현
-            return true; // placeholder
-        }
-
-        /// <summary>
-        /// 적군 유닛인지 확인합니다.
-        /// </summary>
-        private bool IsEnemyUnit(object unit, int playerId)
-        {
-            // TODO: 실제 유닛의 소속 확인 로직 구현
-            return true; // placeholder
-        }
-
-        /// <summary>
         /// 유닛이 회복 가능한 상태인지 확인합니다.
         /// </summary>
         private bool CanBeHealed(GameObject unit)
         {
-            // TODO: 실제 유닛의 체력 상태 확인 로직 구현
-            // - 최대 체력보다 낮은 체력인가?
-            // - 언데드나 기계 유닛이 아닌가?
-            // - 치명상 상태가 아닌가?
-            return true; // placeholder
+            if (unit == null) return false;
+
+            // HealthComponent 확인
+            var healthComponent = unit.GetComponent<IHealthComponent>();
+            if (healthComponent == null)
+            {
+                Debug.LogWarning($"HealEffect: {unit.name}에 HealthComponent가 없습니다.");
+                return false;
+            }
+
+            // 생존 상태 확인
+            if (!healthComponent.IsAlive)
+            {
+                return false;
+            }
+
+            // 최대 체력보다 낮은 체력인지 확인
+            if (healthComponent.CurrentHealth >= healthComponent.MaxHealth)
+            {
+                return false; // 이미 최대 체력
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -161,14 +133,32 @@ namespace Game.Card.Effects
         /// </summary>
         private void ApplyHealToUnit(GameObject unit, int healAmount)
         {
-            // TODO: 실제 유닛에게 회복을 적용하는 로직 구현
-            // - 현재 체력과 최대 체력 확인
-            // - 회복량 계산 (오버힐 방지)
-            // - 실제 체력 증가
-            // - 유닛 상태 업데이트
+            if (unit == null)
+            {
+                Debug.LogWarning("HealEffect: 회복 대상 유닛이 null입니다.");
+                return;
+            }
 
+            var healthComponent = unit.GetComponent<IHealthComponent>();
+            if (healthComponent == null)
+            {
+                Debug.LogWarning($"HealEffect: {unit.name}에 HealthComponent가 없습니다.");
+                return;
+            }
+
+            // 실제 회복량 계산 (오버힐 방지)
             var actualHealAmount = CalculateActualHealAmount(unit, healAmount);
-            Debug.Log($"HealEffect: 유닛을 {actualHealAmount}만큼 회복 (요청: {healAmount})");
+
+            if (actualHealAmount <= 0)
+            {
+                Debug.Log($"HealEffect: {unit.name}은(는) 이미 최대 체력입니다.");
+                return;
+            }
+
+            // 실제 체력 증가
+            healthComponent.Heal(actualHealAmount);
+
+            Debug.Log($"HealEffect: {unit.name}을(를) {actualHealAmount}만큼 회복 (요청: {healAmount})");
         }
 
         /// <summary>
@@ -176,12 +166,19 @@ namespace Game.Card.Effects
         /// </summary>
         private int CalculateActualHealAmount(GameObject unit, int requestedHeal)
         {
-            // TODO: 실제 체력 상태를 확인하여 오버힐을 방지하는 로직 구현
-            // var currentHealth = GetCurrentHealth(unit);
-            // var maxHealth = GetMaxHealth(unit);
-            // return Mathf.Min(requestedHeal, maxHealth - currentHealth);
+            if (unit == null || requestedHeal <= 0) return 0;
 
-            return requestedHeal; // placeholder
+            var healthComponent = unit.GetComponent<IHealthComponent>();
+            if (healthComponent == null) return 0;
+
+            // 현재 체력과 최대 체력 확인
+            var currentHealth = healthComponent.CurrentHealth;
+            var maxHealth = healthComponent.MaxHealth;
+
+            // 오버힐 방지: 최대 체력을 초과하지 않도록 계산
+            var actualHeal = Mathf.Min(requestedHeal, maxHealth - currentHealth);
+
+            return Mathf.Max(0, actualHeal);
         }
 
         /// <summary>

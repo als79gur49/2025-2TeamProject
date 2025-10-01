@@ -13,7 +13,7 @@ namespace Game.Services
         
         // Phase 1: Sequential Processing System - State Management
         private PhaseExecutionContext currentContext;
-        private float unitActionInterval = 0.3f; // 기본 1초 간격
+        private float unitActionInterval = 0.14f; // 기본 1초 간격
         
         public int ActiveUnitCount => allUnits.Count(u => u != null && u.IsAlive);
         

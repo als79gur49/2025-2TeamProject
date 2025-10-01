@@ -5,6 +5,8 @@ using UnityEngine.Events;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
+using System.ComponentModel;
+using Unity.Collections;
 
 namespace Game.Components
 {
@@ -54,7 +56,7 @@ namespace Game.Components
         // ✅ 수정자 관리
         private readonly List<StatModifier> armorModifiers = new List<StatModifier>();
         private readonly List<StatModifier> healthModifiers = new List<StatModifier>();
-
+        
         // ✅ IHealthComponent 기본 속성 구현
         public int CurrentHealth => currentHealth;
         public int MaxHealth => GetModifiedMaxHealth();
