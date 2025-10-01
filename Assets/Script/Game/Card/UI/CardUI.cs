@@ -21,6 +21,14 @@ namespace Game.Card.UI
         [SerializeField] private TextMeshProUGUI descriptionText;
         [SerializeField] private CanvasGroup canvasGroup;
 
+        [Header("유닛 스탯 UI")]
+        [SerializeField] private GameObject attackParent;
+        [SerializeField] private TextMeshProUGUI attackText;
+        [SerializeField] private GameObject hpParent;
+        [SerializeField] private TextMeshProUGUI hpText;
+        [SerializeField] private GameObject movementParent;
+        [SerializeField] private TextMeshProUGUI movementText;
+
         [Header("드래그 설정")]
         [SerializeField] private float dragAlpha = 0.6f;
         [SerializeField] private bool returnToOriginalPosition = true;
@@ -109,6 +117,7 @@ namespace Game.Card.UI
 
         /// <summary>
         /// Phase 3.16: 카드 UI 정보 업데이트 - 새로운 카드 구조 반영
+        /// Phase 3.18: CardData/UnitData 기반 동적 텍스트 업데이트
         /// </summary>
         private void UpdateCardUI()
         {
@@ -118,7 +127,7 @@ namespace Game.Card.UI
             if (cardNameText != null)
                 cardNameText.text = cardData.CardName;
 
-            // 비용 정보 (색상 포함)
+            // Phase 3.18: 비용 정보 - CardData.ManaCost 사용
             if (costText != null)
             {
                 costText.text = cardData.ManaCost.ToString();
@@ -126,21 +135,46 @@ namespace Game.Card.UI
                 costText.color = GetManaCostColor(cardData.ManaCost);
             }
 
-            // Phase 3.16: 새로운 GetDetailedDescription() 메서드 사용
+            // 유닛 스탯 UI 업데이트
+            if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            {
+                var summonEffects = cardData.GetEffectsByType(Game.Card.Effects.EffectType.Summon);
+                if (summonEffects.Count > 0 && summonEffects[0].UnitToSummon != null)
+                {
+                    var unitData = summonEffects[0].UnitToSummon;
+
+                    // 유닛 카드인 경우 스탯 표시
+                    if (attackParent != null)
+                        attackParent.SetActive(true);
+                    if (attackText != null)
+                        attackText.text = unitData.AttackPower.ToString();
+
+                    if (hpParent != null)
+                        hpParent.SetActive(true);
+                    if (hpText != null)
+                        hpText.text = unitData.MaxHealth.ToString();
+
+                    if (movementParent != null)
+                        movementParent.SetActive(true);
+                    if (movementText != null)
+                        movementText.text = unitData.MovementRange.ToString();
+                }
+            }
+            else
+            {
+                // 유닛 카드가 아닌 경우 스탯 UI 숨김
+                if (attackParent != null)
+                    attackParent.SetActive(false);
+                if (hpParent != null)
+                    hpParent.SetActive(false);
+                if (movementParent != null)
+                    movementParent.SetActive(false);
+            }
+
+            // Phase 3.18: 설명 정보 - CardData.Description 사용
             if (descriptionText != null)
             {
-                if (cardData.IsEffectBasedCard)
-                {
-                    // 새로운 EffectData 시스템 사용
-                    descriptionText.text = cardData.GetDetailedDescription();
-                }
-                else
-                {
-                    // 레거시 시스템 또는 기본 설명
-                    descriptionText.text = !string.IsNullOrEmpty(cardData.Description)
-                        ? cardData.Description
-                        : "효과 정보 없음";
-                }
+                descriptionText.text = cardData.Description;
             }
 
             // 카드 이미지 설정
@@ -152,6 +186,49 @@ namespace Game.Card.UI
 
             // Phase 3.16: EffectData 기반 추가 시각적 표현
             ApplyEffectTypeVisualCues();
+        }
+
+        /// <summary>
+        /// Phase 3.18: 카드 타입에 따른 설명 텍스트 생성
+        /// 유닛 카드: UnitData 기반 스탯 표시 (공격력, 체력, 이동거리)
+        /// 효과 카드: EffectData 기반 효과 설명
+        /// </summary>
+        private string GenerateCardDescription()
+        {
+            if (cardData == null) return "정보 없음";
+
+            // 유닛 소환 카드인 경우 - UnitData 정보 표시
+            if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            {
+                var summonEffects = cardData.GetEffectsByType(Game.Card.Effects.EffectType.Summon);
+                if (summonEffects.Count > 0 && summonEffects[0].UnitToSummon != null)
+                {
+                    var unitData = summonEffects[0].UnitToSummon;
+
+                    if(attackText != null & hpText != null && movementText != null)
+                    {
+                        attackText.text = unitData.AttackPower.ToString();
+                        hpText.text = unitData.MaxHealth.ToString();
+                        movementText.text = unitData.MovementRange.ToString();
+                    }
+
+                    return $"<b>{unitData.UnitName}</b>\n" +
+                           $" 공격력: {unitData.AttackPower}\n" +
+                           $" 체력: {unitData.MaxHealth}\n" +
+                           $" 이동거리: {unitData.MovementRange}";
+                }
+            }
+
+            // 효과 기반 카드 (주문 등)
+            if (cardData.IsEffectBasedCard)
+            {
+                return cardData.GetDetailedDescription();
+            }
+
+            // 레거시 또는 기타
+            return !string.IsNullOrEmpty(cardData.Description)
+                ? cardData.Description
+                : "효과 정보 없음";
         }
 
         /// <summary>
@@ -208,23 +285,6 @@ namespace Game.Card.UI
             // 주요 효과 타입 가져오기
             var primaryEffect = cardData.GetPrimaryEffectType();
             if (primaryEffect == null) return;
-
-            // 카드 이름 텍스트에 효과 타입 아이콘 추가
-            if (cardNameText != null)
-            {
-                string icon = primaryEffect switch
-                {
-                    Game.Card.Effects.EffectType.Damage => "⚔️",
-                    Game.Card.Effects.EffectType.Heal => "💚",
-                    Game.Card.Effects.EffectType.Summon => "🛡️",
-                    _ => ""
-                };
-
-                if (!string.IsNullOrEmpty(icon))
-                {
-                    cardNameText.text = $"{icon} {cardData.CardName}";
-                }
-            }
         }
 
         #endregion

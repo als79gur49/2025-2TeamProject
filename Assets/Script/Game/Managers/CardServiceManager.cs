@@ -459,43 +459,5 @@ namespace Game.Services
         public ISpawnValidator GetSpawnValidator() => spawnValidator;
 
         #endregion
-
-        #region 에디터용 디버깅
-
-#if UNITY_EDITOR
-        [Header("에디터 도구")]
-        [SerializeField] private bool showDebugInfo = true;
-
-        private void OnGUI()
-        {
-            if (!showDebugInfo || !Application.isPlaying) return;
-
-            GUILayout.BeginArea(new Rect(320, 10, 300, 200));
-            GUILayout.Box("Card Service Manager Debug");
-
-            if (isInitialized)
-            {
-                GUILayout.Label("✅ CardServiceManager Initialized");
-            }
-            else
-            {
-                GUILayout.Label("❌ CardServiceManager Not Initialized");
-            }
-
-            GUILayout.Label($"Services Healthy: {(areServicesHealthy ? "✅" : "❌")}");
-            GUILayout.Label($"CardHandManager: {(cardHandManager != null ? "✅" : "❌")}");
-            GUILayout.Label($"CardSpawnService: {(cardSpawnService != null ? "✅" : "❌")}");
-            GUILayout.Label($"SpawnValidator: {(spawnValidator != null ? "✅" : "❌")}");
-
-            if (GUILayout.Button("Re-Initialize Card Services"))
-            {
-                InitializeAndRegisterServices();
-            }
-
-            GUILayout.EndArea();
-        }
-#endif
-
-        #endregion
     }
 }

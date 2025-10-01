@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Game.Services
 {
     /// <summary>
-    /// Phase 3.14: 리팩토링된 카드 소환 서비스
+    /// 리팩토링된 카드 소환 서비스
     /// EffectData 기반의 통합 카드 처리 시스템
     /// CardData의 EffectData 리스트를 순회하며 팩토리를 통해 ICardEffect를 생성하고 실행하는 단순 실행자 역할
     /// </summary>
@@ -25,7 +25,7 @@ namespace Game.Services
         private ISpawnValidator spawnValidator;
         private IResourceManager resourceManager;
 
-        // Phase 3.14: GameContext for effect execution
+        // GameContext for effect execution
         private GameContext gameContext;
 
         // 초기화 상태
@@ -78,7 +78,7 @@ namespace Game.Services
 
             if (allDependenciesResolved)
             {
-                // Phase 3.14: Initialize GameContext for effect execution
+                // Initialize GameContext for effect execution
                 gameContext = new GameContext(
                     unitService,
                     gridController,
@@ -137,10 +137,10 @@ namespace Game.Services
 
         #endregion
 
-        #region Phase 3.14: 통합 카드 처리 (효과 기반)
+        #region 통합 카드 처리 (효과 기반)
 
         /// <summary>
-        /// Phase 3.14: 카드를 사용하여 모든 효과를 실행 (기본: 플레이어)
+        /// 카드를 사용하여 모든 효과를 실행 (기본: 플레이어)
         /// </summary>
         /// <param name="cardData">사용할 카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
@@ -151,7 +151,7 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// Phase 3.14: 카드를 사용하여 모든 효과를 실행 (플레이어/적군 구분)
+        /// 카드를 사용하여 모든 효과를 실행 (플레이어/적군 구분)
         /// </summary>
         /// <param name="cardData">사용할 카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
@@ -171,16 +171,16 @@ namespace Game.Services
                 return false;
             }
 
-            // Phase 3.14: Check if card uses new effect system
+            // Check if card uses effect system
             if (!cardData.IsEffectBasedCard)
             {
-                LogError($"Card {cardData.CardName} does not use new effect system (no EffectData)");
+                LogError($"Card {cardData.CardName} does not use effect system (no EffectData)");
                 return false;
             }
 
             Log($"🎯 Executing card: {cardData.CardName} at position {targetPosition} (Player: {isPlayerCard})");
 
-            // Phase 3.14: Update GameContext for this card execution
+            // Update GameContext for this card execution
             UpdateGameContext(isPlayerCard ? 0 : 1, targetPosition);
 
             // 1. Resource validation and spending
@@ -206,34 +206,7 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// Phase 3.14: 기존 유닛 소환 메서드 호환성 유지 (TryExecuteCard 에 위임)
-        /// </summary>
-        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
-        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition)
-        {
-            return TryExecuteCard(cardData, gridPosition, true);
-        }
-
-        /// <summary>
-        /// Phase 3.14: 기존 유닛 소환 메서드 호환성 유지 (TryExecuteCard 에 위임)
-        /// </summary>
-        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
-        public bool TrySpawnUnitFromCard(CardData cardData, Vector2Int gridPosition, bool isPlayerUnit)
-        {
-            return TryExecuteCard(cardData, gridPosition, isPlayerUnit);
-        }
-
-        /// <summary>
-        /// Phase 3.14: 기존 주문 발동 메서드 호환성 유지 (TryExecuteCard 에 위임)
-        /// </summary>
-        [System.Obsolete("Use TryExecuteCard instead. This method will be removed in future versions.")]
-        public bool TryActivateSpellFromCard(CardData cardData, Vector2Int targetPosition)
-        {
-            return TryExecuteCard(cardData, targetPosition, true);
-        }
-
-        /// <summary>
-        /// Phase 3.14: GameContext 업데이트
+        /// GameContext 업데이트
         /// </summary>
         /// <param name="playerId">플레이어 ID</param>
         /// <param name="originPosition">원점 위치</param>
@@ -254,7 +227,7 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// Phase 3.14: 카드의 모든 효과를 실행하는 핵심 메서드
+        /// 카드의 모든 효과를 실행하는 핵심 메서드
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>

@@ -17,13 +17,13 @@ MonoBehaviour:
   cardArt: {fileID: 0}
   iconSprite: {fileID: 0}
   rarity: 0
-  manaCost: 1
+  manaCost: 2
   targetType: 1
   targetRange: -1
   keywords: []
   effectDataList:
   - type: 1
-    value: 1
+    value: 13
     priority: 0
     affectedType: 1
     affectedRange: 0

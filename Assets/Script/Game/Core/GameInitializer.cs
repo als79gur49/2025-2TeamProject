@@ -110,44 +110,19 @@ public class GameInitializer : MonoBehaviour
 
     /// <summary>
     /// GridManager를 통한 그리드 서비스 등록 - 중앙집중형 구조
+    /// 하위 서비스(GridController, GridState, GridRenderer)는 GridManager를 통해 접근
     /// </summary>
     private void RegisterGridServices()
     {
-        Log("Registering GridManager and associated grid services");
+        Log("Registering GridManager for centralized grid service access");
 
         if (gridManager != null)
         {
-            // GridManager를 IGridManager로 등록
+            // GridManager만 ServiceLocator에 등록
+            // 하위 서비스들은 GridManager의 GetGridController(), GetGridState(), GetGridRenderer()를 통해 접근
             ServiceLocator.Register<IGridManager>(gridManager);
             Log("✅ IGridManager registered");
-
-            // GridController를 IGridController로 등록 (GridManager에서 접근 가능)
-            var gridController = gridManager.GetGridController();
-            if (gridController != null)
-            {
-                ServiceLocator.Register<IGridController>(gridController);
-                Log("✅ IGridController registered");
-            }
-            else
-            {
-                LogError("❌ GridController not available from GridManager");
-            }
-
-            // GridState와 GridRenderer도 등록 (필요한 경우)
-            var gridState = gridManager.GetGridState();
-            var gridRenderer = gridManager.GetGridRenderer();
-            
-            if (gridState != null)
-            {
-                ServiceLocator.Register<IGridState>(gridState);
-                Log("✅ IGridState registered");
-            }
-            
-            if (gridRenderer != null)
-            {
-                ServiceLocator.Register<IGridRenderer>(gridRenderer);
-                Log("✅ IGridRenderer registered");
-            }
+            Log("   Sub-services accessible via: GridManager.GetGridController(), GetGridState(), GetGridRenderer()");
         }
         else
         {

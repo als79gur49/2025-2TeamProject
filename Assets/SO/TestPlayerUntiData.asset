@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c16c610b11032d0409227505d66a78cd, type: 3}
   m_Name: TestPlayerUntiData
   m_EditorClassIdentifier: 
-  unitName: "\uC720\uB2DB\uC18C\uD658"
-  description: "\uC18C\uD658"
+  unitName: "\uC544\uAD70\uC720\uB2DB"
+  description: "\uC544\uAD70\uC720\uB2DB\uD14C\uC2A4\uD2B8"
   icon: {fileID: 0}
   prefab: {fileID: 4673968368137477462, guid: f6eeca3a10e323a46a4d7bc4cbd31e95, type: 3}
-  maxHealth: 100
+  maxHealth: 120
   attackPower: 60
   movementRange: 2

@@ -231,8 +231,8 @@ namespace Game.Card.UI
                 return false;
             }
 
-            // 유닛 소환 시도
-            bool spawnSuccess = cardSpawnService.TrySpawnUnitFromCard(cardData, gridPosition);
+            // 유닛 소환 시도 (TryExecuteCard 사용)
+            bool spawnSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, true);
 
             if (spawnSuccess)
             {
@@ -270,8 +270,8 @@ namespace Game.Card.UI
                 return false;
             }
 
-            // 주문 발동 시도
-            bool spellSuccess = cardSpawnService.TryActivateSpellFromCard(cardData, gridPosition);
+            // 주문 발동 시도 (TryExecuteCard 사용)
+            bool spellSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, true);
 
             if (spellSuccess)
             {

@@ -547,7 +547,9 @@ MonoBehaviour:
   arrangeCardsInArc: 1
   arcRadius: 800
   availableCards:
-  - {fileID: 11400000, guid: 339b900f0d3c681458612928e5566c46, type: 2}
+  - {fileID: 11400000, guid: caf30435544a4ab4a96a1eaab2fb2038, type: 2}
+  - {fileID: 11400000, guid: 3cabebd7d3435dd4e9b3013299a570c8, type: 2}
+  - {fileID: 11400000, guid: 6c4353a67e070a24ba45c2d2dc577084, type: 2}
   enablePlayerInteraction: 1
   showHandDebugInfo: 1
   testCardData: {fileID: 0}
@@ -1298,8 +1300,9 @@ MonoBehaviour:
     type: 3}
   enemyUnitPrefab: {fileID: 3546852586526391875, guid: 09969d1e6af0a4246a758cc626655001,
     type: 3}
+  playerUnitData: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
+  enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
   playerStartPositions:
-  - {x: 0, y: 0}
   - {x: 1, y: 1}
   - {x: 2, y: 0}
   - {x: 3, y: 2}
@@ -1308,6 +1311,7 @@ MonoBehaviour:
   - {x: 1, y: 4}
   - {x: 2, y: 5}
   - {x: 3, y: 5}
+  - {x: 4, y: 5}
 --- !u!1001 &1925692108
 PrefabInstance:
   m_ObjectHideFlags: 0
