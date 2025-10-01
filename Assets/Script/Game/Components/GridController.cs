@@ -476,6 +476,7 @@ namespace Game.Components
                 }
             }
 
+
             // 유닛이 없으면 왼쪽 가운데를 기준점으로 사용
             Vector2Int fallbackPosition = new Vector2Int(0, gridSize.y / 2);
             Debug.Log($"[GridController] No player unit found, using fallback position: {fallbackPosition}");
@@ -685,10 +686,8 @@ namespace Game.Components
 
         public bool MoveUnit(GameObject unit, Vector2Int newPosition)
         {
-            Debug.Log("MoveUnitT1");
             if (!CanMoveUnit(unit, newPosition))
                 return false;
-            Debug.Log("MoveUnitT2");
             
             // Update state through data layer
             if (!gridState.SetUnitPosition(unit, newPosition))
@@ -1169,8 +1168,49 @@ namespace Game.Components
         {
             if (!TryGetUnitPosition(unit, out var currentPosition))
                 return false;
-                
+
             return MoveUnit(unit, currentPosition, targetPosition);
+        }
+
+        /// <summary>
+        /// 지정된 그리드 위치의 Tile 컴포넌트를 반환합니다.
+        /// Unit 소환 시 currentTile 설정을 위해 사용됩니다.
+        /// </summary>
+        /// <param name="gridPosition">찾을 타일의 그리드 위치</param>
+        /// <returns>해당 위치의 Tile 컴포넌트, 없으면 null</returns>
+        public Tile GetTileAtPosition(Vector2Int gridPosition)
+        {
+            if (!IsValidPosition(gridPosition))
+            {
+                Debug.LogWarning($"[GridController] GetTileAtPosition: 유효하지 않은 위치 ({gridPosition.x}, {gridPosition.y})");
+                return null;
+            }
+
+            // Method 1: 이름으로 검색 (GridRenderer가 생성한 타일들)
+            GameObject tileObject = GameObject.Find($"Tile_{gridPosition.x}_{gridPosition.y}");
+            if (tileObject != null)
+            {
+                Tile tile = tileObject.GetComponent<Tile>();
+                if (tile != null)
+                {
+                    Debug.Log($"[GridController] Tile found by name: {tileObject.name}");
+                    return tile;
+                }
+            }
+
+            // Method 2: 모든 Tile에서 위치 매칭 검색
+            Tile[] allTiles = UnityEngine.Object.FindObjectsOfType<Tile>();
+            foreach (var tile in allTiles)
+            {
+                if (tile.X == gridPosition.x && tile.Y == gridPosition.y)
+                {
+                    Debug.Log($"[GridController] Tile found by position matching: {tile.name}");
+                    return tile;
+                }
+            }
+
+            Debug.LogWarning($"[GridController] Tile not found at position ({gridPosition.x}, {gridPosition.y})");
+            return null;
         }
     }
 

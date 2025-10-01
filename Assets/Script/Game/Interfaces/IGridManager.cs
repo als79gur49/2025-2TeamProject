@@ -276,6 +276,11 @@ namespace Game.Interfaces
         /// </summary>
         bool ValidateAndExecuteUnitMovement(GameObject unit, Vector2Int targetPosition);
 
+        /// <summary>
+        /// Get Tile component at specified grid position (for Unit currentTile setup)
+        /// </summary>
+        Tile GetTileAtPosition(Vector2Int gridPosition);
+
         // 이벤트들
         event System.Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
         event System.Action<Vector2Int, GameObject> OnUnitPlaced;

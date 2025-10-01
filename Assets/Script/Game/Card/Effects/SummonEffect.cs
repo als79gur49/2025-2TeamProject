@@ -79,6 +79,7 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// 소환 가능한 위치들을 찾습니다.
+        /// Phase 3.17: targetPos를 최우선으로 확인하여 드롭 위치와 소환 위치 일치 보장
         /// </summary>
         private List<Vector2Int> GetAvailableSummonPositions(Vector2Int targetPos, GameContext context)
         {
@@ -95,12 +96,24 @@ namespace Game.Card.Effects
             }
             else
             {
-                // 범위 내 모든 유효한 위치에서 소환 가능
+                // Phase 3.17: targetPos를 먼저 확인하여 우선순위 부여
+                // 사용자가 드롭한 위치를 가장 먼저 배치하도록 보장
+                if (IsValidSummonPosition(targetPos, context))
+                {
+                    availablePositions.Add(targetPos);
+                }
+
+                // 범위 내 다른 유효한 위치들을 추가 (targetPos는 제외)
                 for (int x = -_effectData.AffectedRange; x <= _effectData.AffectedRange; x++)
                 {
                     for (int y = -_effectData.AffectedRange; y <= _effectData.AffectedRange; y++)
                     {
                         var checkPos = targetPos + new Vector2Int(x, y);
+
+                        // targetPos는 이미 추가했으므로 중복 방지
+                        if (checkPos == targetPos)
+                            continue;
+
                         if (IsValidSummonPosition(checkPos, context))
                         {
                             availablePositions.Add(checkPos);
@@ -109,6 +122,7 @@ namespace Game.Card.Effects
                 }
             }
 
+            Debug.Log($"[SummonEffect] Found {availablePositions.Count} available positions. First: {(availablePositions.Count > 0 ? availablePositions[0].ToString() : "None")}");
             return availablePositions;
         }
 
@@ -204,11 +218,34 @@ namespace Game.Card.Effects
             bool isPlayerUnit = (context.PlayerId == 0); // PlayerId 0이 플레이어라고 가정
             unit.Init(_effectData.UnitToSummon, position, isPlayerUnit);
 
-            // GridController에 유닛 위치 설정 (월드 좌표 및 시각적 배치)
-            context.GridController.SetUnitWorldPosition(unitObject, position);
+            // 외부에서 모든 등록 처리 (Orchestrator 패턴)
 
-            // UnitService에 유닛 등록
+            // 1. GridController.MoveUnit()으로 GridState + Transform 위치 동시 업데이트
+            //    - GridState의 unitPositions, positionUnits 딕셔너리 업데이트
+            //    - 물리적 Tile 컴포넌트 동기화
+            //    - Transform.position 설정
+            bool moved = context.GridController.MoveUnit(unitObject, position);
+            if (!moved)
+            {
+                Debug.LogError($"SummonEffect: {position}에 유닛 배치 실패 - GridController.MoveUnit() failed");
+                Object.Destroy(unitObject);
+                return;
+            }
+
+            // 2. UnitService에 유닛 등록
             context.UnitService.RegisterUnit(unit);
+
+            // 3. currentTile 설정 (GridController를 통해 Tile 찾기)
+            var tile = context.GridController.GetTileAtPosition(position);
+            if (tile != null)
+            {
+                unit.SetCurrentTile(tile);
+                Debug.Log($"SummonEffect: {unit.name}의 currentTile 설정 완료 → {tile.name} ({position.x}, {position.y})");
+            }
+            else
+            {
+                Debug.LogWarning($"SummonEffect: 위치 ({position.x}, {position.y})에서 Tile을 찾을 수 없습니다.");
+            }
 
             Debug.Log($"SummonEffect: {position}에 {_effectData.UnitToSummon.UnitName} 소환 완료 (Player: {isPlayerUnit})");
         }

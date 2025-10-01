@@ -406,7 +406,7 @@ namespace Game.Services
             if (isPlayerUnit)
             {
                 // 플레이어는 좌측 첫 번째 열(x=0)에만 소환 가능
-                if (gridPosition.x != 0)
+                if (gridPosition.y != 0)
                 {
                     Log($"❌ Player unit can only spawn in leftmost column (x=0), attempted x={gridPosition.x}");
                     return false;

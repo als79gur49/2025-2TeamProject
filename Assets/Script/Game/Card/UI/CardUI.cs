@@ -354,6 +354,13 @@ namespace Game.Card.UI
             Ray ray = camera.ScreenPointToRay(eventData.position);
             RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity);
 
+            // Phase 3.17: 레이캐스트 결과를 거리순으로 정렬 (가장 가까운 타일 우선)
+            // 대각선 카메라 각도에서 여러 타일이 동시에 히트되는 문제 해결
+            if (hits.Length > 1)
+            {
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            }
+
             bool isValidDrop = false;
 
             foreach (var hit in hits)
@@ -391,9 +398,16 @@ namespace Game.Card.UI
             Ray ray = camera.ScreenPointToRay(eventData.position);
             RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity);
 
+            // Phase 3.17: 레이캐스트 결과를 거리순으로 정렬 (가장 가까운 타일 우선)
+            // 대각선 카메라 각도에서 여러 타일이 동시에 히트되는 문제 해결
+            if (hits.Length > 1)
+            {
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            }
+
             foreach (var hit in hits)
             {
-                Debug.Log($"Physics Raycast hit: {hit.collider.gameObject.name}");
+                Debug.Log($"[CardUI] Physics Raycast hit: {hit.collider.gameObject.name} at distance {hit.distance:F2}");
                 var tileDropHandler = hit.collider.GetComponent<TileDropHandler>();
                 if (tileDropHandler != null)
                 {

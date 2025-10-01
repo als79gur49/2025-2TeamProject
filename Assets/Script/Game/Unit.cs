@@ -114,40 +114,21 @@ public class Unit : MonoBehaviour
             Debug.Log($"[Unit] {gameObject.name} initialized with UnitData: HP={unitData.MaxHealth}, ATK={unitData.AttackPower}, MOV={unitData.MovementRange}, Team={isPlayerUnit}");
         }
 
-        // ServiceLocator에서 필요한 서비스 가져오기
+        // ServiceLocator에서 GridManager 가져오기 (등록은 외부에서 처리)
         var gridManager = ServiceLocator.Get<IGridManager>();
-        var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
 
-        if (gridManager != null && gameServiceManager != null)
+        if (gridManager != null)
         {
             InitializeGridManager(gridManager);
-            RegisterWithGameServiceManager(gameServiceManager);
         }
         else
         {
-            Debug.LogWarning($"[Unit] {gameObject.name} could not get services from ServiceLocator");
+            Debug.LogWarning($"[Unit] {gameObject.name} could not get GridManager from ServiceLocator");
         }
 
         isInitialized = true;
 
         Debug.Log($"[Unit] {gameObject.name} initialization completed at position ({position.x}, {position.y}) - 프레임: {Time.frameCount}");
-    }
-       
-    /// <summary>
-    /// GameServiceManager를 통해 UnitService에 자동 등록
-    /// </summary>
-    private void RegisterWithGameServiceManager(IGameServiceManager igameServiceManager)
-    {
-        if(igameServiceManager != null)
-        {
-            // GameServiceManager의 public 메서드를 통해 등록
-            igameServiceManager.RegisterUnit(this);
-            Debug.Log($"[Unit] {gameObject.name} registered with GameServiceManager successfully");
-        }
-        else
-        {
-            Debug.LogWarning($"[Unit] {gameObject.name} registration failed - GameServiceManager is null");
-        }
     }
 
     /// <summary>
