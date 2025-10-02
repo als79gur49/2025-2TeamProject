@@ -32,6 +32,7 @@ public class Unit : MonoBehaviour
     private ICombatSystem combatComponent;
     private IMovementSystem movementComponent;
     private ITeamComponent teamComponent;
+    private IAnimationController animationController;
     
     // Legacy system support
     private int legacyMaxHealth;
@@ -58,6 +59,9 @@ public class Unit : MonoBehaviour
     // Initialization status properties
     public bool IsInitialized => isInitialized;
     public bool IsReadyForGame => isInitialized && gridManager != null;
+
+    // Component access methods
+    public IAnimationController GetAnimationController() => animationController;
     
     private void Awake()
     {
@@ -301,7 +305,8 @@ public class Unit : MonoBehaviour
         combatComponent = GetComponent<ICombatSystem>();
         movementComponent = GetComponent<IMovementSystem>();
         teamComponent = GetComponent<ITeamComponent>();
-        
+        animationController = GetComponent<IAnimationController>();
+
         // Initialize component system if available
         if (useComponentSystem)
         {
@@ -309,7 +314,8 @@ public class Unit : MonoBehaviour
             InitializeCombatComponent();
             InitializeMovementComponent();
             InitializeTeamComponent();
-            
+            InitializeAnimationController();
+
             // Update runtime status
             UpdateComponentSystemStatus();
         }
@@ -385,12 +391,23 @@ public class Unit : MonoBehaviour
             teamComponent = comp;
             Debug.Log($"[Unit] Auto-added TeamComponent to {gameObject.name}");
         }
-        
+
         // Apply legacy values to component
         if (teamComponent != null)
         {
             // Set team based on legacy isPlayerUnit flag
             teamComponent.Team = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
+        }
+    }
+
+    private void InitializeAnimationController()
+    {
+        if (animationController == null && useComponentSystem && autoAddMissingComponents)
+        {
+            // Auto-add UnitAnimationController if not present
+            var comp = gameObject.AddComponent<UnitAnimationController>();
+            animationController = comp;
+            Debug.Log($"[Unit] Auto-added UnitAnimationController to {gameObject.name}");
         }
     }
     

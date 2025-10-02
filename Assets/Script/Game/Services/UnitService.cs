@@ -330,6 +330,10 @@ namespace Game.Services
         {
             try
             {
+                // 1. 애니메이션 컨트롤러 캐싱
+                var animController = unit?.GetAnimationController();
+
+                // 2. 페이즈별 액션 실행
                 switch (phase)
                 {
                     case TurnPhase.TurnStart:
@@ -340,7 +344,36 @@ namespace Game.Services
                     case TurnPhase.EnemyAction:
                     case TurnPhase.AllyAction:
                         Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
+
+                        // 유닛 행동 실행 (이동 or 공격 → 애니메이션 트리거)
                         unit.Act();
+
+                        // 3. 애니메이션 완료 대기 (핵심 로직)
+                        if (animController != null && animController.IsAnimationPlaying)
+                        {
+                            Debug.Log($"[UnitService] Waiting for {unit.name} animation to complete...");
+
+                            float timeout = 5f; // 5초 타임아웃 (안전장치)
+                            float elapsed = 0f;
+
+                            // IsAnimationPlaying이 false가 될 때까지 대기
+                            while (animController.IsAnimationPlaying && elapsed < timeout)
+                            {
+                                yield return null; // 다음 프레임까지 대기
+                                elapsed += Time.deltaTime;
+                            }
+
+                            // 타임아웃 처리
+                            if (elapsed >= timeout)
+                            {
+                                Debug.LogWarning($"[UnitService] Animation timeout for {unit.name}, forcing completion");
+                                animController.StopCurrentAnimation();
+                            }
+                            else
+                            {
+                                Debug.Log($"[UnitService] Animation completed for {unit.name}");
+                            }
+                        }
                         break;
 
                     case TurnPhase.TurnEnd:
@@ -356,7 +389,7 @@ namespace Game.Services
                 Debug.LogError($"[UnitService] Error processing unit {unit?.name} in phase {phase}: {ex.Message}");
             }
 
-            // 액션 후 애니메이션 등 시각적 처리를 위한 대기 시간 (필요시)
+            // 4. 기존 딜레이 유지 (필요 시)
             yield return null;
         }
     }

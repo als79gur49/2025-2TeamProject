@@ -148,11 +148,13 @@ namespace Game.Data
                 return;
             }
 
-            for (int x = -range; x <= range; x++)
+            // Phase 3.5: 변수명 명시화 (xOffset = 가로 오프셋, yOffset = 세로 오프셋)
+            // 좌표계: Vector2Int(x,y) = (가로,세로)
+            for (int xOffset = -range; xOffset <= range; xOffset++)
             {
-                for (int y = -range; y <= range; y++)
+                for (int yOffset = -range; yOffset <= range; yOffset++)
                 {
-                    var pos = new Vector2Int(center.x + x, center.y + y);
+                    var pos = new Vector2Int(center.x + xOffset, center.y + yOffset);
                     positions.Add(pos);
                 }
             }
@@ -166,11 +168,13 @@ namespace Game.Data
                 return;
             }
 
-            for (int x = -range; x <= range; x++)
+            // Phase 3.5: 변수명 명시화 (xOffset = 가로 오프셋, yOffset = 세로 오프셋)
+            // 좌표계: Vector2Int(x,y) = (가로,세로)
+            for (int xOffset = -range; xOffset <= range; xOffset++)
             {
-                for (int y = -range; y <= range; y++)
+                for (int yOffset = -range; yOffset <= range; yOffset++)
                 {
-                    var pos = new Vector2Int(center.x + x, center.y + y);
+                    var pos = new Vector2Int(center.x + xOffset, center.y + yOffset);
                     positions.Add(pos);
                 }
             }

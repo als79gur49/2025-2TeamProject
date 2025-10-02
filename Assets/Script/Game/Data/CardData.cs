@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Game.Card.Effects;
+using Game.Utilities;
 
 namespace Game.Data
 {
@@ -126,7 +127,7 @@ namespace Game.Data
             // -1이면 거리 제한 없음, 0+면 해당 거리까지만 가능
             if (targetRange >= 0)
             {
-                int distance = CalculateManhattanDistance(casterPosition, targetPosition);
+                int distance = GridPositionHelper.CalculateYDistance(casterPosition, targetPosition);
                 Debug.Log($"distance{distance} | targetRange{targetRange} casterPosition{casterPosition} | targetPosition{targetPosition} ");
                 if (distance > targetRange)
                 {
@@ -138,14 +139,17 @@ namespace Game.Data
         }
 
         /// <summary>
-        /// Phase 2.11: 맨하탄 거리 계산 (TargetRange 검증용)
+        /// Phase 2.11 & 3.1: 맨하탄 거리 계산 (TargetRange 검증용)
+        /// 좌표계: 좌하단(0,0) 기준, Vector2Int(x,y) = (col,row) = (가로,세로)
         /// </summary>
         /// <param name="from">시작 위치</param>
         /// <param name="to">목표 위치</param>
-        /// <returns>맨하탄 거리</returns>
+        /// <returns>맨하탄 거리 (|Δx| + |Δy|)</returns>
         public static int CalculateManhattanDistance(Vector2Int from, Vector2Int to)
         {
-            return Mathf.Abs(to.y - from.y); //오직 x축만 검증
+            // Phase 3.1: 실제 맨하탄 거리 계산 (x축 거리 + y축 거리)
+            // Vector2Int.x = 가로(col), Vector2Int.y = 세로(row)
+            return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
         }
 
         /// <summary>
@@ -224,7 +228,8 @@ namespace Game.Data
         }
 
         /// <summary>
-        /// Phase 2.8: AffectedRange 기반 범위 내 위치들을 반환합니다
+        /// Phase 2.8 & 3.2: AffectedRange 기반 범위 내 위치들을 반환합니다
+        /// 좌표계: 좌하단(0,0) 기준, Vector2Int(x,y) = (col,row) = (가로,세로)
         /// </summary>
         public List<Vector2Int> GetAffectedPositions(Vector2Int targetPosition, EffectData effectData)
         {
@@ -239,12 +244,14 @@ namespace Game.Data
                 return positions;
             }
 
-            // AffectedRange가 1+이면 범위 내 모든 위치 포함
-            for (int x = -effectData.AffectedRange; x <= effectData.AffectedRange; x++)
+            // Phase 3.2: 변수명을 의미에 맞게 변경 (xOffset = 가로 오프셋, yOffset = 세로 오프셋)
+            // AffectedRange가 1+이면 범위 내 모든 위치 포함 (정사각형 범위)
+            for (int xOffset = -effectData.AffectedRange; xOffset <= effectData.AffectedRange; xOffset++)
             {
-                for (int y = -effectData.AffectedRange; y <= effectData.AffectedRange; y++)
+                for (int yOffset = -effectData.AffectedRange; yOffset <= effectData.AffectedRange; yOffset++)
                 {
-                    var pos = new Vector2Int(targetPosition.x + x, targetPosition.y + y);
+                    // Vector2Int.x = 가로(col), Vector2Int.y = 세로(row)
+                    var pos = new Vector2Int(targetPosition.x + xOffset, targetPosition.y + yOffset);
                     positions.Add(pos);
                 }
             }
@@ -253,7 +260,8 @@ namespace Game.Data
         }
 
         /// <summary>
-        /// Phase 2.8: 지정된 위치가 AffectedRange 내에 있는지 확인합니다
+        /// Phase 2.8 & 3.3: 지정된 위치가 AffectedRange 내에 있는지 확인합니다
+        /// 좌표계: 좌하단(0,0) 기준, Vector2Int(x,y) = (col,row) = (가로,세로)
         /// </summary>
         public bool IsPositionInAffectedRange(Vector2Int targetPosition, Vector2Int checkPosition, EffectData effectData)
         {
@@ -265,9 +273,13 @@ namespace Game.Data
                 return targetPosition == checkPosition;
             }
 
-            // 맨하탄 거리로 범위 체크
-            int distance = Mathf.Abs(targetPosition.x - checkPosition.x) + Mathf.Abs(targetPosition.y - checkPosition.y);
-            return distance <= effectData.AffectedRange;
+            // Phase 3.3: 맨하탄 거리로 범위 체크 (명시적 변수명 사용)
+            // Vector2Int.x = 가로(col) 거리, Vector2Int.y = 세로(row) 거리
+            int xDistance = Mathf.Abs(targetPosition.x - checkPosition.x);  // 가로 거리
+            int yDistance = Mathf.Abs(targetPosition.y - checkPosition.y);  // 세로 거리
+            int manhattanDistance = xDistance + yDistance;
+
+            return manhattanDistance <= effectData.AffectedRange;
         }
 
         /// <summary>

@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "\uD790\uB9C1"
   description: "\uC544\uAD70 \uC720\uB2DB\uC758 \uCCB4\uB825 \uD68C\uBCF5"
-  cardArt: {fileID: 0}
+  cardArt: {fileID: 21300000, guid: a506c086aca7244cfba8d61e185dbea9, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0
   manaCost: 2
   targetType: 1
-  targetRange: -1
+  targetRange: 4
   keywords: []
   effectDataList:
   - type: 1

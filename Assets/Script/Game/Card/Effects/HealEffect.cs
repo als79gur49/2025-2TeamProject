@@ -116,12 +116,14 @@ namespace Game.Card.Effects
             // 생존 상태 확인
             if (!healthComponent.IsAlive)
             {
+                Debug.LogWarning($"HealEffect: {unit.name}은 죽은 상태이다.");
                 return false;
             }
 
             // 최대 체력보다 낮은 체력인지 확인
             if (healthComponent.CurrentHealth >= healthComponent.MaxHealth)
             {
+                Debug.LogWarning($"HealEffect: {unit.name}은 이미 최대 체력이다.");
                 return false; // 이미 최대 체력
             }
 

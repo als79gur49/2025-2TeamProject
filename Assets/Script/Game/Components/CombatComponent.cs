@@ -42,6 +42,7 @@ namespace Game.Components
         private IGridManager gridManager;
         private ITeamComponent teamComponent;
         private IHealthComponent healthComponent;
+        private IAnimationController animationController;
 
         #region Unity Lifecycle
 
@@ -50,6 +51,22 @@ namespace Game.Components
             // 캐시 컴포넌트 초기화
             teamComponent = GetComponent<ITeamComponent>();
             healthComponent = GetComponent<IHealthComponent>();
+            animationController = GetComponent<IAnimationController>();
+
+            // 애니메이션 이벤트 구독
+            if (animationController != null)
+            {
+                animationController.OnAttackHit += OnAnimationAttackHit;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // 애니메이션 이벤트 구독 해제
+            if (animationController != null)
+            {
+                animationController.OnAttackHit -= OnAnimationAttackHit;
+            }
         }
 
         private void Start()
@@ -112,7 +129,23 @@ namespace Game.Components
                 return CombatResult.Failed("Cannot attack target");
             }
 
-            return PerformAttack(target, false);
+            OnAttackStarted?.Invoke(target);
+            lastAttackTime = Time.time;
+            EnterCombat();
+
+            // 애니메이션 재생 (데미지는 OnAnimationAttackHit에서 적용)
+            if (animationController != null)
+            {
+                animationController.PlayAttackAnimation(target);
+
+                // 임시 결과 반환 (실제 결과는 OnAnimationAttackHit 이벤트로 전달)
+                return CombatResult.Hit(0, target, attackType, false, "Attack animation started");
+            }
+            else
+            {
+                // 애니메이션 없으면 즉시 데미지 적용 (fallback)
+                return PerformAttack(target, false);
+            }
         }
 
         public CombatResult AttackPosition(Vector2Int position)
@@ -533,6 +566,54 @@ namespace Game.Components
             }
             
             return positions;
+        }
+
+        /// <summary>
+        /// Animation Event에서 호출되는 실제 데미지 적용 메서드
+        /// AnimEvent_OnAttackImpact() → OnAttackHit 이벤트 → 이 메서드 호출
+        /// </summary>
+        private void OnAnimationAttackHit(GameObject target)
+        {
+            if (target == null) return;
+
+            var targetHealth = target.GetComponent<IHealthComponent>();
+            if (targetHealth == null || !targetHealth.IsAlive)
+            {
+                Debug.LogWarning($"[CombatComponent] Attack hit but target {target.name} has no health or is dead");
+                return;
+            }
+
+            // 크리티컬 판정
+            bool isCritical = this.RollCritical();
+
+            // 피해량 계산
+            int baseDamage = CurrentAttackPower;
+            int finalDamage = this.CalculateFinalDamage(baseDamage, isCritical);
+
+            // 방어력 관통 적용
+            if (CanPierceArmor && targetHealth is IAdvancedHealthComponent advancedHealth)
+            {
+                var damageInfo = new DamageInfo(finalDamage, attackType, gameObject, isCritical, armorPenetration > 0.5f);
+                targetHealth.TakeDamage(finalDamage);
+            }
+            else
+            {
+                targetHealth.TakeDamage(finalDamage);
+            }
+
+            Debug.Log($"[CombatComponent] {gameObject.name} hit {target.name} for {finalDamage} damage" +
+                      (isCritical ? " (CRITICAL!)" : ""));
+
+            // 이벤트 발생
+            var result = CombatResult.Hit(finalDamage, target, attackType, isCritical,
+                isCritical ? "Critical hit!" : "Attack hit!");
+
+            OnAttackPerformed?.Invoke(target, result);
+
+            if (isCritical)
+            {
+                OnCriticalAttack?.Invoke(target, result);
+            }
         }
 
         #endregion

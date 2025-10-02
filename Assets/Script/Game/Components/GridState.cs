@@ -45,17 +45,21 @@ namespace Game.Components
 
         /// <summary>
         /// 그리드 초기화
+        /// Phase 3.5: 그리드 초기화 주석 추가
+        /// 좌표계: Vector2Int(x,y) = (가로,세로), gridSize.x = 가로 크기, gridSize.y = 세로 크기
         /// </summary>
         private void InitializeGrid()
         {
             tileGrid = new GridTileData[gridSize.x, gridSize.y];
-            
-            for (int x = 0; x < gridSize.x; x++)
+
+            // Phase 3.5: 변수명 명시화 (xIndex = 가로 인덱스, yIndex = 세로 인덱스)
+            // 좌표계: Vector2Int(x,y) = (가로,세로)
+            for (int xIndex = 0; xIndex < gridSize.x; xIndex++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int yIndex = 0; yIndex < gridSize.y; yIndex++)
                 {
-                    var position = new Vector2Int(x, y);
-                    tileGrid[x, y] = new GridTileData(position);
+                    var position = new Vector2Int(xIndex, yIndex);
+                    tileGrid[xIndex, yIndex] = new GridTileData(position);
                 }
             }
 
@@ -240,26 +244,33 @@ namespace Game.Components
 
         /// <summary>
         /// 좌표 변환 - 그리드 → 월드
+        /// 좌표계: Y축 하→상 증가 (카르테시안)
+        /// gridPosition.y = 0: 최하단, gridPosition.y = max: 최상단
         /// </summary>
         public Vector3 GridToWorldPosition(Vector2Int gridPosition)
         {
+            // Y축 반전: gridPosition.y가 증가하면 Z축 감소 (화면상 위로)
             return gridOrigin + new Vector3(
-                gridPosition.x * tileSize, 
-                0f, 
-                gridPosition.y * tileSize
+                gridPosition.x * tileSize,                           // X축: 좌→우
+                0f,                                                   // 높이 고정
+                (gridSize.y - 1 - gridPosition.y) * tileSize        // Z축: Y 반전 (하→상)
             );
         }
 
         /// <summary>
         /// 좌표 변환 - 월드 → 그리드
+        /// 좌표계: Y축 하→상 증가 (카르테시안)
         /// </summary>
         public Vector2Int WorldToGridPosition(Vector3 worldPosition)
         {
             var localPosition = worldPosition - gridOrigin;
-            return new Vector2Int(
-                Mathf.RoundToInt(localPosition.x / tileSize),
-                Mathf.RoundToInt(localPosition.z / tileSize)
-            );
+            int x = Mathf.RoundToInt(localPosition.x / tileSize);
+            int z = Mathf.RoundToInt(localPosition.z / tileSize);
+
+            // Y축 반전: Z가 작을수록 Y가 큼 (하→상)
+            int y = gridSize.y - 1 - z;
+
+            return new Vector2Int(x, y);
         }
 
         /// <summary>

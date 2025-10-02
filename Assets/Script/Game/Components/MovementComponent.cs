@@ -46,6 +46,7 @@ namespace Game.Components
         private IHealthComponent healthComponent;
         private ICombatSystem combatSystem;
         private ITeamComponent teamComponent;
+        private IAnimationController animationController;
 
         #region Unity Lifecycle
 
@@ -55,10 +56,26 @@ namespace Game.Components
             healthComponent = GetComponent<IHealthComponent>();
             combatSystem = GetComponent<ICombatSystem>();
             teamComponent = GetComponent<ITeamComponent>();
-            
+            animationController = GetComponent<IAnimationController>();
+
             // 초기 이동력 설정
             maxMovementPoints = movementRange;
             currentMovementPoints = maxMovementPoints;
+
+            // 애니메이션 이벤트 구독 (선택적)
+            if (animationController != null)
+            {
+                animationController.OnMovementFinished += OnAnimationMovementFinished;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // 애니메이션 이벤트 구독 해제
+            if (animationController != null)
+            {
+                animationController.OnMovementFinished -= OnAnimationMovementFinished;
+            }
         }
 
         private void Start()
@@ -205,30 +222,27 @@ namespace Game.Components
         public MovementResult MoveToPosition(Vector2Int targetPosition, bool useMovementPoints = true)
         {
             var startPosition = gridManager?.GetUnitPosition(gameObject) ?? Vector2Int.zero;
-            
+
             if (!CanMoveTo(targetPosition))
             {
                 return MovementResult.Failed(startPosition, "Cannot move to target position");
             }
 
-            var startTime = Time.time;
             OnMovementStarted?.Invoke(startPosition, targetPosition);
             isMoving = true;
 
             try
             {
                 // 경로 계산
-                List<Vector2Int> path;
                 int movementCost;
 
                 if (CanFly || CanPhaseThrough)
                 {
-                    path = new List<Vector2Int> { startPosition, targetPosition };
                     movementCost = startPosition.GetManhattanDistance(targetPosition);
                 }
                 else
                 {
-                    path = gridManager.FindPath(startPosition, targetPosition, gameObject);
+                    var path = gridManager.FindPath(startPosition, targetPosition, gameObject);
                     if (path == null || path.Count == 0)
                     {
                         return MovementResult.Failed(startPosition, "No valid path found");
@@ -236,20 +250,25 @@ namespace Game.Components
                     movementCost = CalculatePathCost(path);
                 }
 
-                // 이동 실행 - fromPosition과 toPosition을 명시적으로 전달
+                // 그리드 위치 업데이트 (즉시) - 애니메이션은 시각적 효과만, 로직은 즉시 처리
                 if (gridManager.MoveUnit(gameObject, startPosition, targetPosition))
                 {
+                    // 이동 애니메이션 재생 (void 메서드 직접 호출)
+                    if (animationController != null)
+                    {
+                        animationController.PlayMoveAnimation(startPosition, targetPosition);
+                    }
+
                     if (useMovementPoints)
                     {
                         ConsumeMovementPoints(movementCost);
                     }
 
                     hasMovedThisTurn = true;
-                    var timeTaken = Time.time - startTime;
-                    
-                    var result = MovementResult.Succeeded(startPosition, targetPosition, path, 
-                                                        movementCost, timeTaken, "Movement successful");
-                    
+
+                    var result = MovementResult.Succeeded(startPosition, targetPosition, null,
+                                                        movementCost, 0f, "Movement successful");
+
                     OnMovementCompleted?.Invoke(startPosition, targetPosition);
                     return result;
                 }
@@ -260,7 +279,7 @@ namespace Game.Components
             }
             finally
             {
-                // 🔧 강화된 상태 초기화 - 예외 발생 시에도 isMoving 플래그 확실히 초기화
+                // 상태 초기화 - 예외 발생 시에도 isMoving 플래그 확실히 초기화
                 isMoving = false;
                 Debug.Log($"[MovementComponent] {gameObject.name} Movement completed - isMoving reset to false");
             }
@@ -531,13 +550,24 @@ namespace Game.Components
         private int GetModifiedMovementRange()
         {
             float totalRange = movementRange;
-            
+
             foreach (var modifier in movementRangeModifiers)
             {
                 totalRange = modifier.ApplyModifier(totalRange);
             }
-            
+
             return Mathf.RoundToInt(totalRange);
+        }
+
+        /// <summary>
+        /// Animation Event에서 호출되는 이동 완료 처리 (선택적)
+        /// </summary>
+        private void OnAnimationMovementFinished(Vector2Int targetPosition)
+        {
+            Debug.Log($"[MovementComponent] Movement animation finished to {targetPosition}");
+
+            // 추가 처리 필요시 여기서 수행
+            // 예: 이동 완료 사운드, 먼지 효과 등
         }
 
         #endregion

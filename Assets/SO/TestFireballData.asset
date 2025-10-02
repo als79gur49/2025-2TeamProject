@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "\uD30C\uC774\uC5B4\uBCFC"
   description: "\uD654\uC5FC\uAD6C \uC18C\uD658."
-  cardArt: {fileID: 0}
+  cardArt: {fileID: 21300000, guid: 784ec009898a347da85c11fe8c261b09, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0
   manaCost: 1
   targetType: 2
-  targetRange: -1
+  targetRange: 4
   keywords: []
   effectDataList:
   - type: 0
-    value: 1
+    value: 15
     priority: 0
     affectedType: 2
     affectedRange: 0
