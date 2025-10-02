@@ -427,11 +427,11 @@ namespace Game.Components
         #region Phase 3.15: TargetRange 거리 계산 메서드들
 
         /// <summary>
-        /// Phase 3.15: 플레이어 기준점에서 대상 위치까지의 거리 계산
-        /// 플레이어는 가장 왼쪽 유닛을 기준으로 맨하탄 거리 계산
+        /// Phase 3.15: 플레이어 기준점에서 대상 위치까지의 X축 거리 계산
+        /// 플레이어는 가장 왼쪽 열(X=0)을 기준으로 X축 거리만 계산
         /// </summary>
         /// <param name="targetPosition">목표 위치</param>
-        /// <returns>플레이어 기준점에서의 거리</returns>
+        /// <returns>플레이어 기준점에서의 X축 거리</returns>
         public int GetDistanceFromPlayerBase(Vector2Int targetPosition)
         {
             Vector2Int playerBasePosition = GetPlayerBasePosition();
@@ -439,11 +439,11 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// Phase 3.15: 적군 기준점에서 대상 위치까지의 거리 계산
-        /// 적군은 가장 오른쪽 유닛을 기준으로 맨하탄 거리 계산
+        /// Phase 3.15: 적군 기준점에서 대상 위치까지의 X축 거리 계산
+        /// 적군은 가장 오른쪽 열을 기준으로 X축 거리만 계산
         /// </summary>
         /// <param name="targetPosition">목표 위치</param>
-        /// <returns>적군 기준점에서의 거리</returns>
+        /// <returns>적군 기준점에서의 X축 거리</returns>
         public int GetDistanceFromEnemyBase(Vector2Int targetPosition)
         {
             Vector2Int enemyBasePosition = GetEnemyBasePosition();
@@ -452,80 +452,47 @@ namespace Game.Components
 
         /// <summary>
         /// Phase 3.15: 플레이어 기준점 위치 반환
-        /// 가장 왼쪽 열에서 플레이어 유닛을 찾아 기준점으로 사용
+        /// 가장 왼쪽 열(X=0)을 고정 기준점으로 사용
+        /// X축 거리만 계산하므로 Y 좌표는 의미 없음
         /// </summary>
         /// <returns>플레이어 기준점 위치</returns>
         public Vector2Int GetPlayerBasePosition()
         {
-            if (gridState == null)
-            {
-                Debug.LogWarning("[GridController] GridState가 null입니다. 기본 플레이어 위치 반환");
-                return new Vector2Int(0, GridSize.y / 2);
-            }
-
             var gridSize = GridSize;
 
-            // 가장 왼쪽 열에서 플레이어 유닛 찾기
-            for (int y = 0; y < gridSize.y; y++)
-            {
-                Vector2Int pos = new Vector2Int(0, y);
-                if (HasPlayerUnit(pos))
-                {
-                    Debug.Log($"[GridController] Player base position found at leftmost unit: {pos}");
-                    return pos;
-                }
-            }
-
-
-            // 유닛이 없으면 왼쪽 가운데를 기준점으로 사용
-            Vector2Int fallbackPosition = new Vector2Int(0, gridSize.y / 2);
-            Debug.Log($"[GridController] No player unit found, using fallback position: {fallbackPosition}");
-            return fallbackPosition;
+            // 가장 왼쪽 열을 고정 기준점으로 사용 (Y 좌표는 X축 거리 계산에 영향 없음)
+            Vector2Int basePosition = new Vector2Int(gridSize.x / 2, 0);
+            Debug.Log($"[GridController] Player base position (fixed leftmost column): {basePosition}");
+            return basePosition;
         }
 
         /// <summary>
         /// Phase 3.15: 적군 기준점 위치 반환
-        /// 가장 오른쪽 열에서 적군 유닛을 찾아 기준점으로 사용
+        /// 가장 오른쪽 열을 고정 기준점으로 사용
+        /// X축 거리만 계산하므로 Y 좌표는 의미 없음
         /// </summary>
         /// <returns>적군 기준점 위치</returns>
         public Vector2Int GetEnemyBasePosition()
         {
-            if (gridState == null)
-            {
-                Debug.LogWarning("[GridController] GridState가 null입니다. 기본 적군 위치 반환");
-                return new Vector2Int(GridSize.x - 1, GridSize.y / 2);
-            }
-
             var gridSize = GridSize;
             int rightmostColumn = gridSize.x - 1;
 
-            // 가장 오른쪽 열에서 적군 유닛 찾기
-            for (int y = 0; y < gridSize.y; y++)
-            {
-                Vector2Int pos = new Vector2Int(rightmostColumn, y);
-                if (HasEnemyUnit(pos))
-                {
-                    Debug.Log($"[GridController] Enemy base position found at rightmost unit: {pos}");
-                    return pos;
-                }
-            }
-
-            // 유닛이 없으면 오른쪽 가운데를 기준점으로 사용
-            Vector2Int fallbackPosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
-            Debug.Log($"[GridController] No enemy unit found, using fallback position: {fallbackPosition}");
-            return fallbackPosition;
+            // 가장 오른쪽 열을 고정 기준점으로 사용 (Y 좌표는 X축 거리 계산에 영향 없음)
+            Vector2Int basePosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
+            Debug.Log($"[GridController] Enemy base position (fixed rightmost column): {basePosition}");
+            return basePosition;
         }
 
         /// <summary>
-        /// Phase 3.15: 맨하탄 거리 계산 헬퍼 메서드
-        /// CardData.CalculateManhattanDistance와 동일한 로직
+        /// Phase 3.15: X축 기반 거리 계산 헬퍼 메서드
+        /// Y축(위아래) 거리는 무시하고 X축(좌우) 거리만 계산
         /// </summary>
         /// <param name="from">시작 위치</param>
         /// <param name="to">목표 위치</param>
-        /// <returns>맨하탄 거리</returns>
+        /// <returns>X축 거리</returns>
         public static int CalculateManhattanDistance(Vector2Int from, Vector2Int to)
         {
-            return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+            return Mathf.Abs(to.y - from.y);
         }
 
         /// <summary>

@@ -127,6 +127,7 @@ namespace Game.Data
             if (targetRange >= 0)
             {
                 int distance = CalculateManhattanDistance(casterPosition, targetPosition);
+                Debug.Log($"distance{distance} | targetRange{targetRange} casterPosition{casterPosition} | targetPosition{targetPosition} ");
                 if (distance > targetRange)
                 {
                     return false;
@@ -144,7 +145,7 @@ namespace Game.Data
         /// <returns>맨하탄 거리</returns>
         public static int CalculateManhattanDistance(Vector2Int from, Vector2Int to)
         {
-            return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+            return Mathf.Abs(to.y - from.y); //오직 x축만 검증
         }
 
         /// <summary>

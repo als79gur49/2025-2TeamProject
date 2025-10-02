@@ -16,6 +16,7 @@ namespace Game.Card.UI
     {
         [Header("카드 UI 설정")]
         [SerializeField] private Image cardImage;
+        [SerializeField] private Image itemImage;
         [SerializeField] private TextMeshProUGUI cardNameText;
         [SerializeField] private TextMeshProUGUI costText;
         [SerializeField] private TextMeshProUGUI descriptionText;
@@ -42,9 +43,10 @@ namespace Game.Card.UI
         // 드래그 상태 관리
         private Vector3 originalPosition;
         private Transform originalParent;
+        private int originalIndex;  // 핸드 내 원래 인덱스
         private Canvas parentCanvas;
         private GraphicRaycaster graphicRaycaster;
-        
+
         // 카드 데이터
         private CardData cardData;
         private bool isDraggable = false;
@@ -53,6 +55,7 @@ namespace Game.Card.UI
         // 서비스 참조
         private ICardSpawnService cardSpawnService;
         private ISpawnValidator spawnValidator;
+        private ICardHandManager cardHandManager;
 
         #region Unity Lifecycle
 
@@ -93,12 +96,16 @@ namespace Game.Card.UI
                 var cardServiceManager = ServiceLocator.Get<ICardServiceManager>();
                 cardSpawnService = cardServiceManager?.GetCardSpawnService();
                 spawnValidator = cardServiceManager?.GetSpawnValidator();
-                
+                cardHandManager = cardServiceManager?.GetCardHandManager();
+
                 if (cardSpawnService == null)
                     Debug.LogError("[CardUI] CardSpawnService not found in ServiceLocator");
-                
+
                 if (spawnValidator == null)
                     Debug.LogError("[CardUI] SpawnValidator not found in ServiceLocator");
+
+                if (cardHandManager == null)
+                    Debug.LogError("[CardUI] CardHandManager not found in ServiceLocator");
             }
         }
 
@@ -178,8 +185,8 @@ namespace Game.Card.UI
             }
 
             // 카드 이미지 설정
-            if (cardImage != null && cardData.CardArt != null)
-                cardImage.sprite = cardData.CardArt;
+            if (itemImage != null && cardData.CardArt != null)
+                itemImage.sprite = cardData.CardArt;
 
             // Phase 3.16: 카드 레어리티에 따른 테두리 색상 적용
             ApplyRarityVisualEffects();
@@ -332,10 +339,11 @@ namespace Game.Card.UI
             if (!isDraggable || cardData == null) return;
 
             isDragging = true;
-            
-            // 원래 위치와 부모 저장
+
+            // 원래 위치, 부모, 인덱스 저장
             originalPosition = transform.position;
             originalParent = transform.parent;
+            originalIndex = transform.GetSiblingIndex();  // 핸드 내 인덱스 저장
 
             // 드래그 중 시각적 변경
             if (canvasGroup != null)
@@ -349,7 +357,7 @@ namespace Game.Card.UI
             if (parentCanvas != null)
                 transform.SetParent(parentCanvas.transform, true);
 
-            Debug.Log($"[CardUI] Started dragging card: {cardData.CardName}");
+            Debug.Log($"[CardUI] Started dragging card: {cardData.CardName} (original index: {originalIndex})");
         }
 
         /// <summary>
@@ -623,7 +631,20 @@ namespace Game.Card.UI
         {
             // 원래 부모로 복귀
             if (originalParent != null)
+            {
                 transform.SetParent(originalParent, true);
+
+                // 원래 인덱스 위치로 복귀 (카드가 겹치지 않도록)
+                transform.SetSiblingIndex(originalIndex);
+
+                Debug.Log($"[CardUI] Returned to original index: {originalIndex}");
+            }
+
+            // CardHandManager에게 레이아웃 재정렬 요청
+            if (cardHandManager != null)
+            {
+                cardHandManager.RefreshHandLayout();
+            }
 
             // 부드러운 이동
             while (Vector3.Distance(transform.position, originalPosition) > 0.01f)

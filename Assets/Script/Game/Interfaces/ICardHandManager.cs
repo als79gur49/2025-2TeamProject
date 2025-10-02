@@ -56,5 +56,8 @@ namespace Game.Interfaces
 
         /// <summary>핸드 매니저 상태 정보 반환</summary>
         string GetStatus();
+
+        /// <summary>핸드 레이아웃 재정렬 (외부 호출용)</summary>
+        void RefreshHandLayout();
     }
 }

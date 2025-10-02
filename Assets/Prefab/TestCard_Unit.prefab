@@ -1942,6 +1942,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cardImage: {fileID: 1451345833366059444}
+  itemImage: {fileID: 6814021653386137932}
   cardNameText: {fileID: 1847598309943173653}
   costText: {fileID: 7674699039221518974}
   descriptionText: {fileID: 1563185151265081674}

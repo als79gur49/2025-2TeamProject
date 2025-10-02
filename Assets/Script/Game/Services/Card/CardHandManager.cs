@@ -597,6 +597,15 @@ namespace Game.Services
             return handCards.Contains(cardData);
         }
 
+        /// <summary>
+        /// 핸드 레이아웃 재정렬 (외부 호출용)
+        /// CardUI에서 카드 사용 실패 시 원래 인덱스로 복귀한 후 호출됨
+        /// </summary>
+        public void RefreshHandLayout()
+        {
+            UpdateHandLayout();
+        }
+
         #endregion
 
         #region 에디터용 디버깅
