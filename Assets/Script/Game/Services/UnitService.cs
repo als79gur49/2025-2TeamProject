@@ -363,6 +363,8 @@ namespace Game.Services
                         yield break;
                     }
 
+                    yield return null;
+
                     // 3. 애니메이션 완료 대기 (별도 코루틴으로 분리)
                     if (animController != null && animController.IsAnimationPlaying)
                     {

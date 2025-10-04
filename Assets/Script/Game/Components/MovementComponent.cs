@@ -748,11 +748,12 @@ namespace Game.Components
             Vector3 startPos = gridManager.GridToWorldPosition(from);
             Vector3 endPos = gridManager.GridToWorldPosition(to);
 
-            Debug.LogError($"{gameObject.name} - {from}-{to}");
             // 애니메이션 진행도에 맞춰 Transform 보간
             while (animationController.IsAnimationPlaying && isTransformMoving)
             {
                 float progress = animationController.CurrentAnimationProgress;
+                Debug.LogError($"{gameObject.name} - {from}-{to} - {progress} - {animationController.IsAnimationPlaying} - {isTransformMoving}");
+
                 transform.position = Vector3.Lerp(startPos, endPos, progress);
                 yield return null;
             }

@@ -190,7 +190,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 1
+      loopTime: 0
       loopBlend: 1
       loopBlendOrientation: 1
       loopBlendPositionY: 1
@@ -210,7 +210,7 @@ ModelImporter:
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
-      - time: 1
+      - time: 0.43229166
         functionName: AnimEvent_OnAnimationEnd
         data: 
         objectReferenceParameter: {instanceID: 0}
@@ -253,7 +253,7 @@ ModelImporter:
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
-      - time: 1
+      - time: 0.984375
         functionName: AnimEvent_OnAnimationEnd
         data: 
         objectReferenceParameter: {instanceID: 0}
