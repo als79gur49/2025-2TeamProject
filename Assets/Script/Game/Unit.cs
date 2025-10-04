@@ -639,52 +639,37 @@ public class Unit : MonoBehaviour
     }
     
     /// <summary>
-    /// Unit 사망 시 currentTile을 정리합니다.
-    /// Unit의 currentTile 참조를 직접 활용하여 간단하게 처리합니다.
-    /// 🔧 FIX: GridState에서도 유닛을 제거하여 positionUnits 딕셔너리 정리
+    /// Unit 사망 시 Grid 관련 데이터를 정리합니다.
+    /// Clean Architecture: GridManager에게 모든 Grid 정리 작업을 위임
+    /// - GridManager.RemoveUnit()이 GridState와 Tile 모두 정리
+    /// - Unit은 자신의 참조만 정리
     /// </summary>
     private void CleanupCurrentTile()
     {
-        if (currentTile != null)
+        if (gridManager != null)
         {
-            Debug.Log($"[Unit] Cleaning up currentTile for dying unit {gameObject.name} at ({currentTile.X}, {currentTile.Y})");
-            
-            // Tile의 occupying unit이 자신인지 확인 후 정리
-            if (currentTile.OccupyingUnit == this)
+            Debug.Log($"[Unit] Requesting GridManager to cleanup {gameObject.name}");
+
+            // GridManager에게 모든 Grid 관련 정리 위임
+            // GridManager → GridState → Tile 정리 흐름
+            bool removed = gridManager.RemoveUnit(gameObject);
+
+            if (removed)
             {
-                currentTile.RemoveUnit();
-                Debug.Log($"[Unit] Successfully removed {gameObject.name} from Tile ({currentTile.X}, {currentTile.Y})");
+                Debug.Log($"[Unit] Successfully removed {gameObject.name} from Grid (GridState + Tile cleaned)");
             }
             else
             {
-                Debug.LogWarning($"[Unit] Tile occupancy mismatch - expected {gameObject.name}, found {currentTile.OccupyingUnit?.name}");
+                Debug.LogWarning($"[Unit] Failed to remove {gameObject.name} from Grid - unit may not have been tracked");
             }
-            
-            // 🔧 FIX: GridState에서 유닛 제거 (positionUnits 딕셔너리 정리)
-            if (gridManager != null)
-            {
-                bool gridStateRemoved = gridManager.RemoveUnit(gameObject);
-                if (gridStateRemoved)
-                {
-                    Debug.Log($"[Unit] Successfully removed {gameObject.name} from GridState position tracking");
-                }
-                else
-                {
-                    Debug.LogWarning($"[Unit] Failed to remove {gameObject.name} from GridState - unit may not have been tracked");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"[Unit] Cannot cleanup GridState for {gameObject.name} - gridManager is null");
-            }
-            
-            // currentTile 참조 정리
-            currentTile = null;
         }
         else
         {
-            Debug.Log($"[Unit] No currentTile to cleanup for {gameObject.name}");
+            Debug.LogWarning($"[Unit] Cannot cleanup grid for {gameObject.name} - gridManager is null");
         }
+
+        // 자신의 참조만 정리
+        currentTile = null;
     }
     
     public void Heal(int healAmount)
