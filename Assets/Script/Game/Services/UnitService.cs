@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Core;
 using Game.Services;
+using Game.Components;
+using Game.Interfaces;
 
 namespace Game.Services
 {
@@ -328,69 +330,92 @@ namespace Game.Services
 
         private IEnumerator ProcessUnitActionAsync(Unit unit, TurnPhase phase)
         {
-            try
-            {
-                // 1. 애니메이션 컨트롤러 캐싱
-                var animController = unit?.GetAnimationController();
+            // 1. 애니메이션 컨트롤러 캐싱
+            var animController = unit?.GetAnimationController();
 
-                // 2. 페이즈별 액션 실행
-                switch (phase)
-                {
-                    case TurnPhase.TurnStart:
-                        Debug.Log($"[UnitService] Turn start for unit {unit.name}");
+            // 2. 페이즈별 액션 실행
+            switch (phase)
+            {
+                case TurnPhase.TurnStart:
+                    Debug.Log($"[UnitService] Turn start for unit {unit.name}");
+                    try
+                    {
                         unit.OnTurnStart();
-                        break;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[UnitService] Error in OnTurnStart for {unit?.name}: {ex.Message}");
+                    }
+                    break;
 
-                    case TurnPhase.EnemyAction:
-                    case TurnPhase.AllyAction:
-                        Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
+                case TurnPhase.EnemyAction:
+                case TurnPhase.AllyAction:
+                    Debug.Log($"[UnitService] Processing action for unit {unit.name} at ({unit.X}, {unit.Y})");
 
-                        // 유닛 행동 실행 (이동 or 공격 → 애니메이션 트리거)
+                    // 유닛 행동 실행 (이동 or 공격 → 애니메이션 트리거)
+                    try
+                    {
                         unit.Act();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[UnitService] Error in Act() for {unit?.name}: {ex.Message}");
+                        yield break;
+                    }
 
-                        // 3. 애니메이션 완료 대기 (핵심 로직)
-                        if (animController != null && animController.IsAnimationPlaying)
-                        {
-                            Debug.Log($"[UnitService] Waiting for {unit.name} animation to complete...");
+                    // 3. 애니메이션 완료 대기 (별도 코루틴으로 분리)
+                    if (animController != null && animController.IsAnimationPlaying)
+                    {
+                        yield return StartCoroutine(WaitForAnimationComplete(animController, unit));
+                    }
+                    break;
 
-                            float timeout = 5f; // 5초 타임아웃 (안전장치)
-                            float elapsed = 0f;
+                case TurnPhase.TurnEnd:
+                    Debug.Log($"[UnitService] Turn end cleanup for unit: {unit.name}");
+                    // To-Do: unit.OnTurnEnd()와 같은 턴 종료 메서드 호출 필요
+                    break;
 
-                            // IsAnimationPlaying이 false가 될 때까지 대기
-                            while (animController.IsAnimationPlaying && elapsed < timeout)
-                            {
-                                yield return null; // 다음 프레임까지 대기
-                                elapsed += Time.deltaTime;
-                            }
-
-                            // 타임아웃 처리
-                            if (elapsed >= timeout)
-                            {
-                                Debug.LogWarning($"[UnitService] Animation timeout for {unit.name}, forcing completion");
-                                animController.StopCurrentAnimation();
-                            }
-                            else
-                            {
-                                Debug.Log($"[UnitService] Animation completed for {unit.name}");
-                            }
-                        }
-                        break;
-
-                    case TurnPhase.TurnEnd:
-                        Debug.Log($"[UnitService] Turn end cleanup for unit: {unit.name}");
-                        // To-Do: unit.OnTurnEnd()와 같은 턴 종료 메서드 호출 필요
-                        break;
-
-                    // Summon 페이즈는 현재 처리할 유닛이 없으므로 호출되지 않음
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[UnitService] Error processing unit {unit?.name} in phase {phase}: {ex.Message}");
+                // Summon 페이즈는 현재 처리할 유닛이 없으므로 호출되지 않음
             }
 
             // 4. 기존 딜레이 유지 (필요 시)
             yield return null;
+        }
+
+        /// <summary>
+        /// 애니메이션 완료를 대기하는 별도 코루틴
+        /// </summary>
+        private IEnumerator WaitForAnimationComplete(IAnimationController animController, Unit unit)
+        {
+            Debug.Log($"[UnitService] Waiting for {unit.name} animation to complete...");
+
+            float timeout = 5f; // 5초 타임아웃 (안전장치)
+            float elapsed = 0f;
+
+            // IsAnimationPlaying이 false가 될 때까지 대기
+            while (animController != null && animController.IsAnimationPlaying && elapsed < timeout)
+            {
+                yield return null; // 다음 프레임까지 대기
+                elapsed += Time.deltaTime;
+            }
+
+            // 유닛이 애니메이션 중 파괴되었는지 확인
+            if (animController == null)
+            {
+                Debug.Log($"[UnitService] Unit {unit?.name} was destroyed during animation");
+                yield break;
+            }
+
+            // 타임아웃 처리
+            if (elapsed >= timeout)
+            {
+                Debug.LogWarning($"[UnitService] Animation timeout for {unit.name}, forcing completion");
+                animController.StopCurrentAnimation();
+            }
+            else
+            {
+                Debug.Log($"[UnitService] Animation completed for {unit.name}");
+            }
         }
     }
 }

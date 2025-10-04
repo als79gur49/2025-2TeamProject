@@ -32,6 +32,10 @@ namespace Game.Components
         private const string IDLE_TRIGGER = "Idle";
         private const string ANIMATION_SPEED = "AnimSpeed";
 
+        // Animation Type Constants (for currentAnimationType)
+        private const string ANIM_TYPE_MOVE = "Move";
+        private const string ANIM_TYPE_ATTACK = "Attack";
+
         #endregion
 
         #region Runtime State
@@ -72,6 +76,22 @@ namespace Game.Components
 
         #endregion
 
+        #region Phase 2: Transform Movement Events
+
+        /// <summary>
+        /// Transform 이동 시작 이벤트 (Phase 2)
+        /// AnimEvent_OnAnimationStart()에서 Move 타입일 때 발생
+        /// </summary>
+        public event Action<Vector2Int, Vector2Int> OnTransformMoveStart;
+
+        /// <summary>
+        /// Transform 이동 종료 이벤트 (Phase 2)
+        /// AnimEvent_OnAnimationEnd()에서 Move 타입일 때 발생
+        /// </summary>
+        public event Action<Vector2Int> OnTransformMoveEnd;
+
+        #endregion
+
         #region IAnimationController Properties
 
         public bool IsAnimationPlaying => isAnimationPlaying;
@@ -96,7 +116,7 @@ namespace Game.Components
 
             moveStartPosition = from;
             moveTargetPosition = to;
-            currentAnimationType = "Move";
+            currentAnimationType = ANIM_TYPE_MOVE;
 
             if (useAnimator && animator != null)
             {
@@ -137,7 +157,7 @@ namespace Game.Components
             }
 
             currentTarget = target;
-            currentAnimationType = "Attack";
+            currentAnimationType = ANIM_TYPE_ATTACK;
 
             if (useAnimator && animator != null)
             {
@@ -194,6 +214,7 @@ namespace Game.Components
         /// <summary>
         /// Animation Event: 애니메이션 시작 시 호출
         /// Animation Clip의 첫 프레임에 설정
+        /// Transition 완료 후 실제 애니메이션이 시작되는 시점
         /// </summary>
         public void AnimEvent_OnAnimationStart()
         {
@@ -202,6 +223,12 @@ namespace Game.Components
 
             if (logAnimationEvents)
                 Debug.Log($"[AnimationController] {gameObject.name}: Animation Started - {currentAnimationType}");
+
+            // Phase 2: Transform 보간 시작 신호
+            if (currentAnimationType == ANIM_TYPE_MOVE)
+            {
+                OnTransformMoveStart?.Invoke(moveStartPosition, moveTargetPosition);
+            }
 
             OnAnimationStarted?.Invoke(currentAnimationType);
         }
@@ -218,13 +245,14 @@ namespace Game.Components
             if (logAnimationEvents)
                 Debug.Log($"[AnimationController] {gameObject.name}: Animation Ended - {currentAnimationType}");
 
-            OnAnimationComplete?.Invoke();
-
-            // 이동 애니메이션 완료 시 추가 이벤트
-            if (currentAnimationType == "Move")
+            // Phase 2: Transform 보간 종료 신호 (이동 애니메이션만)
+            if (currentAnimationType == ANIM_TYPE_MOVE)
             {
+                OnTransformMoveEnd?.Invoke(moveTargetPosition);
                 OnMovementFinished?.Invoke(moveTargetPosition);
             }
+
+            OnAnimationComplete?.Invoke();
 
             // 정리
             currentAnimationType = null;
@@ -308,6 +336,21 @@ namespace Game.Components
             // GameSettings 연동
             ApplyGameSettings();
             GameSettings.OnAnimationSettingsChanged += ApplyGameSettings;
+        }
+
+        private void Update()
+        {
+            // Phase 2: 애니메이션 진행도 실시간 추적 (Transform 보간용)
+            if (isAnimationPlaying && useAnimator && animator != null)
+            {
+                var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+
+                // Transition 중이 아닐 때만 진행도 업데이트 (정확도 보장)
+                if (!animator.IsInTransition(0))
+                {
+                    currentAnimationProgress = Mathf.Clamp01(stateInfo.normalizedTime);
+                }
+            }
         }
 
         private void OnDestroy()

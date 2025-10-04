@@ -41,21 +41,43 @@ public class Tile : MonoBehaviour
         return !isOccupied;
     }
     
+    /// <summary>
+    /// 유닛을 타일에 배치 (Transform 포함, 초기 배치용)
+    /// 이동 중에는 SetOccupyingUnitLogic() 사용 권장
+    /// </summary>
     public bool PlaceUnit(Unit unit)
     {
         if (!CanPlaceUnit()) return false;
-        
+
         occupyingUnit = unit;
         isOccupied = true;
-        
+
         if (unit != null)
         {
             unit.transform.position = transform.position + Vector3.up * 0.5f;
             unit.SetCurrentTile(this);
         }
-        
+
         UpdateVisuals();
         return true;
+    }
+
+    /// <summary>
+    /// 유닛의 논리적 상태만 업데이트 (Transform 변경 없음)
+    /// MovementComponent 애니메이션 중 사용
+    /// </summary>
+    public void SetOccupyingUnitLogic(Unit unit)
+    {
+        occupyingUnit = unit;
+        isOccupied = (unit != null);
+
+        if (unit != null)
+        {
+            // Transform 이동 제거: MovementComponent의 SyncTransformWithAnimation()에서 처리
+            unit.SetCurrentTile(this);
+        }
+
+        UpdateVisuals();
     }
     
     public void RemoveUnit()

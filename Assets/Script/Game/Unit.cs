@@ -534,27 +534,27 @@ public class Unit : MonoBehaviour
         }
         else
         {
-            // Phase 3: Clean interface-based movement
-            int targetX = currentTile.X;
-            int targetY = currentTile.Y + (isPlayerUnit ? movementRange : -movementRange);
-            var targetPos = new Vector2Int(targetX, targetY);
-            
-            if (gridManager.CanMoveUnit(gameObject, targetPos))
-            {
-                var result = gridManager.MoveUnit(gameObject, targetPos);
-                if (result)
-                {
-                    Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY})");
-                }
-                else
-                {
-                    Debug.Log($"{gameObject.name} movement failed");
-                }
-            }
-            else
-            {
-                Debug.Log($"{gameObject.name} cannot move forward - path blocked or out of bounds");
-            }
+           // // Phase 3: Clean interface-based movement
+           // int targetX = currentTile.X;
+           // int targetY = currentTile.Y + (isPlayerUnit ? movementRange : -movementRange);
+           // var targetPos = new Vector2Int(targetX, targetY);
+           // 
+           // if (gridManager.CanMoveUnit(gameObject, targetPos))
+           // {
+           //     var result = gridManager.MoveUnit(gameObject, targetPos);
+           //     if (result)
+           //     {
+           //         Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY})");
+           //     }
+           //     else
+           //     {
+           //         Debug.Log($"{gameObject.name} movement failed");
+           //     }
+           // }
+           // else
+           // {
+           //     Debug.Log($"{gameObject.name} cannot move forward - path blocked or out of bounds");
+           // }
         }
     }
     

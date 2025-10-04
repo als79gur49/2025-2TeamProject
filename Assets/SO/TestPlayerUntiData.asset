@@ -18,4 +18,4 @@ MonoBehaviour:
   prefab: {fileID: 4673968368137477462, guid: f6eeca3a10e323a46a4d7bc4cbd31e95, type: 3}
   maxHealth: 120
   attackPower: 60
-  movementRange: 2
+  movementRange: 1

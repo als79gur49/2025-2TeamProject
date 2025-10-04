@@ -16,11 +16,33 @@ namespace Game.Services
 
     /// <summary>
     /// 페이즈 실행 상태를 나타내는 열거형입니다.
+    /// UnitService의 페이즈 처리 상태를 추적하는 데 사용됩니다.
     /// </summary>
     public enum PhaseExecutionState
     {
-        Idle,           // 대기 상태
-        Executing,      // 페이즈 실행 중
-        Cancelling      // 취소 진행 중
+        /// <summary>
+        /// 페이즈가 실행 대기 중 (미시작)
+        /// </summary>
+        Idle = 0,
+
+        /// <summary>
+        /// 페이즈가 현재 실행 중
+        /// </summary>
+        Executing = 1,
+
+        /// <summary>
+        /// 페이즈 실행 완료
+        /// </summary>
+        Completed = 2,
+
+        /// <summary>
+        /// 페이즈 실행 취소 진행 중
+        /// </summary>
+        Cancelling = 3,
+
+        /// <summary>
+        /// 페이즈 실행이 취소됨
+        /// </summary>
+        Cancelled = 4
     }
 }

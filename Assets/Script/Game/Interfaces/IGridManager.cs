@@ -47,7 +47,17 @@ namespace Game.Interfaces
     public interface IGridState : IReadOnlyGridState
     {
         // 상태 변경 연산
+        /// <summary>
+        /// 그리드 데이터 레이어만 업데이트 (Transform 변경 없음)
+        /// </summary>
+        bool UpdateGridDataLayer(GameObject unit, Vector2Int newPosition);
+
+        /// <summary>
+        /// [Deprecated] 하위 호환성을 위한 메서드. UpdateGridDataLayer() 사용 권장
+        /// </summary>
+        [System.Obsolete("Use UpdateGridDataLayer() instead for clearer intent", false)]
         bool SetUnitPosition(GameObject unit, Vector2Int newPosition);
+
         bool RemoveUnit(GameObject unit);
         void SetTileBlocked(Vector2Int position, bool blocked);
         void ResizeGrid(Vector2Int newSize);

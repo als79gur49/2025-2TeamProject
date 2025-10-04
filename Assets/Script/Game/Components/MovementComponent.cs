@@ -41,6 +41,10 @@ namespace Game.Components
         private int lastTeleportTurn = -999;
         private List<StatModifier> movementRangeModifiers = new List<StatModifier>();
 
+        // Phase 2: Transform 보간 관리
+        private Coroutine currentTransformMoveCoroutine;
+        private bool isTransformMoving = false; // Transform 보간 진행 상태
+
         // 캐시된 컴포넌트
         private IGridManager gridManager;
         private IHealthComponent healthComponent;
@@ -62,10 +66,15 @@ namespace Game.Components
             maxMovementPoints = movementRange;
             currentMovementPoints = maxMovementPoints;
 
-            // 애니메이션 이벤트 구독 (선택적)
+            // 애니메이션 이벤트 구독
             if (animationController != null)
             {
                 animationController.OnMovementFinished += OnAnimationMovementFinished;
+
+                // Phase 2: Transform 이동 이벤트 구독
+                animationController.OnTransformMoveStart += OnTransformMoveStart;
+                animationController.OnTransformMoveEnd += OnTransformMoveEnd;
+                animationController.OnAnimationInterrupted += OnAnimationInterrupted;
             }
         }
 
@@ -75,6 +84,11 @@ namespace Game.Components
             if (animationController != null)
             {
                 animationController.OnMovementFinished -= OnAnimationMovementFinished;
+
+                // Phase 2: Transform 이동 이벤트 구독 해제
+                animationController.OnTransformMoveStart -= OnTransformMoveStart;
+                animationController.OnTransformMoveEnd -= OnTransformMoveEnd;
+                animationController.OnAnimationInterrupted -= OnAnimationInterrupted;
             }
         }
 
@@ -103,7 +117,8 @@ namespace Game.Components
         public int CurrentMovementPoints => currentMovementPoints;
         public int MaxMovementPoints => maxMovementPoints;
         public MovementType MovementType => movementType;
-        public bool CanMove => healthComponent?.IsAlive == true && currentMovementPoints > 0 && !isMoving;
+        // Phase 2: Transform 보간 완료까지 다음 이동 차단
+        public bool CanMove => healthComponent?.IsAlive == true && currentMovementPoints > 0 && !isMoving && !isTransformMoving;
         public bool IsMoving => isMoving;
         public bool HasMovedThisTurn => hasMovedThisTurn;
 
@@ -228,6 +243,9 @@ namespace Game.Components
                 return MovementResult.Failed(startPosition, "Cannot move to target position");
             }
 
+            // Phase 2: 이전 Transform 이동 중단 (안전장치)
+            StopTransformMove();
+
             OnMovementStarted?.Invoke(startPosition, targetPosition);
             isMoving = true;
 
@@ -250,13 +268,22 @@ namespace Game.Components
                     movementCost = CalculatePathCost(path);
                 }
 
-                // 그리드 위치 업데이트 (즉시) - 애니메이션은 시각적 효과만, 로직은 즉시 처리
+                // 그리드 위치 업데이트 (즉시) - 로직은 즉시 처리
                 if (gridManager.MoveUnit(gameObject, startPosition, targetPosition))
                 {
-                    // 이동 애니메이션 재생 (void 메서드 직접 호출)
+                    // Phase 2: Transform 즉시 이동 제거
+                    // 이제 Transform 이동은 AnimationEvent에서 처리됨
+
+                    // 이동 애니메이션 재생 (Transform 보간은 AnimationEvent에서 시작)
                     if (animationController != null)
                     {
                         animationController.PlayMoveAnimation(startPosition, targetPosition);
+                    }
+                    else
+                    {
+                        Debug.LogError("AnimatorController is missing--");
+                        // 애니메이션 컨트롤러 없으면 Transform 즉시 이동
+                        transform.position = gridManager.GridToWorldPosition(targetPosition);
                     }
 
                     if (useMovementPoints)
@@ -279,9 +306,9 @@ namespace Game.Components
             }
             finally
             {
-                // 상태 초기화 - 예외 발생 시에도 isMoving 플래그 확실히 초기화
+                // Phase 2: isMoving만 초기화 (isTransformMoving은 코루틴 완료 시)
                 isMoving = false;
-                Debug.Log($"[MovementComponent] {gameObject.name} Movement completed - isMoving reset to false");
+                Debug.Log($"[MovementComponent] {gameObject.name} Movement logic completed - isMoving reset to false");
             }
         }
 
@@ -369,11 +396,22 @@ namespace Game.Components
 
         public void ResetMovement()
         {
-            // 🔧 완전한 이동 상태 초기화 - 문제 해결을 위한 강화된 리셋
+            // Phase 2: 완전한 이동 상태 초기화
             hasMovedThisTurn = false;
             isMoving = false;
+
+            // Phase 2: Transform 이동도 중단
+            StopTransformMove();
+
+            // 현재 Grid 위치로 동기화 (안전장치)
+            if (gridManager != null)
+            {
+                var currentGridPos = gridManager.GetUnitPosition(gameObject);
+                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+            }
+
             RefreshMovementPoints();
-            
+
             Debug.Log($"[MovementComponent] {gameObject.name} Movement fully reset - " +
                      $"CanMove: {CanMove}, MovementPoints: {currentMovementPoints}");
         }
@@ -636,6 +674,110 @@ namespace Game.Components
                     Gizmos.DrawWireSphere(centerWorld, jumpRange);
                 }
             }
+        }
+
+        #endregion
+
+        #region Phase 2: Transform Movement Synchronization
+
+        /// <summary>
+        /// Animation Event: 애니메이션 시작 시 Transform 보간 시작
+        /// </summary>
+        private void OnTransformMoveStart(Vector2Int from, Vector2Int to)
+        {
+            // 이전 코루틴이 있다면 중단 (안전장치)
+            StopTransformMove();
+
+            isTransformMoving = true;
+            currentTransformMoveCoroutine = StartCoroutine(SyncTransformWithAnimation(from, to));
+
+            Debug.Log($"[MovementComponent] {gameObject.name}: Transform move started {from} → {to}");
+        }
+
+        /// <summary>
+        /// Animation Event: 애니메이션 종료 시 Transform 보간 종료
+        /// </summary>
+        private void OnTransformMoveEnd(Vector2Int targetPos)
+        {
+            isTransformMoving = false;
+
+            // 최종 위치 보장 (Grid 위치와 동기화)
+            if (gridManager != null)
+            {
+                transform.position = gridManager.GridToWorldPosition(targetPos);
+            }
+
+            if (currentTransformMoveCoroutine != null)
+            {
+                StopCoroutine(currentTransformMoveCoroutine);
+                currentTransformMoveCoroutine = null;
+            }
+
+            Debug.Log($"[MovementComponent] {gameObject.name}: Transform move ended at {targetPos}");
+        }
+
+        /// <summary>
+        /// 애니메이션 중단 시 처리 (공격, 스킬 등으로 전환 시)
+        /// </summary>
+        private void OnAnimationInterrupted()
+        {
+            Debug.Log($"[MovementComponent] {gameObject.name}: Animation interrupted, snapping to grid position");
+
+            // 현재 Grid 위치로 Transform 스냅 (동기화)
+            if (gridManager != null)
+            {
+                var currentGridPos = gridManager.GetUnitPosition(gameObject);
+                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+            }
+
+            // Transform 이동 중단
+            StopTransformMove();
+        }
+
+        /// <summary>
+        /// 애니메이션 진행도에 맞춰 Transform을 실시간으로 보간
+        /// </summary>
+        private System.Collections.IEnumerator SyncTransformWithAnimation(Vector2Int from, Vector2Int to)
+        {
+            if (gridManager == null || animationController == null)
+            {
+                Debug.LogError($"[MovementComponent] Cannot sync transform: missing dependencies");
+                yield break;
+            }
+
+            Vector3 startPos = gridManager.GridToWorldPosition(from);
+            Vector3 endPos = gridManager.GridToWorldPosition(to);
+
+            Debug.LogError($"{gameObject.name} - {from}-{to}");
+            // 애니메이션 진행도에 맞춰 Transform 보간
+            while (animationController.IsAnimationPlaying && isTransformMoving)
+            {
+                float progress = animationController.CurrentAnimationProgress;
+                transform.position = Vector3.Lerp(startPos, endPos, progress);
+                yield return null;
+            }
+
+            // 최종 위치 보장
+            transform.position = endPos;
+            isTransformMoving = false;
+            currentTransformMoveCoroutine = null;
+
+            Debug.Log($"[MovementComponent] {gameObject.name}: Transform sync completed");
+        }
+
+        /// <summary>
+        /// Transform 이동 강제 중단 (안전장치)
+        /// </summary>
+        private void StopTransformMove()
+        {
+            if (currentTransformMoveCoroutine != null)
+            {
+                StopCoroutine(currentTransformMoveCoroutine);
+                currentTransformMoveCoroutine = null;
+                Debug.Log($"[MovementComponent] {gameObject.name}: Transform move coroutine stopped");
+            }
+
+            isTransformMoving = false;
         }
 
         #endregion

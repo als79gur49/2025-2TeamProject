@@ -118,7 +118,13 @@ namespace Game.Components
         /// <summary>
         /// 유닛 위치 설정 (내부용) - 물리적 Tile 컴포넌트와 동기화
         /// </summary>
-        public bool SetUnitPosition(GameObject unit, Vector2Int newPosition)
+        /// <summary>
+        /// 그리드 데이터 레이어만 업데이트 (Transform 변경 없음)
+        /// - unitPositions, positionUnits 딕셔너리 업데이트
+        /// - tileGrid 데이터 업데이트
+        /// - 물리적 Tile 컴포넌트의 논리적 상태만 업데이트 (Transform 제외)
+        /// </summary>
+        public bool UpdateGridDataLayer(GameObject unit, Vector2Int newPosition)
         {
             if (unit == null || !IsValidPosition(newPosition))
                 return false;
@@ -126,7 +132,7 @@ namespace Game.Components
             Vector2Int oldPosition = new Vector2Int(-1, -1);
             bool hadOldPosition = false;
 
-            // 이전 위치 정리
+            // 이전 위치 정리 (데이터만)
             if (unitPositions.TryGetValue(unit, out oldPosition))
             {
                 hadOldPosition = true;
@@ -134,8 +140,8 @@ namespace Game.Components
                 if (IsValidPosition(oldPosition))
                 {
                     tileGrid[oldPosition.x, oldPosition.y].SetOccupied(null);
-                    // 이전 위치의 물리적 Tile 업데이트
-                    UpdatePhysicalTile(oldPosition, null);
+                    // 이전 위치의 물리적 Tile 논리 상태만 업데이트 (Transform 제외)
+                    UpdatePhysicalTileLogic(oldPosition, null);
                 }
             }
 
@@ -146,13 +152,13 @@ namespace Game.Components
                 return false;
             }
 
-            // 새 위치 설정
+            // 새 위치 설정 (데이터만)
             unitPositions[unit] = newPosition;
             positionUnits[newPosition] = unit;
             tileGrid[newPosition.x, newPosition.y].SetOccupied(unit);
 
-            // 새 위치의 물리적 Tile 업데이트
-            UpdatePhysicalTile(newPosition, unit);
+            // 새 위치의 물리적 Tile 논리 상태만 업데이트 (Transform 제외)
+            UpdatePhysicalTileLogic(newPosition, unit);
 
             // 이벤트 발생
             if (hadOldPosition && IsValidPosition(oldPosition))
@@ -165,6 +171,16 @@ namespace Game.Components
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// [Deprecated] 하위 호환성을 위한 래퍼 메서드
+        /// 새 코드에서는 UpdateGridDataLayer() 사용 권장
+        /// </summary>
+        [System.Obsolete("Use UpdateGridDataLayer() instead for clearer intent", false)]
+        public bool SetUnitPosition(GameObject unit, Vector2Int newPosition)
+        {
+            return UpdateGridDataLayer(unit, newPosition);
         }
 
         /// <summary>
@@ -398,7 +414,7 @@ namespace Game.Components
             {
                 if (IsValidPosition(kvp.Value))
                 {
-                    SetUnitPosition(kvp.Key, kvp.Value);
+                    UpdateGridDataLayer(kvp.Key, kvp.Value);
                 }
                 else
                 {
@@ -441,10 +457,11 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 물리적 Tile 컴포넌트 업데이트 - Highlight 시스템과 동일한 패턴
-        /// GridState의 데이터 변경을 물리적 Tile 컴포넌트에 반영
+        /// 물리적 Tile 컴포넌트의 논리 상태만 업데이트 (Transform 변경 없음)
+        /// - Tile의 occupyingUnit, isOccupied 상태만 업데이트
+        /// - Unit의 Transform은 MovementComponent가 애니메이션으로 처리
         /// </summary>
-        private void UpdatePhysicalTile(Vector2Int position, GameObject unit)
+        private void UpdatePhysicalTileLogic(Vector2Int position, GameObject unit)
         {
             if (!IsValidPosition(position))
                 return;
@@ -461,14 +478,15 @@ namespace Game.Components
                         Unit unitComponent = unit.GetComponent<Unit>();
                         if (unitComponent != null)
                         {
-                            tile.PlaceUnit(unitComponent);
-                            Debug.Log($"[GridState] Updated physical tile at ({position.x}, {position.y}) - placed unit {unit.name}");
+                            // 🔧 FIX: Transform 이동 없이 논리 상태만 업데이트
+                            tile.SetOccupyingUnitLogic(unitComponent);
+                            Debug.Log($"[GridState] Updated physical tile logic at ({position.x}, {position.y}) - placed unit {unit.name}");
                         }
                     }
                     else
                     {
                         tile.RemoveUnit();
-                        Debug.Log($"[GridState] Updated physical tile at ({position.x}, {position.y}) - removed unit");
+                        Debug.Log($"[GridState] Updated physical tile logic at ({position.x}, {position.y}) - removed unit");
                     }
                     return;
                 }

@@ -105,5 +105,24 @@ namespace Game.Interfaces
         /// AnimEvent_OnSkillCast()에서 호출
         /// </summary>
         event Action OnSkillCast;
+
+        // ========================================
+        // Phase 2: Transform Movement Events
+        // (블렌딩/전환 시간 문제 해결)
+        // ========================================
+
+        /// <summary>
+        /// Transform 이동 시작 이벤트
+        /// AnimEvent_OnAnimationStart()에서 Move 타입일 때 호출
+        /// MovementComponent가 이 이벤트를 구독하여 Transform 보간 시작
+        /// </summary>
+        event Action<Vector2Int, Vector2Int> OnTransformMoveStart;
+
+        /// <summary>
+        /// Transform 이동 종료 이벤트
+        /// AnimEvent_OnAnimationEnd()에서 Move 타입일 때 호출
+        /// MovementComponent가 이 이벤트를 구독하여 Transform 보간 종료
+        /// </summary>
+        event Action<Vector2Int> OnTransformMoveEnd;
     }
 }

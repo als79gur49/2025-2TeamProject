@@ -655,14 +655,14 @@ namespace Game.Components
         {
             if (!CanMoveUnit(unit, newPosition))
                 return false;
-            
-            // Update state through data layer
-            if (!gridState.SetUnitPosition(unit, newPosition))
+
+            // Update state through data layer (논리적 상태만)
+            if (!gridState.UpdateGridDataLayer(unit, newPosition))
                 return false;
-                
+
             // Handle positioning (Business Logic responsibility) - 필수 추가
             SetUnitWorldPosition(unit, newPosition);
-            
+
             return true;
         }
 
@@ -714,7 +714,13 @@ namespace Game.Components
                 return false;
             }
 
-            return gridState.SetUnitPosition(unit, newPosition);
+            // 초기 배치/이동은 데이터 + Transform 모두 업데이트
+            if (!gridState.UpdateGridDataLayer(unit, newPosition))
+                return false;
+
+            // Transform 위치 설정 (즉시 이동)
+            SetUnitWorldPosition(unit, newPosition);
+            return true;
         }
 
         // 경로 탐색 구현
@@ -1079,24 +1085,26 @@ namespace Game.Components
         
         /// <summary>
         /// Move unit from one position to another with full business logic validation
+        /// 데이터 레이어만 업데이트 (Transform은 MovementComponent에서 애니메이션 처리)
         /// </summary>
         public bool MoveUnit(GameObject unit, Vector2Int fromPosition, Vector2Int toPosition)
         {
             if (unit == null || !IsValidPosition(toPosition))
                 return false;
-                
+
             // Business validation
             if (!CanMoveUnit(unit, toPosition))
                 return false;
-                
-            // Update state through data layer
-            if (!gridState.SetUnitPosition(unit, toPosition))
+
+            // Update state through data layer (논리적 상태만, Transform 제외)
+            if (!gridState.UpdateGridDataLayer(unit, toPosition))
                 return false;
-                
-            // Handle positioning (Business Logic responsibility)
-            SetUnitWorldPosition(unit, toPosition);
-            
-            // Notify presentation layer through events (already handled by gridState.SetUnitPosition)
+
+            // Phase 2: Transform 즉시 이동 제거
+            // SetUnitWorldPosition(unit, toPosition);
+            // → 이제 MovementComponent의 AnimationEvent 기반 보간으로만 처리
+
+            // Notify presentation layer through events (already handled by UpdateGridDataLayer)
             return true;
         }
         
