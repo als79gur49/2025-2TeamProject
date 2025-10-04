@@ -7,6 +7,12 @@ namespace Game.Components
 {
     /// <summary>
     /// 그리드 상태 관리 클래스 - 단일 책임 원칙 적용 (상태 관리만 담당)
+    ///
+    /// 데이터 구조:
+    /// - unitPositions: GameObject → Vector2Int 매핑 (유닛으로 위치 조회)
+    /// - positionUnits: Vector2Int → GameObject 매핑 (위치로 유닛 조회)
+    /// - blockedPositions: 차단된 위치 집합
+    /// - highlightedTiles: 하이라이트 색상 정보
     /// </summary>
     public class GridState : MonoBehaviour, IGridState
     {
@@ -15,8 +21,7 @@ namespace Game.Components
         [SerializeField] private float tileSize = 1f;
         [SerializeField] private Vector3 gridOrigin = Vector3.zero;
 
-        // ✅ 그리드 상태 저장소
-        private GridTileData[,] tileGrid;
+        // ✅ 그리드 상태 저장소 - Dictionary 기반 고속 조회
         private readonly Dictionary<GameObject, Vector2Int> unitPositions = new Dictionary<GameObject, Vector2Int>();
         private readonly Dictionary<Vector2Int, GameObject> positionUnits = new Dictionary<Vector2Int, GameObject>();
         private readonly HashSet<Vector2Int> blockedPositions = new HashSet<Vector2Int>();
@@ -40,29 +45,6 @@ namespace Game.Components
 
         private void Awake()
         {
-            InitializeGrid();
-        }
-
-        /// <summary>
-        /// 그리드 초기화
-        /// Phase 3.5: 그리드 초기화 주석 추가
-        /// 좌표계: Vector2Int(x,y) = (가로,세로), gridSize.x = 가로 크기, gridSize.y = 세로 크기
-        /// </summary>
-        private void InitializeGrid()
-        {
-            tileGrid = new GridTileData[gridSize.x, gridSize.y];
-
-            // Phase 3.5: 변수명 명시화 (xIndex = 가로 인덱스, yIndex = 세로 인덱스)
-            // 좌표계: Vector2Int(x,y) = (가로,세로)
-            for (int xIndex = 0; xIndex < gridSize.x; xIndex++)
-            {
-                for (int yIndex = 0; yIndex < gridSize.y; yIndex++)
-                {
-                    var position = new Vector2Int(xIndex, yIndex);
-                    tileGrid[xIndex, yIndex] = new GridTileData(position);
-                }
-            }
-
             Debug.Log($"[GridState] Initialized grid {gridSize.x}x{gridSize.y} with {TotalTiles} tiles");
         }
 
@@ -139,7 +121,6 @@ namespace Game.Components
                 positionUnits.Remove(oldPosition);
                 if (IsValidPosition(oldPosition))
                 {
-                    tileGrid[oldPosition.x, oldPosition.y].SetOccupied(null);
                     // 이전 위치의 물리적 Tile 논리 상태만 업데이트 (Transform 제외)
                     UpdatePhysicalTileLogic(oldPosition, null);
                 }
@@ -155,7 +136,6 @@ namespace Game.Components
             // 새 위치 설정 (데이터만)
             unitPositions[unit] = newPosition;
             positionUnits[newPosition] = unit;
-            tileGrid[newPosition.x, newPosition.y].SetOccupied(unit);
 
             // 새 위치의 물리적 Tile 논리 상태만 업데이트 (Transform 제외)
             UpdatePhysicalTileLogic(newPosition, unit);
@@ -185,18 +165,21 @@ namespace Game.Components
 
         /// <summary>
         /// 유닛 제거 - 물리적 Tile 컴포넌트와 동기화
+        /// GridState가 모든 Grid 관련 데이터 정리를 담당:
+        /// 1. GridState 내부 데이터 정리 (unitPositions, positionUnits, tileGrid)
+        /// 2. 물리적 Tile 컴포넌트 상태 동기화 (tile.RemoveUnit() 호출)
         /// </summary>
         public bool RemoveUnit(GameObject unit)
         {
             if (unit == null || !unitPositions.TryGetValue(unit, out var position))
                 return false;
 
+            // 1. GridState 내부 데이터 정리
             unitPositions.Remove(unit);
             positionUnits.Remove(position);
-            tileGrid[position.x, position.y].SetOccupied(null);
 
-            // 물리적 Tile 업데이트
-            UpdatePhysicalTile(position, null);
+            // 2. 물리적 Tile 컴포넌트 동기화 (버그 수정: UpdatePhysicalTile → UpdatePhysicalTileLogic)
+            UpdatePhysicalTileLogic(position, null);
 
             OnUnitRemoved?.Invoke(position, unit);
             return true;
@@ -223,7 +206,6 @@ namespace Game.Components
 
             if (wasBlocked != blocked)
             {
-                tileGrid[position.x, position.y].SetBlocked(blocked);
                 OnTileBlockedChanged?.Invoke(position, blocked);
             }
         }
@@ -237,7 +219,6 @@ namespace Game.Components
                 return;
 
             highlightedTiles[position] = highlightColor;
-            tileGrid[position.x, position.y].SetHighlight(highlightColor);
             OnTileHighlighted?.Invoke(position, highlightColor);
         }
 
@@ -246,14 +227,6 @@ namespace Game.Components
         /// </summary>
         public void ClearAllHighlights()
         {
-            foreach (var position in highlightedTiles.Keys)
-            {
-                if (IsValidPosition(position))
-                {
-                    tileGrid[position.x, position.y].ClearHighlight();
-                }
-            }
-
             highlightedTiles.Clear();
             OnAllHighlightsCleared?.Invoke();
         }
@@ -339,16 +312,6 @@ namespace Game.Components
             return units;
         }
 
-        /// <summary>
-        /// 타일 데이터 반환
-        /// </summary>
-        public GridTileData GetTileData(Vector2Int position)
-        {
-            if (!IsValidPosition(position))
-                return null;
-
-            return tileGrid[position.x, position.y];
-        }
 
         /// <summary>
         /// 모든 점유된 위치 반환
@@ -406,8 +369,6 @@ namespace Game.Components
             blockedPositions.Clear();
             highlightedTiles.Clear();
 
-            // 그리드 재초기화
-            InitializeGrid();
 
             // 유효한 위치의 유닛들만 복원
             foreach (var kvp in backupUnits)
@@ -443,15 +404,6 @@ namespace Game.Components
             positionUnits.Clear();
             blockedPositions.Clear();
             ClearAllHighlights();
-
-            // 타일 데이터 재초기화
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                for (int y = 0; y < gridSize.y; y++)
-                {
-                    tileGrid[x, y].Reset();
-                }
-            }
 
             Debug.Log("[GridState] All state cleared");
         }
@@ -505,14 +457,15 @@ namespace Game.Components
                         Unit unitComponent = unit.GetComponent<Unit>();
                         if (unitComponent != null)
                         {
-                            tile.PlaceUnit(unitComponent);
-                            Debug.Log($"[GridState] Updated physical tile via collider at ({position.x}, {position.y}) - placed unit {unit.name}");
+                            // 🔧 FIX: Transform 이동 없이 논리 상태만 업데이트
+                            tile.SetOccupyingUnitLogic(unitComponent);
+                            Debug.Log($"[GridState] Updated physical tile logic via collider at ({position.x}, {position.y}) - placed unit {unit.name}");
                         }
                     }
                     else
                     {
                         tile.RemoveUnit();
-                        Debug.Log($"[GridState] Updated physical tile via collider at ({position.x}, {position.y}) - removed unit");
+                        Debug.Log($"[GridState] Updated physical tile logic via collider at ({position.x}, {position.y}) - removed unit");
                     }
                     return;
                 }
@@ -563,74 +516,4 @@ namespace Game.Components
         }
     }
 
-    /// <summary>
-    /// 그리드 타일 데이터 클래스
-    /// </summary>
-    [System.Serializable]
-    public class GridTileData
-    {
-        [SerializeField] private Vector2Int gridPosition;
-        [SerializeField] private bool isOccupied;
-        [SerializeField] private bool isBlocked;
-        [SerializeField] private bool isHighlighted;
-        [SerializeField] private Color highlightColor = Color.white;
-        
-        private GameObject occupyingUnit;
-
-        public Vector2Int GridPosition => gridPosition;
-        public bool IsOccupied => isOccupied;
-        public bool IsBlocked => isBlocked;
-        public bool IsHighlighted => isHighlighted;
-        public Color HighlightColor => highlightColor;
-        public GameObject OccupyingUnit => occupyingUnit;
-
-        public GridTileData(Vector2Int position)
-        {
-            gridPosition = position;
-            Reset();
-        }
-
-        public void SetOccupied(GameObject unit)
-        {
-            occupyingUnit = unit;
-            isOccupied = unit != null;
-        }
-
-        public void ClearOccupied()
-        {
-            occupyingUnit = null;
-            isOccupied = false;
-        }
-
-        public void SetBlocked(bool blocked)
-        {
-            isBlocked = blocked;
-        }
-
-        public void SetHighlight(Color color)
-        {
-            isHighlighted = true;
-            highlightColor = color;
-        }
-
-        public void ClearHighlight()
-        {
-            isHighlighted = false;
-            highlightColor = Color.white;
-        }
-
-        public void Reset()
-        {
-            isOccupied = false;
-            isBlocked = false;
-            isHighlighted = false;
-            highlightColor = Color.white;
-            occupyingUnit = null;
-        }
-
-        public override string ToString()
-        {
-            return $"Tile[{gridPosition}, O:{isOccupied}, B:{isBlocked}, H:{isHighlighted}]";
-        }
-    }
 }
