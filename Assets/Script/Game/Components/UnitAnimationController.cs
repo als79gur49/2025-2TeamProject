@@ -8,8 +8,9 @@ using Game.Core;
 namespace Game.Components
 {
     /// <summary>
-    /// BlendTree 기반 유닛 애니메이션 컨트롤러
-    /// BlendTreeAnimationController의 이벤트를 Handler 방식으로 구독하여 게임 로직에 전달
+    /// 유닛 애니메이션 컨트롤러
+    /// - 이동: BlendTree 기반 (BlendTreeAnimationController 사용)
+    /// - 공격: Animation Event 기반 (Animator Trigger + Animation Event)
     /// </summary>
     public class UnitAnimationController : MonoBehaviour, IAnimationController
     {
@@ -40,6 +41,7 @@ namespace Game.Components
         #region Animation Parameter Names
 
         private const string ANIMATION_SPEED = "AnimSpeed";
+        private const string ATTACK_TRIGGER = "Attack";
 
         #endregion
 
@@ -161,8 +163,9 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// BlendTree 기반 공격 애니메이션 재생
-        /// 상태 관리는 Handler에서 자동으로 처리됨
+        /// Animation Event 기반 공격 애니메이션 재생
+        /// Animator의 Attack Trigger를 통해 애니메이션 시작
+        /// 실제 타격은 Animation Event에서 AttackHit() 호출로 처리
         /// </summary>
         public void PlayAttackAnimation(GameObject target)
         {
@@ -170,18 +173,24 @@ namespace Game.Components
             {
                 currentTarget = target;
                 OnAttackHit?.Invoke(target);
+                OnAttackEnd?.Invoke(target);
                 currentTarget = null;
                 return;
             }
 
-            if (blendTreeController == null)
+            if (animator == null)
             {
-                Debug.LogError($"[UnitAnimationController] {gameObject.name}: BlendTreeAnimationController is not assigned!");
+                Debug.LogError($"[UnitAnimationController] {gameObject.name}: Animator is not assigned!");
                 return;
             }
 
-            // 상태 관리는 HandleBlendTreeAttackStart에서 처리
-            // isAnimationPlaying, currentAnimationProgress, currentTarget은 Handler가 관리
+            // 공격 상태 시작
+            isAnimationPlaying = true;
+            currentAnimationProgress = 0f;
+            currentTarget = target;
+
+            // 공격 시작 이벤트 발생
+            OnAttackStart?.Invoke(target);
 
             // VFX/SFX 요청
             if (GameSettings.EnableVFX)
@@ -197,14 +206,11 @@ namespace Game.Components
                 OnSFXRequested?.Invoke("Attack_Swing", pos);
             }
 
-            // BlendTree 공격 시작 (이벤트는 BlendTreeAnimationController에서 발생)
-            blendTreeController.StartBlendTreeAttack(target);
-
-            // 공격 완료 모니터링 시작
-            StartCoroutine(MonitorBlendTreeAttack(target));
+            // Animator Attack Trigger 실행
+            animator.SetTrigger(ATTACK_TRIGGER);
 
             if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree attack started on {target?.name}");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation started on {target?.name}");
         }
 
         public void StopCurrentAnimation()
@@ -251,58 +257,70 @@ namespace Game.Components
 
         #endregion
 
-        #region BlendTree Attack Monitoring
+        #region Animation Event Handlers
 
         /// <summary>
-        /// BlendTree 공격 완료를 모니터링하는 코루틴
-        /// 완료 처리는 BlendTreeAnimationController.UpdateBlendTreeAttack에서 자동으로 수행됨
-        /// 이 코루틴은 타격 이벤트 발생과 완료 대기만 담당
+        /// Animation Event에서 호출되는 공격 타격 이벤트
+        /// 공격 애니메이션의 타격 프레임에서 Unity Animation Event로 호출됨
         /// </summary>
-        private IEnumerator MonitorBlendTreeAttack(GameObject target)
+        public void AttackHit()
         {
-            // 공격 중간 지점 (60%)에서 타격 이벤트 발생
-            float hitTiming = 0.6f;
-            bool hitEventTriggered = false;
-
-            while (blendTreeController.GetAttackProgress() < 1.0f)
+            if (currentTarget == null)
             {
-                // 타격 타이밍 도달 시 OnAttackHit 발생
-                if (!hitEventTriggered && blendTreeController.GetAttackProgress() >= hitTiming)
-                {
-                    hitEventTriggered = true;
-                    OnAttackHit?.Invoke(target);
-
-                    if (GameSettings.EnableVFX && target != null)
-                    {
-                        Vector3 hitPos = target.transform.position;
-                        Vector3 direction = (hitPos - transform.position).normalized;
-                        OnVFXRequested?.Invoke("Attack_Hit", hitPos, direction);
-                    }
-
-                    if (GameSettings.EnableSFX && target != null)
-                    {
-                        Vector3 hitPos = target.transform.position;
-                        OnSFXRequested?.Invoke("Attack_Hit", hitPos);
-                    }
-
-                    if (logAnimationEvents)
-                        Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack hit on {target?.name} at progress {blendTreeController.GetAttackProgress():F2}");
-                }
-
-                yield return null;
+                if (logAnimationEvents)
+                    Debug.LogWarning($"[UnitAnimationController] {gameObject.name}: AttackHit called but currentTarget is null");
+                return;
             }
 
-            // 완료 처리는 BlendTreeAnimationController가 자체적으로 수행
-            // (UpdateBlendTreeAttack에서 elapsed >= attackDuration 체크)
-            // 여기서는 타격 이벤트 발생과 완료 대기만 하고 이벤트는 HandleBlendTreeAttackEnd에서 수신
+            // 공격 타격 이벤트 발생
+            OnAttackHit?.Invoke(currentTarget);
+
+            // VFX/SFX 효과
+            if (GameSettings.EnableVFX && currentTarget != null)
+            {
+                Vector3 hitPos = currentTarget.transform.position;
+                Vector3 direction = (hitPos - transform.position).normalized;
+                OnVFXRequested?.Invoke("Attack_Hit", hitPos, direction);
+            }
+
+            if (GameSettings.EnableSFX && currentTarget != null)
+            {
+                Vector3 hitPos = currentTarget.transform.position;
+                OnSFXRequested?.Invoke("Attack_Hit", hitPos);
+            }
 
             if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree attack monitor completed");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack hit on {currentTarget?.name}");
+        }
+
+        /// <summary>
+        /// 공격 종료 이벤트
+        /// StateMachineBehaviour.OnStateExit에서 호출됨 (이전: Animation Event)
+        ///
+        /// 변경 이유:
+        /// - Unity Animation Event는 마지막 프레임에서 신뢰성 문제가 있음
+        /// - StateMachineBehaviour.OnStateExit는 Transition과 독립적으로 확실하게 호출됨
+        /// - AttackStateBehaviour에서 이 메서드를 호출하여 상태 초기화 보장
+        /// </summary>
+        public void AttackEnd()
+        {
+            GameObject target = currentTarget;
+
+            // 상태 초기화
+            isAnimationPlaying = false;
+            currentAnimationProgress = 1f;
+            currentTarget = null;
+
+            // 공격 종료 이벤트 발생
+            OnAttackEnd?.Invoke(target);
+
+            if (logAnimationEvents)
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation ended on {target?.name}");
         }
 
         #endregion
 
-        #region BlendTree Event Handlers (GameServiceManager 패턴)
+        #region BlendTree Event Handlers (이동 애니메이션 전용)
 
         /// <summary>
         /// BlendTree 이동 시작 핸들러
@@ -359,44 +377,6 @@ namespace Game.Components
                 Debug.Log($"[UnitAnimationController] {gameObject.name}: Move End at {targetPos} (isAnimationPlaying: {isAnimationPlaying})");
         }
 
-        /// <summary>
-        /// BlendTree 공격 시작 핸들러
-        /// BlendTreeAnimationController.OnBlendTreeAttackStart 이벤트를 구독
-        /// 이벤트 기반으로 애니메이션 상태 관리
-        /// </summary>
-        private void HandleBlendTreeAttackStart(GameObject target)
-        {
-            // 애니메이션 상태 시작
-            isAnimationPlaying = true;
-            currentAnimationProgress = 0f;
-            currentTarget = target;
-
-            // 공격 시작 이벤트 재발행
-            OnAttackStart?.Invoke(target);
-
-            if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack Start on {target?.name} (isAnimationPlaying: {isAnimationPlaying})");
-        }
-
-        /// <summary>
-        /// BlendTree 공격 완료 핸들러
-        /// BlendTreeAnimationController.OnBlendTreeAttackEnd 이벤트를 구독
-        /// 이벤트 기반으로 애니메이션 상태 관리
-        /// </summary>
-        private void HandleBlendTreeAttackEnd(GameObject target)
-        {
-            // 애니메이션 상태 완료
-            isAnimationPlaying = false;
-            currentAnimationProgress = 1f;
-            currentTarget = null;
-
-            // 공격 종료 이벤트 재발행
-            OnAttackEnd?.Invoke(target);
-
-            if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack End on {target?.name} (isAnimationPlaying: {isAnimationPlaying})");
-        }
-
         #endregion
 
         #region Unity Lifecycle
@@ -443,17 +423,22 @@ namespace Game.Components
 
         private void Update()
         {
-            // BlendTree 진행도 업데이트
+            // BlendTree 진행도 업데이트 (이동 애니메이션만)
             if (isAnimationPlaying && blendTreeController != null)
             {
-                // 이동 중이면 이동 진행도, 공격 중이면 공격 진행도
                 if (blendTreeController.GetMoveProgress() > 0f)
                 {
                     currentAnimationProgress = blendTreeController.GetMoveProgress();
                 }
-                else if (blendTreeController.GetAttackProgress() > 0f)
+            }
+
+            // 공격 애니메이션 진행도는 Animator의 현재 상태 기반으로 업데이트
+            if (isAnimationPlaying && animator != null && currentTarget != null)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                if (stateInfo.IsTag("Attack"))
                 {
-                    currentAnimationProgress = blendTreeController.GetAttackProgress();
+                    currentAnimationProgress = stateInfo.normalizedTime;
                 }
             }
         }
@@ -469,7 +454,7 @@ namespace Game.Components
 
         /// <summary>
         /// BlendTreeAnimationController 이벤트를 UnitAnimationController 핸들러에 연결
-        /// GameServiceManager.ConnectServiceEvents() 패턴
+        /// 이동 애니메이션만 BlendTree 사용, 공격 애니메이션은 Animation Event 사용
         /// </summary>
         private void ConnectBlendTreeEvents()
         {
@@ -477,11 +462,9 @@ namespace Game.Components
             {
                 blendTreeController.OnBlendTreeMoveStart += HandleBlendTreeMoveStart;
                 blendTreeController.OnBlendTreeMoveEnd += HandleBlendTreeMoveEnd;
-                blendTreeController.OnBlendTreeAttackStart += HandleBlendTreeAttackStart;
-                blendTreeController.OnBlendTreeAttackEnd += HandleBlendTreeAttackEnd;
 
                 if (logAnimationEvents)
-                    Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree events connected");
+                    Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree events connected (Move only)");
             }
         }
 
@@ -494,8 +477,6 @@ namespace Game.Components
             {
                 blendTreeController.OnBlendTreeMoveStart -= HandleBlendTreeMoveStart;
                 blendTreeController.OnBlendTreeMoveEnd -= HandleBlendTreeMoveEnd;
-                blendTreeController.OnBlendTreeAttackStart -= HandleBlendTreeAttackStart;
-                blendTreeController.OnBlendTreeAttackEnd -= HandleBlendTreeAttackEnd;
 
                 if (logAnimationEvents)
                     Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree events disconnected");

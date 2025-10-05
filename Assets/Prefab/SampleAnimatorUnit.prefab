@@ -382,7 +382,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5587425084368444630}
@@ -465,9 +465,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveDuration: 1.19
-  moveFrontTransitionDuration: 0.417
-  moveBackTransitionDuration: 0.117
-  attackDuration: 2
+  moveFrontTransitionDuration: 0.223
+  moveBackTransitionDuration: 0.161
+  attackDuration: 0.957
   attackFrontTransitionDuration: 0.05
   attackBackTransitionDuration: 0.05
   speedCurve:
