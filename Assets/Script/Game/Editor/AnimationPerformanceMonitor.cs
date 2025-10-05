@@ -227,12 +227,14 @@ namespace Game.Editor
             isMonitoring = true;
             lastFrameTime = Time.realtimeSinceStartup;
 
-            // UnitAnimationController 이벤트 구독
+            // BlendTree 기반 UnitAnimationController 이벤트 구독
             var controllers = FindObjectsOfType<UnitAnimationController>();
             foreach (var controller in controllers)
             {
-                controller.OnAnimationStarted += OnAnimationStarted;
-                controller.OnAnimationComplete += OnAnimationComplete;
+                controller.OnMoveStart += OnMoveStart;
+                controller.OnMoveEnd += OnMoveEnd;
+                controller.OnAttackStart += OnAttackStart;
+                controller.OnAttackEnd += OnAttackEnd;
             }
 
             Debug.Log("[AnimationPerformanceMonitor] Monitoring started");
@@ -248,26 +250,28 @@ namespace Game.Editor
             var controllers = FindObjectsOfType<UnitAnimationController>();
             foreach (var controller in controllers)
             {
-                controller.OnAnimationStarted -= OnAnimationStarted;
-                controller.OnAnimationComplete -= OnAnimationComplete;
+                controller.OnMoveStart -= OnMoveStart;
+                controller.OnMoveEnd -= OnMoveEnd;
+                controller.OnAttackStart -= OnAttackStart;
+                controller.OnAttackEnd -= OnAttackEnd;
             }
 
             Debug.Log("[AnimationPerformanceMonitor] Monitoring stopped");
         }
 
-        private static void OnAnimationStarted(string animationType)
+        private static void OnMoveStart(Vector2Int from, Vector2Int to)
         {
             if (!isMonitoring) return;
 
-            string key = Time.frameCount.ToString();
+            string key = $"Move_{Time.frameCount}";
             activeAnimations[key] = Time.realtimeSinceStartup;
         }
 
-        private static void OnAnimationComplete()
+        private static void OnMoveEnd(Vector2Int targetPos)
         {
             if (!isMonitoring) return;
 
-            string key = Time.frameCount.ToString();
+            string key = $"Move_{Time.frameCount}";
             if (activeAnimations.TryGetValue(key, out float startTime))
             {
                 float endTime = Time.realtimeSinceStartup;
@@ -285,7 +289,46 @@ namespace Game.Editor
                 recordedAnimations.Add(new AnimationStats
                 {
                     unitName = "Unit",
-                    animationType = "Animation",
+                    animationType = "Move",
+                    duration = duration,
+                    startTime = startTime,
+                    endTime = endTime,
+                    frameDrops = frameDrops
+                });
+
+                activeAnimations.Remove(key);
+            }
+        }
+
+        private static void OnAttackStart(GameObject target)
+        {
+            if (!isMonitoring) return;
+
+            string key = $"Attack_{Time.frameCount}";
+            activeAnimations[key] = Time.realtimeSinceStartup;
+        }
+
+        private static void OnAttackEnd(GameObject target)
+        {
+            if (!isMonitoring) return;
+
+            string key = $"Attack_{Time.frameCount}";
+            if (activeAnimations.TryGetValue(key, out float startTime))
+            {
+                float endTime = Time.realtimeSinceStartup;
+                float duration = endTime - startTime;
+
+                int frameDrops = duration > 0.1f ? 1 : 0;
+
+                if (recordedAnimations.Count >= 100)
+                {
+                    recordedAnimations.RemoveAt(0);
+                }
+
+                recordedAnimations.Add(new AnimationStats
+                {
+                    unitName = "Unit",
+                    animationType = "Attack",
                     duration = duration,
                     startTime = startTime,
                     endTime = endTime,

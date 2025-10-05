@@ -69,11 +69,9 @@ namespace Game.Components
             // 애니메이션 이벤트 구독
             if (animationController != null)
             {
-                animationController.OnMovementFinished += OnAnimationMovementFinished;
-
-                // Phase 2: Transform 이동 이벤트 구독
-                animationController.OnTransformMoveStart += OnTransformMoveStart;
-                animationController.OnTransformMoveEnd += OnTransformMoveEnd;
+                // BlendTree 이동 이벤트 구독
+                animationController.OnMoveStart += OnTransformMoveStart;
+                animationController.OnMoveEnd += OnTransformMoveEnd;
                 animationController.OnAnimationInterrupted += OnAnimationInterrupted;
             }
         }
@@ -83,11 +81,9 @@ namespace Game.Components
             // 애니메이션 이벤트 구독 해제
             if (animationController != null)
             {
-                animationController.OnMovementFinished -= OnAnimationMovementFinished;
-
-                // Phase 2: Transform 이동 이벤트 구독 해제
-                animationController.OnTransformMoveStart -= OnTransformMoveStart;
-                animationController.OnTransformMoveEnd -= OnTransformMoveEnd;
+                // BlendTree 이동 이벤트 구독 해제
+                animationController.OnMoveStart -= OnTransformMoveStart;
+                animationController.OnMoveEnd -= OnTransformMoveEnd;
                 animationController.OnAnimationInterrupted -= OnAnimationInterrupted;
             }
         }
@@ -597,16 +593,6 @@ namespace Game.Components
             return Mathf.RoundToInt(totalRange);
         }
 
-        /// <summary>
-        /// Animation Event에서 호출되는 이동 완료 처리 (선택적)
-        /// </summary>
-        private void OnAnimationMovementFinished(Vector2Int targetPosition)
-        {
-            Debug.Log($"[MovementComponent] Movement animation finished to {targetPosition}");
-
-            // 추가 처리 필요시 여기서 수행
-            // 예: 이동 완료 사운드, 먼지 효과 등
-        }
 
         #endregion
 

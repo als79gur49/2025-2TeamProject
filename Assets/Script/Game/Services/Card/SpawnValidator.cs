@@ -112,18 +112,11 @@ namespace Game.Services
 
             Log($"🔍 Validating unit spawn: {cardData.CardName} at {gridPosition} (Player: {isPlayerUnit})");
 
-            // TODO: Phase 2에서 구현
-            // 1. 페이즈 검증 (AllySummon 또는 EnemySummon)
-            // 2. 위치 검증 (빈 타일인지, 소환 영역 내인지)
-            // 3. 비용 검증 (Mana, ActionPoint 충분한지)
-            // 4. 플레이어/적군별 소환 영역 검증 (플레이어는 좌측 1열, 적군은 우측 1열)
-
-            // Phase 2.11: 개선된 완전한 검증 로직 구현
+            // 플레이어/적군별 소환 영역 검증 (플레이어는 좌측 1열, 적군은 우측 1열)
             bool isValidPhase = ValidatePhaseForSpawn(isPlayerUnit);
             bool isValidPosition = ValidateSpawnPosition(gridPosition, isPlayerUnit);
             bool hasEnoughResources = ValidateSpawnCost(cardData, isPlayerUnit);
 
-            // Phase 2.11: 통합된 타겟 검증 사용
             Vector2Int basePosition = isPlayerUnit ? GetPlayerBasePosition() : GetEnemyBasePosition();
             bool isValidTarget = ValidateTargetWithCardData(cardData, basePosition, gridPosition, isPlayerUnit);
 
@@ -182,8 +175,6 @@ namespace Game.Services
                 return false;
             }
 
-            // 5. Phase 2.11: 통합된 배치 대상 및 거리 검증
-            // 플레이어 기준점을 사용하여 검증 (주문은 플레이어가 사용)
             Vector2Int playerBasePosition = GetPlayerBasePosition();
             if (!ValidateTargetWithCardData(cardData, playerBasePosition, targetPosition, true))
             {
