@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Game.Interfaces
 {
     /// <summary>
-    /// Animation Event 기반 유닛 애니메이션 제어 인터페이스
-    /// Unity Animation Event를 통해 정확한 타이밍에 게임플레이 이벤트 발생
+    /// BlendTree 기반 유닛 애니메이션 제어 인터페이스
+    /// BlendTreeAnimationController를 통한 정밀한 타이밍 제어
     /// </summary>
     public interface IAnimationController
     {
@@ -35,14 +35,14 @@ namespace Game.Interfaces
         // ========================================
 
         /// <summary>
-        /// 이동 애니메이션 재생 (트리거만, Animation Event가 나머지 처리)
+        /// BlendTree 기반 이동 애니메이션 재생
         /// </summary>
         /// <param name="from">시작 그리드 위치</param>
         /// <param name="to">목표 그리드 위치</param>
         void PlayMoveAnimation(Vector2Int from, Vector2Int to);
 
         /// <summary>
-        /// 공격 애니메이션 재생 (트리거만, Animation Event가 나머지 처리)
+        /// BlendTree 기반 공격 애니메이션 재생
         /// </summary>
         /// <param name="target">공격 대상 GameObject</param>
         void PlayAttackAnimation(GameObject target);
@@ -59,70 +59,57 @@ namespace Game.Interfaces
         void SetAnimationSpeed(float speed);
 
         // ========================================
-        // Animation Lifecycle Events
-        // (Animation Event에서 호출)
+        // BlendTree Animation Events
         // ========================================
 
         /// <summary>
-        /// 애니메이션 시작 이벤트
-        /// AnimEvent_OnAnimationStart()에서 호출
+        /// 이동 시작 이벤트 (from, to)
+        /// BlendTreeAnimationController.OnBlendTreeMoveStart에서 전달
         /// </summary>
-        event Action<string> OnAnimationStarted;
+        event Action<Vector2Int, Vector2Int> OnMoveStart;
 
         /// <summary>
-        /// 애니메이션 완료 이벤트
-        /// AnimEvent_OnAnimationEnd()에서 호출
-        /// UnitService가 이 이벤트를 대기
+        /// 이동 종료 이벤트 (targetPosition)
+        /// BlendTreeAnimationController.OnBlendTreeMoveEnd에서 전달
         /// </summary>
-        event Action OnAnimationComplete;
+        event Action<Vector2Int> OnMoveEnd;
+
+        /// <summary>
+        /// 공격 시작 이벤트 (target)
+        /// BlendTreeAnimationController.OnBlendTreeAttackStart에서 전달
+        /// </summary>
+        event Action<GameObject> OnAttackStart;
+
+        /// <summary>
+        /// 공격 종료 이벤트 (target)
+        /// BlendTreeAnimationController.OnBlendTreeAttackEnd에서 전달
+        /// </summary>
+        event Action<GameObject> OnAttackEnd;
 
         /// <summary>
         /// 애니메이션 중단 이벤트
+        /// StopCurrentAnimation() 호출 시 발생
         /// </summary>
         event Action OnAnimationInterrupted;
 
-        // ========================================
-        // Gameplay Events
-        // (특정 타이밍에 게임플레이 로직 실행)
-        // ========================================
-
         /// <summary>
-        /// 공격 타격 순간 이벤트
-        /// AnimEvent_OnAttackImpact()에서 호출
+        /// 공격 타격 순간 이벤트 (공격 진행도 60% 지점)
         /// CombatComponent가 이 이벤트를 구독하여 데미지 적용
         /// </summary>
         event Action<GameObject> OnAttackHit;
 
-        /// <summary>
-        /// 이동 완료 이벤트
-        /// AnimEvent_OnMoveComplete()에서 호출
-        /// MovementComponent가 이 이벤트를 구독하여 추가 처리 (선택적)
-        /// </summary>
-        event Action<Vector2Int> OnMovementFinished;
-
-        /// <summary>
-        /// 스킬 시전 이벤트 (추후 확장용)
-        /// AnimEvent_OnSkillCast()에서 호출
-        /// </summary>
-        event Action OnSkillCast;
-
         // ========================================
-        // Phase 2: Transform Movement Events
-        // (블렌딩/전환 시간 문제 해결)
+        // VFX/SFX Events
         // ========================================
 
         /// <summary>
-        /// Transform 이동 시작 이벤트
-        /// AnimEvent_OnAnimationStart()에서 Move 타입일 때 호출
-        /// MovementComponent가 이 이벤트를 구독하여 Transform 보간 시작
+        /// VFX 효과 요청 이벤트 (효과 타입, 위치, 방향)
         /// </summary>
-        event Action<Vector2Int, Vector2Int> OnTransformMoveStart;
+        event Action<string, Vector3, Vector3> OnVFXRequested;
 
         /// <summary>
-        /// Transform 이동 종료 이벤트
-        /// AnimEvent_OnAnimationEnd()에서 Move 타입일 때 호출
-        /// MovementComponent가 이 이벤트를 구독하여 Transform 보간 종료
+        /// SFX 사운드 요청 이벤트 (사운드 타입, 위치)
         /// </summary>
-        event Action<Vector2Int> OnTransformMoveEnd;
+        event Action<string, Vector3> OnSFXRequested;
     }
 }
