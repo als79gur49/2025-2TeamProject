@@ -464,12 +464,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a94c6cb6efa82d4fad567f159987f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveDuration: 1
-  moveFrontTransitionDuration: 0.189
-  moveBackTransitionDuration: 0.3
-  attackDuration: 0.6
-  attackFrontTransitionDuration: 0.1
-  attackBackTransitionDuration: 0.15
+  moveDuration: 1.19
+  moveFrontTransitionDuration: 0.417
+  moveBackTransitionDuration: 0.117
+  attackDuration: 2
+  attackFrontTransitionDuration: 0.05
+  attackBackTransitionDuration: 0.05
   speedCurve:
     serializedVersion: 2
     m_Curve:
@@ -842,7 +842,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1538272961646254884
 Transform:
   m_ObjectHideFlags: 0
@@ -949,7 +949,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6390225521512620867
 Transform:
   m_ObjectHideFlags: 0

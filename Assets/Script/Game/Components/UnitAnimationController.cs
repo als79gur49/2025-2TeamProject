@@ -231,7 +231,8 @@ namespace Game.Components
 
         /// <summary>
         /// BlendTree 이동 완료를 모니터링하는 코루틴
-        /// 상태 관리는 HandleBlendTreeMoveEnd에서 처리됨
+        /// 완료 처리는 BlendTreeAnimationController.UpdateBlendTreeSpeed에서 자동으로 수행됨
+        /// 이 코루틴은 단순히 완료 대기만 담당
         /// </summary>
         private IEnumerator MonitorBlendTreeMove(Vector2Int targetPos)
         {
@@ -240,11 +241,12 @@ namespace Game.Components
                 yield return null;
             }
 
-            // 이동 완료 처리 (상태 관리는 HandleBlendTreeMoveEnd에서 자동 처리)
-            blendTreeController.CompleteBlendTreeMove();
+            // 완료 처리는 BlendTreeAnimationController가 자체적으로 수행
+            // (UpdateBlendTreeSpeed에서 elapsed >= moveDuration 체크)
+            // 여기서는 완료 대기만 하고 이벤트는 HandleBlendTreeMoveEnd에서 수신
 
             if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree move completed to {targetPos}");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree move monitor completed to {targetPos}");
         }
 
         #endregion
@@ -253,7 +255,8 @@ namespace Game.Components
 
         /// <summary>
         /// BlendTree 공격 완료를 모니터링하는 코루틴
-        /// 상태 관리는 HandleBlendTreeAttackEnd에서 처리됨
+        /// 완료 처리는 BlendTreeAnimationController.UpdateBlendTreeAttack에서 자동으로 수행됨
+        /// 이 코루틴은 타격 이벤트 발생과 완료 대기만 담당
         /// </summary>
         private IEnumerator MonitorBlendTreeAttack(GameObject target)
         {
@@ -289,11 +292,12 @@ namespace Game.Components
                 yield return null;
             }
 
-            // 공격 완료 처리 (상태 관리는 HandleBlendTreeAttackEnd에서 자동 처리)
-            blendTreeController.CompleteBlendTreeAttack();
+            // 완료 처리는 BlendTreeAnimationController가 자체적으로 수행
+            // (UpdateBlendTreeAttack에서 elapsed >= attackDuration 체크)
+            // 여기서는 타격 이벤트 발생과 완료 대기만 하고 이벤트는 HandleBlendTreeAttackEnd에서 수신
 
             if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree attack completed");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: BlendTree attack monitor completed");
         }
 
         #endregion

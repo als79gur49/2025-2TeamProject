@@ -565,37 +565,66 @@ namespace Game.Components
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!isBlendTreeMoving) return;
+            Vector3 labelPosition = transform.position + Vector3.up * 2.0f;
 
-            // 진행도 시각화
-            float progress = GetMoveProgress();
-            float speed = GetCurrentMoveSpeed();
-
-            // Phase 3-3: Transform 동기화 상태 시각화
-            string syncStatus = isTransformSyncing ?
-                $"Transform Sync: ON\nPosition Error: {GetPositionError():F4}" :
-                "Transform Sync: OFF";
-
-            // Gizmos를 통한 디버그 정보 표시
-            UnityEngine.GUIStyle style = new UnityEngine.GUIStyle();
-            style.normal.textColor = isTransformSyncing ? Color.green : Color.white;
-
-            Vector3 position = transform.position + Vector3.up * 2.0f;
-            UnityEditor.Handles.Label(position,
-                $"Progress: {progress:F2}\nSpeed: {speed:F2}\n{syncStatus}",
-                style);
-
-            // Transform 동기화 경로 시각화
-            if (isTransformSyncing)
+            // 이동 상태 시각화
+            if (isBlendTreeMoving)
             {
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawLine(transformStartPosition, transformTargetPosition);
+                float progress = GetMoveProgress();
+                float speed = GetCurrentMoveSpeed();
 
-                Gizmos.color = Color.green;
-                Gizmos.DrawWireSphere(transformTargetPosition, 0.2f);
+                // Transform 동기화 상태 시각화
+                string syncStatus = isTransformSyncing ?
+                    $"Transform Sync: ON\nPosition Error: {GetPositionError():F4}" :
+                    "Transform Sync: OFF";
 
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere(transform.position, 0.1f);
+                UnityEngine.GUIStyle moveStyle = new UnityEngine.GUIStyle();
+                moveStyle.normal.textColor = isTransformSyncing ? Color.green : Color.white;
+
+                UnityEditor.Handles.Label(labelPosition,
+                    $"[MOVE] Progress: {progress:F2}\nSpeed: {speed:F2}\n{syncStatus}",
+                    moveStyle);
+
+                // Transform 동기화 경로 시각화
+                if (isTransformSyncing)
+                {
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawLine(transformStartPosition, transformTargetPosition);
+
+                    Gizmos.color = Color.green;
+                    Gizmos.DrawWireSphere(transformTargetPosition, 0.2f);
+
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawWireSphere(transform.position, 0.1f);
+                }
+            }
+
+            // 공격 상태 시각화
+            if (isBlendTreeAttacking)
+            {
+                float attackProgress = GetAttackProgress();
+                float attackTrigger = GetCurrentAttackTrigger();
+
+                UnityEngine.GUIStyle attackStyle = new UnityEngine.GUIStyle();
+                attackStyle.normal.textColor = Color.red;
+
+                string targetInfo = currentAttackTarget != null ?
+                    $"Target: {currentAttackTarget.name}" :
+                    "Target: None";
+
+                UnityEditor.Handles.Label(labelPosition,
+                    $"[ATTACK] Progress: {attackProgress:F2}\nTrigger: {attackTrigger:F2}\n{targetInfo}",
+                    attackStyle);
+
+                // 공격 대상 방향 시각화
+                if (currentAttackTarget != null)
+                {
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawLine(transform.position, currentAttackTarget.transform.position);
+
+                    Gizmos.color = Color.magenta;
+                    Gizmos.DrawWireSphere(currentAttackTarget.transform.position, 0.3f);
+                }
             }
         }
 #endif

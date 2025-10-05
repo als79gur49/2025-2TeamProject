@@ -38,6 +38,11 @@ namespace Game.Components
         private int lastSpecialAttackTurn = -999;
         private List<StatModifier> attackPowerModifiers = new List<StatModifier>();
 
+        // 공격 상태 추적 (BlendTree 애니메이션 동기화용)
+        private bool isAttacking = false;
+        private GameObject currentAttackTarget = null;
+        private bool isSpecialAttackActive = false;
+
         // 캐시된 컴포넌트
         private IGridManager gridManager;
         private ITeamComponent teamComponent;
@@ -53,19 +58,23 @@ namespace Game.Components
             healthComponent = GetComponent<IHealthComponent>();
             animationController = GetComponent<IAnimationController>();
 
-            // 애니메이션 이벤트 구독
+            // BlendTree 애니메이션 이벤트 구독
             if (animationController != null)
             {
+                animationController.OnAttackStart += OnAnimationAttackStart;
                 animationController.OnAttackHit += OnAnimationAttackHit;
+                animationController.OnAttackEnd += OnAnimationAttackEnd;
             }
         }
 
         private void OnDestroy()
         {
-            // 애니메이션 이벤트 구독 해제
+            // BlendTree 애니메이션 이벤트 구독 해제
             if (animationController != null)
             {
+                animationController.OnAttackStart -= OnAnimationAttackStart;
                 animationController.OnAttackHit -= OnAnimationAttackHit;
+                animationController.OnAttackEnd -= OnAnimationAttackEnd;
             }
         }
 
@@ -129,11 +138,20 @@ namespace Game.Components
                 return CombatResult.Failed("Cannot attack target");
             }
 
-            OnAttackStarted?.Invoke(target);
+            if (isAttacking)
+            {
+                Debug.LogWarning($"[CombatComponent] {gameObject.name} is already attacking!");
+                return CombatResult.Failed("Already attacking");
+            }
+
+            // 공격 상태 시작
+            isAttacking = true;
+            currentAttackTarget = target;
+            isSpecialAttackActive = false;
             lastAttackTime = Time.time;
             EnterCombat();
 
-            // 애니메이션 재생 (데미지는 OnAnimationAttackHit에서 적용)
+            // BlendTree 애니메이션 재생 (데미지는 OnAnimationAttackHit에서 적용)
             if (animationController != null)
             {
                 animationController.PlayAttackAnimation(target);
@@ -144,7 +162,9 @@ namespace Game.Components
             else
             {
                 // 애니메이션 없으면 즉시 데미지 적용 (fallback)
-                return PerformAttack(target, false);
+                isAttacking = false;
+                currentAttackTarget = null;
+                return ApplyDamageToTarget(target, false);
             }
         }
 
@@ -161,7 +181,7 @@ namespace Game.Components
                 return CombatResult.Failed("No target at position");
             }
 
-            return PerformAttack(target, false);
+            return Attack(target);
         }
 
         public List<Vector2Int> GetAttackRange(Vector2Int fromPosition)
@@ -301,15 +321,41 @@ namespace Game.Components
                 return CombatResult.Failed("Cannot attack target with special attack");
             }
 
-            lastSpecialAttackTurn = (int)Time.fixedTime;
-            var result = PerformAttack(target, true);
-            
-            if (result.Success)
+            if (isAttacking)
             {
-                OnSpecialAttack?.Invoke(target, result);
+                Debug.LogWarning($"[CombatComponent] {gameObject.name} is already attacking!");
+                return CombatResult.Failed("Already attacking");
             }
 
-            return result;
+            // 공격 상태 시작 (특수 공격)
+            isAttacking = true;
+            currentAttackTarget = target;
+            isSpecialAttackActive = true;
+            lastSpecialAttackTurn = (int)Time.fixedTime;
+            lastAttackTime = Time.time;
+            EnterCombat();
+
+            // BlendTree 애니메이션 재생
+            if (animationController != null)
+            {
+                animationController.PlayAttackAnimation(target);
+                return CombatResult.Hit(0, target, attackType, false, "Special attack animation started");
+            }
+            else
+            {
+                // 애니메이션 없으면 즉시 데미지 적용
+                isAttacking = false;
+                currentAttackTarget = null;
+                isSpecialAttackActive = false;
+                var result = ApplyDamageToTarget(target, true);
+
+                if (result.Success)
+                {
+                    OnSpecialAttack?.Invoke(target, result);
+                }
+
+                return result;
+            }
         }
 
         public CombatResult PerformCounterAttack(GameObject attacker)
@@ -341,7 +387,9 @@ namespace Game.Components
 
         public CombatResult PerformCriticalAttack(GameObject target)
         {
-            return PerformAttack(target, false, true);
+            // 크리티컬 확정 공격 (강제 크리티컬)
+            // 현재는 일반 Attack과 동일하지만, OnAnimationAttackHit에서 forceCritical 플래그 필요 시 확장 가능
+            return Attack(target);
         }
 
         public void SetCriticalChance(float chance)
@@ -387,21 +435,25 @@ namespace Game.Components
 
         #region Private Methods
 
-        private CombatResult PerformAttack(GameObject target, bool isSpecialAttack, bool forceCritical = false)
+        /// <summary>
+        /// 실제 데미지 적용 메서드 (애니메이션 없이 즉시 적용)
+        /// </summary>
+        private CombatResult ApplyDamageToTarget(GameObject target, bool isSpecialAttack, bool forceCritical = false)
         {
-            OnAttackStarted?.Invoke(target);
-            lastAttackTime = Time.time;
-            EnterCombat();
+            if (target == null)
+            {
+                return CombatResult.Failed("Target is null");
+            }
 
             var targetHealth = target.GetComponent<IHealthComponent>();
-            if (targetHealth == null)
+            if (targetHealth == null || !targetHealth.IsAlive)
             {
-                return CombatResult.Failed("Target has no health component");
+                return CombatResult.Failed("Target has no health or is dead");
             }
 
             // 크리티컬 판정
             bool isCritical = forceCritical || this.RollCritical();
-            
+
             // 피해량 계산
             int baseDamage = isSpecialAttack ? CurrentAttackPower * specialAttackDamageMultiplier : CurrentAttackPower;
             int finalDamage = this.CalculateFinalDamage(baseDamage, isCritical);
@@ -417,7 +469,10 @@ namespace Game.Components
                 targetHealth.TakeDamage(finalDamage);
             }
 
-            var result = CombatResult.Hit(finalDamage, target, attackType, isCritical, 
+            Debug.Log($"[CombatComponent] {gameObject.name} hit {target.name} for {finalDamage} damage" +
+                      (isCritical ? " (CRITICAL!)" : "") + (isSpecialAttack ? " (SPECIAL!)" : ""));
+
+            var result = CombatResult.Hit(finalDamage, target, attackType, isCritical,
                 isSpecialAttack ? "Special attack hit!" : (isCritical ? "Critical hit!" : "Attack hit!"));
 
             OnAttackPerformed?.Invoke(target, result);
@@ -425,6 +480,11 @@ namespace Game.Components
             if (isCritical)
             {
                 OnCriticalAttack?.Invoke(target, result);
+            }
+
+            if (isSpecialAttack)
+            {
+                OnSpecialAttack?.Invoke(target, result);
             }
 
             return result;
@@ -568,52 +628,74 @@ namespace Game.Components
             return positions;
         }
 
-        /// <summary>
-        /// Animation Event에서 호출되는 실제 데미지 적용 메서드
-        /// AnimEvent_OnAttackImpact() → OnAttackHit 이벤트 → 이 메서드 호출
-        /// </summary>
-        private void OnAnimationAttackHit(GameObject target)
-        {
-            if (target == null) return;
+        #endregion
 
-            var targetHealth = target.GetComponent<IHealthComponent>();
-            if (targetHealth == null || !targetHealth.IsAlive)
+        #region BlendTree Animation Event Handlers (MovementComponent 패턴)
+
+        /// <summary>
+        /// BlendTree 공격 시작 핸들러
+        /// UnitAnimationController.OnAttackStart 이벤트 구독
+        /// </summary>
+        private void OnAnimationAttackStart(GameObject target)
+        {
+            if (target == null)
             {
-                Debug.LogWarning($"[CombatComponent] Attack hit but target {target.name} has no health or is dead");
+                Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack start but target is null");
                 return;
             }
 
-            // 크리티컬 판정
-            bool isCritical = this.RollCritical();
+            Debug.Log($"[CombatComponent] {gameObject.name}: Attack animation started on {target.name}");
 
-            // 피해량 계산
-            int baseDamage = CurrentAttackPower;
-            int finalDamage = this.CalculateFinalDamage(baseDamage, isCritical);
+            // OnAttackStarted 이벤트 발생 (외부 시스템에 알림)
+            OnAttackStarted?.Invoke(target);
+        }
 
-            // 방어력 관통 적용
-            if (CanPierceArmor && targetHealth is IAdvancedHealthComponent advancedHealth)
+        /// <summary>
+        /// BlendTree 공격 타격 핸들러 (데미지 적용 시점)
+        /// UnitAnimationController.OnAttackHit 이벤트 구독
+        /// 공격 진행도 60% 지점에서 호출됨
+        /// </summary>
+        private void OnAnimationAttackHit(GameObject target)
+        {
+            // currentAttackTarget 검증 (애니메이션 이벤트의 target과 일치해야 함)
+            if (currentAttackTarget == null)
             {
-                var damageInfo = new DamageInfo(finalDamage, attackType, gameObject, isCritical, armorPenetration > 0.5f);
-                targetHealth.TakeDamage(finalDamage);
+                Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack hit but no current target");
+                return;
             }
-            else
+
+            if (target != currentAttackTarget)
             {
-                targetHealth.TakeDamage(finalDamage);
+                Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack hit target mismatch! " +
+                                 $"Expected {currentAttackTarget.name}, got {target?.name}");
+                return;
             }
 
-            Debug.Log($"[CombatComponent] {gameObject.name} hit {target.name} for {finalDamage} damage" +
-                      (isCritical ? " (CRITICAL!)" : ""));
+            // 실제 데미지 적용
+            ApplyDamageToTarget(currentAttackTarget, isSpecialAttackActive);
 
-            // 이벤트 발생
-            var result = CombatResult.Hit(finalDamage, target, attackType, isCritical,
-                isCritical ? "Critical hit!" : "Attack hit!");
+            Debug.Log($"[CombatComponent] {gameObject.name}: Damage applied to {currentAttackTarget.name} " +
+                      $"(isSpecial: {isSpecialAttackActive})");
+        }
 
-            OnAttackPerformed?.Invoke(target, result);
-
-            if (isCritical)
+        /// <summary>
+        /// BlendTree 공격 완료 핸들러
+        /// UnitAnimationController.OnAttackEnd 이벤트 구독
+        /// </summary>
+        private void OnAnimationAttackEnd(GameObject target)
+        {
+            if (currentAttackTarget == null)
             {
-                OnCriticalAttack?.Invoke(target, result);
+                Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack end but no current target");
+                return;
             }
+
+            Debug.Log($"[CombatComponent] {gameObject.name}: Attack animation ended on {currentAttackTarget.name}");
+
+            // 공격 상태 초기화
+            isAttacking = false;
+            currentAttackTarget = null;
+            isSpecialAttackActive = false;
         }
 
         #endregion

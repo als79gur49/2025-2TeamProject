@@ -738,9 +738,8 @@ namespace Game.Components
             while (animationController.IsAnimationPlaying && isTransformMoving)
             {
                 float progress = animationController.CurrentAnimationProgress;
-                Debug.LogError($"{gameObject.name} - {from}-{to} - {progress} - {animationController.IsAnimationPlaying} - {isTransformMoving}");
-
                 transform.position = Vector3.Lerp(startPos, endPos, progress);
+
                 yield return null;
             }
 
