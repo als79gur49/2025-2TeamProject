@@ -1,14 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Game.Interfaces;
+using Game.VFX;
 
 namespace Game.Card.Effects
 {
     /// <summary>
     /// CardData 리팩토링 Phase 1.2: 회복 효과 구현
     /// ICardEffect를 구현하여 대상을 회복시키는 효과입니다.
+    /// VFX Dynamic Data System: IVFXAwareEffect 구현으로 공격 성공/실패 반응
     /// </summary>
-    public class HealEffect : ICardEffect
+    public class HealEffect : IVFXAwareEffect
     {
         private readonly EffectData _effectData;
 
@@ -59,11 +61,43 @@ namespace Game.Card.Effects
 
             foreach (var unit in affectedUnits)
             {
-                ApplyHealToUnit(unit, healAmount);
+                ApplyHealToUnit(unit, healAmount, null);
             }
 
             // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
+        }
+
+        /// <summary>
+        /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
+        /// 공격 성공/실패 여부에 따라 회복 적용 여부 결정
+        /// </summary>
+        public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
+        {
+            // 공격 실패 시 Miss 효과만 재생하고 종료
+            if (!triggerData.AttackSuccess)
+            {
+                Debug.Log($"[HealEffect] Heal failed: {triggerData.ValidationFailureReason}");
+                PlayMissEffect(targetPos, context);
+                return;
+            }
+
+            // 공격 성공: 타겟 회복
+            GameObject target = triggerData.PredeterminedTarget;
+            if (target == null)
+            {
+                Debug.LogWarning("[HealEffect] Heal success but no predetermined target");
+                return;
+            }
+
+            var healAmount = _effectData.Value;
+            Debug.Log($"[HealEffect] Heal success! Applying {healAmount} heal to {target.name}");
+
+            // 타겟 회복
+            ApplyHealToUnit(target, healAmount, triggerData);
+
+            // VFX 위치 기반 Heal 효과 재생
+            PlayHealEffect(triggerData.TriggerWorldPosition, context);
         }
 
         /// <summary>
@@ -133,7 +167,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 유닛에게 실제 회복을 적용합니다.
         /// </summary>
-        private void ApplyHealToUnit(GameObject unit, int healAmount)
+        private void ApplyHealToUnit(GameObject unit, int healAmount, VFXTriggerData triggerData)
         {
             if (unit == null)
             {
@@ -161,6 +195,29 @@ namespace Game.Card.Effects
             healthComponent.Heal(actualHealAmount);
 
             Debug.Log($"HealEffect: {unit.name}을(를) {actualHealAmount}만큼 회복 (요청: {healAmount})");
+        }
+
+        /// <summary>
+        /// 회복 실패 시 Miss 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlayMissEffect(Vector2Int gridPos, GameContext context)
+        {
+            Debug.Log($"[HealEffect] Playing miss effect at grid position {gridPos}");
+            // TODO: Miss VFX 프리팹 재생 로직 구현
+        }
+
+        /// <summary>
+        /// 회복 성공 시 Heal 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlayHealEffect(Vector3 worldPos, GameContext context)
+        {
+            Debug.Log($"[HealEffect] Playing heal effect at world position {worldPos}");
+
+            // VFXData의 이펙트 프리팹 사용
+            if (_effectData.EffectPrefab != null)
+            {
+                Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
+            }
         }
 
         /// <summary>

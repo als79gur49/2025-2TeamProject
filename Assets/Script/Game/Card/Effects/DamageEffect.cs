@@ -1,13 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Game.Interfaces;
+using Game.VFX;
 
 namespace Game.Card.Effects
 {
     /// <summary>
     /// CardData 리팩토링 Phase 1.2: 데미지 효과 구현
     /// ICardEffect를 구현하여 대상에게 피해를 주는 효과입니다.
+    /// VFX Dynamic Data System: IVFXAwareEffect 구현으로 공격 성공/실패 반응
     /// </summary>
-    public class DamageEffect : ICardEffect
+    public class DamageEffect : IVFXAwareEffect
     {
         private readonly EffectData _effectData;
 
@@ -58,11 +61,43 @@ namespace Game.Card.Effects
 
             foreach (var unit in affectedUnits)
             {
-                ApplyDamageToUnit(unit, damageAmount);
+                ApplyDamageToUnit(unit, damageAmount, null);
             }
 
             // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
+        }
+
+        /// <summary>
+        /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
+        /// 공격 성공/실패 여부에 따라 데미지 적용 여부 결정
+        /// </summary>
+        public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
+        {
+            // 공격 실패 시 Miss 효과만 재생하고 종료
+            if (!triggerData.AttackSuccess)
+            {
+                Debug.Log($"[DamageEffect] Attack failed: {triggerData.ValidationFailureReason}");
+                PlayMissEffect(targetPos, context);
+                return;
+            }
+
+            // 공격 성공: 타겟에게 데미지 적용
+            GameObject target = triggerData.PredeterminedTarget;
+            if (target == null)
+            {
+                Debug.LogWarning("[DamageEffect] Attack success but no predetermined target");
+                return;
+            }
+
+            var damageAmount = _effectData.Value;
+            Debug.Log($"[DamageEffect] Attack success! Applying {damageAmount} damage to {target.name}");
+
+            // 타겟에게 데미지 적용
+            ApplyDamageToUnit(target, damageAmount, triggerData);
+
+            // VFX 위치 기반 Hit 효과 재생
+            PlayHitEffect(triggerData.TriggerWorldPosition, context);
         }
 
         /// <summary>
@@ -93,7 +128,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// 유닛에게 실제 피해를 적용합니다.
         /// </summary>
-        private void ApplyDamageToUnit(GameObject unit, int damage)
+        private void ApplyDamageToUnit(GameObject unit, int damage, VFXTriggerData triggerData)
         {
             if (unit == null)
             {
@@ -132,6 +167,30 @@ namespace Game.Card.Effects
             else
             {
                 healthComponent.TakeDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// 공격 실패 시 Miss 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlayMissEffect(Vector2Int gridPos, GameContext context)
+        {
+            Debug.Log($"[DamageEffect] Playing miss effect at grid position {gridPos}");
+            // TODO: Miss VFX 프리팹 재생 로직 구현
+            // 예: Instantiate(_missPrefab, context.GridManager.GridToWorldPosition(gridPos), Quaternion.identity);
+        }
+
+        /// <summary>
+        /// 공격 성공 시 Hit 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlayHitEffect(Vector3 worldPos, GameContext context)
+        {
+            Debug.Log($"[DamageEffect] Playing hit effect at world position {worldPos}");
+
+            // VFXData의 이펙트 프리팹 사용
+            if (_effectData.EffectPrefab != null)
+            {
+                Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
             }
         }
 

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Game.Data;
+using Game.VFX;
 using UnityEditor.PackageManager.Requests;
 
 namespace Game.Card.Effects
@@ -32,6 +33,9 @@ namespace Game.Card.Effects
         [Header("시각적 효과")]
         [SerializeField] private GameObject effectPrefab;
         [SerializeField] private string effectAnimation = "";
+
+        [Header("VFX 설정 (VFX Dynamic Data System)")]
+        [SerializeField] private VFXData vfxData;
 
         [Header("초기화 상태 (Unity Serialization 대응)")]
         [SerializeField] private bool initialized = false;
@@ -68,6 +72,9 @@ namespace Game.Card.Effects
 
         /// <summary>효과 애니메이션 이름</summary>
         public string EffectAnimation => effectAnimation;
+
+        /// <summary>VFX 데이터 (VFX Dynamic Data System)</summary>
+        public VFXData VFXData => vfxData;
 
         /// <summary>
         /// 기본 생성자 (Unity 직렬화용)

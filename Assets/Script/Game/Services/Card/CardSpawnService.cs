@@ -5,6 +5,8 @@ using Game.Data;
 using Game.Components;
 using Game.Card.Effects;
 using System.Collections.Generic;
+using System.Linq;
+using Game.VFX;
 
 namespace Game.Services
 {
@@ -228,6 +230,7 @@ namespace Game.Services
 
         /// <summary>
         /// 카드의 모든 효과를 실행하는 핵심 메서드
+        /// VFX가 있는 경우 SpellEffectExecutor에게 위임, 없는 경우 즉시 실행
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
@@ -243,6 +246,29 @@ namespace Game.Services
             }
 
             Log($"🔄 Executing {effectDataList.Count} effects for {cardData.CardName}");
+
+            // ✅ VFX 체크: VFXData가 있는 효과가 하나라도 있는지 확인
+            bool hasVFX = effectDataList.Any(e => e.VFXData != null && e.VFXData.VFXPrefab != null);
+
+            if (hasVFX)
+            {
+                // VFX 기반 실행 - SpellEffectExecutor에게 위임
+                var executor = ServiceLocator.Get<ISpellEffectExecutor>();
+                if (executor != null)
+                {
+                    Log($"🎬 VFX detected - delegating to SpellEffectExecutor for {cardData.CardName}");
+                    executor.ExecuteBatch(effectDataList, targetPosition, gameContext);
+                    return true; // fire-and-forget (비동기 실행)
+                }
+                else
+                {
+                    LogError("❌ ISpellEffectExecutor not found in ServiceLocator, falling back to immediate execution");
+                    // ServiceLocator에 등록되지 않은 경우 즉시 실행으로 fallback
+                }
+            }
+
+            // VFX 없음 또는 executor 없음 - 즉시 실행 (기존 로직)
+            Log($"⚡ No VFX or executor unavailable - executing effects immediately for {cardData.CardName}");
 
             // 팩토리를 통해 ICardEffect 인스턴스들을 생성
             var cardEffects = CardEffectFactory.CreateEffects(effectDataList);

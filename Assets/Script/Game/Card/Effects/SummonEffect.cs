@@ -1,13 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Game.VFX;
 
 namespace Game.Card.Effects
 {
     /// <summary>
     /// CardData 리팩토링 Phase 1.2: 소환 효과 구현
     /// ICardEffect를 구현하여 대상 위치에 유닛을 소환하는 효과입니다.
+    /// VFX Dynamic Data System: IVFXAwareEffect 구현으로 공격 성공/실패 반응
     /// </summary>
-    public class SummonEffect : ICardEffect
+    public class SummonEffect : IVFXAwareEffect
     {
         private readonly EffectData _effectData;
 
@@ -75,6 +77,41 @@ namespace Game.Card.Effects
 
             // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
+        }
+
+        /// <summary>
+        /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
+        /// 공격 성공/실패 여부에 따라 소환 적용 여부 결정
+        /// </summary>
+        public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
+        {
+            // 공격 실패 시 Miss 효과만 재생하고 종료
+            if (!triggerData.AttackSuccess)
+            {
+                Debug.Log($"[SummonEffect] Summon failed: {triggerData.ValidationFailureReason}");
+                PlayMissEffect(targetPos, context);
+                return;
+            }
+
+            // 공격 성공: 소환 실행
+            if (!CanExecute(targetPos, context))
+            {
+                Debug.LogWarning("[SummonEffect] Summon success but cannot execute (no valid positions)");
+                return;
+            }
+
+            var availablePositions = GetAvailableSummonPositions(targetPos, context);
+            var summonCount = Mathf.Min(_effectData.Value, availablePositions.Count);
+
+            Debug.Log($"[SummonEffect] Summon success! Summoning {summonCount} {_effectData.UnitToSummon.UnitName}");
+
+            for (int i = 0; i < summonCount; i++)
+            {
+                SummonUnitAtPosition(availablePositions[i], context);
+            }
+
+            // VFX 위치 기반 Summon 효과 재생
+            PlaySummonEffect(triggerData.TriggerWorldPosition, context);
         }
 
         /// <summary>
@@ -265,6 +302,29 @@ namespace Game.Card.Effects
             {
                 // TODO: 애니메이션 재생 로직 구현
                 Debug.Log($"SummonEffect: 애니메이션 재생 - {_effectData.EffectAnimation}");
+            }
+        }
+
+        /// <summary>
+        /// 소환 실패 시 Miss 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlayMissEffect(Vector2Int gridPos, GameContext context)
+        {
+            Debug.Log($"[SummonEffect] Playing miss effect at grid position {gridPos}");
+            // TODO: Miss VFX 프리팹 재생 로직 구현
+        }
+
+        /// <summary>
+        /// 소환 성공 시 Summon 효과 재생 (VFX Aware)
+        /// </summary>
+        private void PlaySummonEffect(Vector3 worldPos, GameContext context)
+        {
+            Debug.Log($"[SummonEffect] Playing summon effect at world position {worldPos}");
+
+            // VFXData의 이펙트 프리팹 사용
+            if (_effectData.EffectPrefab != null)
+            {
+                Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
             }
         }
 

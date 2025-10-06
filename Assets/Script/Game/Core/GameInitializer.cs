@@ -17,6 +17,7 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private GameServiceManager gameServiceManager;
     [SerializeField] private CardServiceManager cardServiceManager; // 신규 참조 추가
     [SerializeField] private ResourceManager resourceManager; // Phase 2: 자원 관리 서비스 추가
+    [SerializeField] private Game.VFX.SpellEffectExecutor spellEffectExecutor; // VFX 서비스 추가
 
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -106,6 +107,9 @@ public class GameInitializer : MonoBehaviour
 
         // Card Services 등록 - CardServiceManager를 통한 카드 시스템 등록
         RegisterCardServices();
+
+        // VFX Services 등록 - SpellEffectExecutor를 통한 VFX 시스템 등록
+        RegisterVFXServices();
     }
 
     /// <summary>
@@ -197,6 +201,27 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
+    /// VFX 서비스들 등록 - SpellEffectExecutor를 통한 VFX 시스템 등록
+    /// </summary>
+    private void RegisterVFXServices()
+    {
+        Log("Registering VFX services via SpellEffectExecutor...");
+
+        // SpellEffectExecutor 등록
+        if (spellEffectExecutor != null)
+        {
+            ServiceLocator.Register<Game.VFX.ISpellEffectExecutor>(spellEffectExecutor);
+            Log("✅ ISpellEffectExecutor registered");
+        }
+        else
+        {
+            LogError("❌ SpellEffectExecutor not found - VFX services not registered");
+        }
+
+        Log("VFX services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -260,6 +285,12 @@ public class GameInitializer : MonoBehaviour
         if (!ServiceLocator.IsRegistered<ICardServiceManager>())
         {
             LogError("❌ Critical service missing: ICardServiceManager");
+        }
+
+        // VFX 서비스 확인
+        if (!ServiceLocator.IsRegistered<Game.VFX.ISpellEffectExecutor>())
+        {
+            LogError("❌ Critical service missing: ISpellEffectExecutor");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)
