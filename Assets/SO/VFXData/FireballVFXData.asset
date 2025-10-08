@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: FireballVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1056904543853562, guid: a669fb96d2b76904c84ecadd439b8273, type: 3}
-  triggerNormalizedTime: 0.02
-  duration: 4
+  triggerNormalizedTime: 0.114
+  useAutoDuration: 0
+  manualDuration: 2
   isLooping: 0
+  playbackSpeed: 0.63

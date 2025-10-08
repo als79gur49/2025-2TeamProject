@@ -63,11 +63,15 @@ namespace Game.VFX
         /// <param name="callback">List<VFXTriggerData>를 전달받는 콜백</param>
         /// <param name="tilePositions">사전 결정된 타일 월드 좌표 리스트</param>
         /// <param name="controller">그리드 좌표 계산용 GridController (null 가능)</param>
+        /// <param name="playbackSpeed">VFX 재생 속도 배율 (0.1 ~ 3.0)</param>
+        /// <param name="manualDuration">수동 지속시간 (0 이하면 자동 계산)</param>
         public void Initialize(
             float normalizedTriggerTime,
             Action<List<VFXTriggerData>> callback,
             List<Vector3> tilePositions,
-            IGridController controller = null)
+            IGridController controller = null,
+            float playbackSpeed = 1.0f,
+            float manualDuration = -1f)
         {
             this.triggerType = TriggerType.NormalizedTime;
             this.triggerValue = Mathf.Clamp01(normalizedTriggerTime);
@@ -77,8 +81,22 @@ namespace Game.VFX
             // GridController 참조 (인수로 전달받음, ServiceLocator 사용 안 함)
             this.gridController = controller;
 
-            // VFX 지속 시간 계산
-            vfxDuration = CalculateVFXDuration();
+            // 재생 속도 적용
+            ApplyPlaybackSpeed(playbackSpeed);
+
+            // VFX 지속 시간 계산 (수동 > 자동)
+            if (manualDuration > 0f)
+            {
+                vfxDuration = manualDuration;
+                if (logTriggerEvents)
+                    Debug.Log($"[VFXEventTrigger] Using manual duration: {vfxDuration:F2}s");
+            }
+            else
+            {
+                vfxDuration = CalculateVFXDuration();
+                if (logTriggerEvents)
+                    Debug.Log($"[VFXEventTrigger] Calculated auto duration: {vfxDuration:F2}s");
+            }
             startTime = Time.time;
 
             // 파티클 시스템 캐싱
@@ -86,12 +104,37 @@ namespace Game.VFX
 
             if (logTriggerEvents)
             {
+                string durationMode = manualDuration > 0f ? "Manual" : "Auto";
                 Debug.Log($"[VFXEventTrigger] Initialized: Type={triggerType}, " +
-                         $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s, " +
+                         $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s ({durationMode}), " +
+                         $"PlaybackSpeed={playbackSpeed:F2}, " +
                          $"TilePositions={this.predeterminedTilePositions.Count}");
             }
         }
 
+
+        /// <summary>
+        /// VFX 재생 속도 적용 (ParticleSystem과 Animator에 적용)
+        /// </summary>
+        private void ApplyPlaybackSpeed(float speed)
+        {
+            speed = Mathf.Clamp(speed, 0.1f, 3.0f);
+
+            // ParticleSystem 속도 적용
+            ParticleSystem[] particles = GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particles)
+            {
+                var main = ps.main;
+                main.simulationSpeed = speed;
+            }
+
+            // Animator 속도 적용
+            Animator animator = GetComponent<Animator>();
+            if (animator != null)
+            {
+                animator.speed = speed;
+            }
+        }
 
         #endregion
 
@@ -199,6 +242,7 @@ namespace Game.VFX
                 {
                     Debug.Log($"[VFXEventTrigger] Trigger fired: " +
                              $"Progress={normalizedTime:F2}, " +
+                             $"VFXDuration={vfxDuration:F1}, " +
                              $"ValidatedTargets={triggerDataList.Count}");
                 }
             }

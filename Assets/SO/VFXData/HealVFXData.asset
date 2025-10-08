@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: HealVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1881552412633134, guid: c030573ca1b7606479e47558afd3f50f, type: 3}
-  triggerNormalizedTime: 0.124
-  duration: 3
+  triggerNormalizedTime: 0.46
+  useAutoDuration: 0
+  manualDuration: 2
   isLooping: 0
+  playbackSpeed: 1

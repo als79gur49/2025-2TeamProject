@@ -81,6 +81,7 @@ namespace Game.VFX
             bool effectsExecuted = false;
             float maxWait = 0f;
             float elapsed = 0f;
+            float actualDuration = 10f; // VFX 정리용 기본 대기시간 (자동 계산 시 10초)
 
             // VFX 생성 및 초기화 (try-catch 사용, yield return 없음)
             try
@@ -94,6 +95,9 @@ namespace Game.VFX
                     trigger = vfxInstance.AddComponent<VFXEventTrigger>();
 
                 // 🆕 리스트 기반 콜백으로 변경 (타일 위치 전달)
+                // 수동 Duration 모드일 경우 ManualDuration 전달, 아니면 -1 (자동 계산)
+                float durationParam = vfxData.UseAutoDuration ? -1f : vfxData.ManualDuration;
+
                 trigger.Initialize(
                     vfxData.TriggerNormalizedTime,
                     (triggerDataList) => {
@@ -102,10 +106,16 @@ namespace Game.VFX
                         effectsExecuted = true;
                     },
                     context.VFXPositions,       // 🆕 타일 월드 좌표 리스트 전달
-                    context.GridController      // 🆕 GridController 전달
+                    context.GridController,     // 🆕 GridController 전달
+                    vfxData.PlaybackSpeed,      // 🆕 재생 속도 전달
+                    durationParam               // 🆕 수동/자동 Duration 선택
                 );
 
-                maxWait = vfxData.IsLooping ? 10f : vfxData.Duration + 1f;
+                // actualDuration 설정: 자동 계산 모드면 10초, 수동 모드면 설정값
+                actualDuration = vfxData.UseAutoDuration ? 10f : vfxData.ManualDuration;
+
+                // maxWait 계산: IsLooping이면 10초, 아니면 실제 Duration + 1초
+                maxWait = vfxData.IsLooping ? 10f : actualDuration + 1f;
             }
             catch (Exception ex)
             {
@@ -140,7 +150,8 @@ namespace Game.VFX
             // VFX 정리 (루핑이 아닌 경우)
             if (!vfxData.IsLooping)
             {
-                yield return new WaitForSeconds(vfxData.Duration);
+                float cleanupDuration = vfxData.UseAutoDuration ? actualDuration : vfxData.ManualDuration;
+                yield return new WaitForSeconds(cleanupDuration);
                 if (vfxInstance != null)
                     Destroy(vfxInstance);
             }
@@ -198,7 +209,7 @@ namespace Game.VFX
                     }
 
                     // 기존 로직: triggerDataList 기반 실행
-                    var relevantTriggers = FilterTriggersForEffect(triggerDataList, effectData, targetPos);
+                    var relevantTriggers = FilterTriggersForEffect(triggerDataList, effectData, targetPos, context);
 
                     Debug.Log($"[SpellEffectExecutor] Effect {effectData.Type}: {relevantTriggers.Count} relevant targets");
 
@@ -230,11 +241,13 @@ namespace Game.VFX
         /// 특정 효과에 적용 가능한 TriggerData 필터링
         /// 1. 공격 성공 여부 체크 (AttackSuccess)
         /// 2. 범위 체크 (AffectedRange)
+        /// 3. AffectedType 체크
         /// </summary>
         private List<VFXTriggerData> FilterTriggersForEffect(
             List<VFXTriggerData> triggerDataList,
             EffectData effectData,
-            Vector2Int centerPos)
+            Vector2Int centerPos,
+            GameContext context)
         {
             var filtered = new List<VFXTriggerData>();
 
@@ -258,30 +271,71 @@ namespace Game.VFX
                 // 2. 범위 체크 (TileGridPosition 사용)
                 Vector2Int tilePos2D = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
 
+                bool inRange = false;
                 if (effectData.AffectedRange == 0)
                 {
                     // 단일 타겟: 중앙 위치만
-                    if (tilePos2D == centerPos)
-                    {
-                        filtered.Add(triggerData);
-                    }
+                    inRange = (tilePos2D == centerPos);
                 }
                 else
                 {
                     // 다중 타겟: 맨하탄 거리 기반
                     int distance = Mathf.Abs(tilePos2D.x - centerPos.x) +
                                   Mathf.Abs(tilePos2D.y - centerPos.y);
-
-                    if (distance <= effectData.AffectedRange)
-                    {
-                        filtered.Add(triggerData);
-                    }
+                    inRange = (distance <= effectData.AffectedRange);
                 }
 
-                // 3. AffectedType 필터링은 이미 CalculateAllPotentialTargets에서 처리됨
+                if (!inRange)
+                {
+                    continue;
+                }
+
+                // 3. AffectedType 필터링
+                if (!MatchesAffectedType(tilePos2D, effectData.AffectedType, context))
+                {
+                    continue;
+                }
+
+                filtered.Add(triggerData);
             }
 
             return filtered;
+        }
+
+        /// <summary>
+        /// 타일이 AffectedType 조건을 만족하는지 확인
+        /// </summary>
+        private bool MatchesAffectedType(Vector2Int tilePos, AffectedType affectedType, GameContext context)
+        {
+            if (affectedType == AffectedType.None)
+            {
+                return true; // None은 항상 통과
+            }
+
+            var tile = context.GridController.GetTileAtPosition(tilePos);
+            if (tile == null)
+            {
+                return false;
+            }
+
+            return affectedType switch
+            {
+                AffectedType.Ally => tile.OccupyingUnit != null && IsSameTeam(tile.OccupyingUnit, context.CasterTeam),
+                AffectedType.Enemy => tile.OccupyingUnit != null && !IsSameTeam(tile.OccupyingUnit, context.CasterTeam),
+                AffectedType.Any => tile.OccupyingUnit != null,
+                AffectedType.NotAny => tile.OccupyingUnit == null,
+                _ => true
+            };
+        }
+
+        /// <summary>
+        /// 유닛이 시전자와 같은 팀인지 확인
+        /// </summary>
+        private bool IsSameTeam(Unit unit, TeamType casterTeam)
+        {
+            if (unit == null) return false;
+            TeamType unitTeam = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+            return unitTeam == casterTeam;
         }
 
 

@@ -4791,7 +4791,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.5
-  maxLifetime: 3
+  maxLifetime: 5
   logTriggerEvents: 1
 --- !u!1 &1319865409307574
 GameObject:
