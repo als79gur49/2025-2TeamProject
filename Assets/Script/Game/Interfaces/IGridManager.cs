@@ -202,9 +202,9 @@ namespace Game.Interfaces
         /// <param name="targetPosition">효과의 중심 위치</param>
         /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
         /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
-        /// <param name="originPlayerId">효과를 발동시킨 플레이어 ID (팀 구분용)</param>
+        /// <param name="casterTeam">효과를 발동시킨 팀 (팀 구분용)</param>
         /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
-        List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1);
+        List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam);
 
         // Phase 3.15: 카드 타겟 범위 검증
         /// <summary>
@@ -220,7 +220,7 @@ namespace Game.Interfaces
         /// <summary>
         /// GetAffectedUnits의 결과를 디버그 로그로 출력
         /// </summary>
-        void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1);
+        void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam);
 
         /// <summary>
         /// TargetRange 검증 디버깅을 위한 상세 정보 출력

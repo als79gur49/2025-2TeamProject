@@ -40,7 +40,7 @@ namespace Game.VFX
         #region Runtime State
 
         private Action<List<VFXTriggerData>> onTriggerCallbackList;
-        private List<GameObject> predeterminedTargets;
+        private List<Vector3> predeterminedTilePositions; // 타일 기반: 월드 좌표 리스트
         private IGridController gridController;
 
         private bool triggered = false;
@@ -56,23 +56,23 @@ namespace Game.VFX
         #region Initialization
 
         /// <summary>
-        /// VFX 트리거 초기화 (원자적 다중 타겟 검증)
-        /// Phase 2: 모든 타겟을 VFX 트리거 시점에 동시 검증
+        /// VFX 트리거 초기화 (타일 기반)
+        /// Phase 3: 타일 위치 리스트를 받아 VFX 트리거 시점에 검증
         /// </summary>
         /// <param name="normalizedTriggerTime">트리거 발생 정규화 시간 (0.0 ~ 1.0)</param>
         /// <param name="callback">List<VFXTriggerData>를 전달받는 콜백</param>
-        /// <param name="targets">사전 결정된 타겟 리스트 (T=0s에 계산됨)</param>
+        /// <param name="tilePositions">사전 결정된 타일 월드 좌표 리스트</param>
         /// <param name="controller">그리드 좌표 계산용 GridController (null 가능)</param>
         public void Initialize(
             float normalizedTriggerTime,
             Action<List<VFXTriggerData>> callback,
-            List<GameObject> targets,
+            List<Vector3> tilePositions,
             IGridController controller = null)
         {
             this.triggerType = TriggerType.NormalizedTime;
             this.triggerValue = Mathf.Clamp01(normalizedTriggerTime);
             this.onTriggerCallbackList = callback;
-            this.predeterminedTargets = targets ?? new List<GameObject>();
+            this.predeterminedTilePositions = tilePositions ?? new List<Vector3>();
 
             // GridController 참조 (인수로 전달받음, ServiceLocator 사용 안 함)
             this.gridController = controller;
@@ -88,7 +88,7 @@ namespace Game.VFX
             {
                 Debug.Log($"[VFXEventTrigger] Initialized: Type={triggerType}, " +
                          $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s, " +
-                         $"PotentialTargets={this.predeterminedTargets.Count}");
+                         $"TilePositions={this.predeterminedTilePositions.Count}");
             }
         }
 
@@ -230,36 +230,44 @@ namespace Game.VFX
 
         #endregion
 
-        #region TCG Target Validation
+        #region Tile-Based Validation (Phase 3)
 
         /// <summary>
-        /// VFX 트리거 시점에 모든 타겟을 원자적으로 검증
+        /// VFX 트리거 시점에 모든 타일 위치를 검증
+        /// 타일 기반: 월드 좌표 → 그리드 좌표 변환 → 타일 유효성 검증
         /// </summary>
         private List<VFXTriggerData> ValidateAllTargets()
         {
             var triggerDataList = new List<VFXTriggerData>();
 
-            // 타겟이 없는 경우
-            if (predeterminedTargets == null || predeterminedTargets.Count == 0)
+            // 타일 위치가 없는 경우
+            if (predeterminedTilePositions == null || predeterminedTilePositions.Count == 0)
             {
                 if (logTriggerEvents)
-                    Debug.LogWarning("[VFXEventTrigger] No predetermined targets");
+                    Debug.LogWarning("[VFXEventTrigger] No predetermined tile positions");
                 return triggerDataList;
             }
 
-            // 각 타겟을 개별적으로 검증
-            foreach (var target in predeterminedTargets)
+            // GridController 필수 체크
+            if (gridController == null)
+            {
+                Debug.LogError("[VFXEventTrigger] GridController is null - cannot validate tiles");
+                return triggerDataList;
+            }
+
+            // 각 타일 위치를 개별적으로 검증
+            foreach (var worldPos in predeterminedTilePositions)
             {
                 var triggerData = new VFXTriggerData
                 {
-                    TriggerWorldPosition = target != null ? target.transform.position : Vector3.zero,
+                    TileWorldPosition = worldPos,
                     NormalizedProgress = currentProgress
                 };
 
-                // 개별 타겟 검증
-                ValidateSingleTarget(target, triggerData);
+                // 타일 위치 검증
+                ValidateTilePosition(worldPos, triggerData);
 
-                // 검증 실패한 타겟도 리스트에 포함 (AttackSuccess = false)
+                // 검증 실패한 타일도 리스트에 포함 (AttackSuccess = false)
                 triggerDataList.Add(triggerData);
             }
 
@@ -267,53 +275,42 @@ namespace Game.VFX
         }
 
         /// <summary>
-        /// 단일 타겟 검증 로직 (재사용 가능)
+        /// Phase 3: 타일 위치 기반 검증
+        /// 월드 좌표 → 그리드 좌표 → 타일 존재 확인 → 유닛 존재 확인 (선택적)
         /// </summary>
-        private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData)
+        private void ValidateTilePosition(Vector3 worldPos, VFXTriggerData triggerData)
         {
-            // 1. Null 체크
-            if (target == null)
+            // 1. 월드 좌표를 그리드 좌표로 변환
+            Vector2Int gridPos2D = gridController.WorldToGridPosition(worldPos);
+            Vector3Int gridPos3D = new Vector3Int(gridPos2D.x, gridPos2D.y, 0);
+
+            triggerData.TileGridPosition = gridPos3D;
+
+            // 2. 타일 존재 확인
+            var tile = gridController.GetTileAtPosition(gridPos2D);
+            if (tile == null)
             {
-                triggerData.SetTargetInvalid(null, "Target is null");
+                triggerData.SetTileTargetInvalid(gridPos3D, "Tile does not exist at position");
                 return;
             }
 
-            // 2. 활성화 상태 체크
-            if (!target.activeInHierarchy)
+            // 3. 타일이 활성화되어 있는지 확인
+            if (!tile.gameObject.activeInHierarchy)
             {
-                triggerData.SetTargetInvalid(target, "Target destroyed or inactive");
+                triggerData.SetTileTargetInvalid(gridPos3D, "Tile is inactive");
                 return;
             }
 
-            // 3. HealthComponent 존재 및 생존 체크
-            var healthComponent = target.GetComponent<HealthComponent>();
-            if (healthComponent == null)
-            {
-                triggerData.SetTargetInvalid(target, "Target does not have HealthComponent");
-                return;
-            }
+            // 4. 타일 기반 검증 성공
+            // 유닛 존재 여부는 Effect에서 판단 (tile.OccupyingUnit)
+            triggerData.SetTileTargetValid(gridPos3D, worldPos);
 
-            if (!healthComponent.IsAlive)
+            if (logTriggerEvents)
             {
-                triggerData.SetTargetInvalid(target, "Target is not alive");
-                return;
+                bool hasUnit = tile.OccupyingUnit != null;
+                Debug.Log($"[VFXEventTrigger] Tile validated at {gridPos3D}, HasUnit={hasUnit}");
             }
-
-            // 4. 그리드 좌표 계산 및 검증 성공 설정
-            Vector2Int gridPos = Vector2Int.zero;
-            if (gridController != null)
-            {
-                gridPos = gridController.WorldToGridPosition(target.transform.position);
-            }
-            else
-            {
-                if (logTriggerEvents)
-                    Debug.LogWarning($"[VFXEventTrigger] GridController not available for {target.name}");
-            }
-
-            triggerData.SetTargetValid(target, gridPos);
         }
-
 
         #endregion
 

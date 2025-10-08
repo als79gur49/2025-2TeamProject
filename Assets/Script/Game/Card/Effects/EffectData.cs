@@ -176,25 +176,71 @@ namespace Game.Card.Effects
         {
             return $"EffectData[{type}: {value}, Target: {affectedType}, Range: {affectedRange}]";
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Unity Editor에서 값이 변경될 때 자동 호출 - 자동 마이그레이션
+        /// Summon 효과가 AffectedType.None을 사용하면 자동으로 NotAny로 변경
+        /// </summary>
+        private void OnValidate()
+        {
+            // 자동 마이그레이션: Summon 효과는 빈 타일(NotAny)을 사용해야 함
+            if (type == EffectType.Summon && affectedType == AffectedType.None)
+            {
+                affectedType = AffectedType.NotAny;
+                UnityEngine.Debug.Log($"[Migration] Summon effect auto-migrated to AffectedType.NotAny");
+            }
+        }
+#endif
     }
 
     /// <summary>
-    /// 효과 적용 대상 타입
-    /// 기존 TargetType과 분리하여 효과 적용 대상을 명확히 구분합니다.
+    /// 효과 적용 대상 타입 - 타일 기반 필터링
+    /// Phase 3.x: 모든 타겟팅을 타일 중심으로 설계
+    /// 핵심 원칙: "타일을 선택하고, 타일에 있는 유닛에게 효과 적용"
     /// </summary>
     [Serializable]
     public enum AffectedType
     {
-        /// <summary>아무에게도 영향 없음</summary>
+        /// <summary>
+        /// Range 내 모든 타일 (필터링 없음)
+        /// 사용처: 광역 효과, 지형 변경, Resource 증감
+        /// 필터: 없음 - Range 내 모든 타일 반환
+        /// VFX 통합: Range 내 모든 Tile 위치 리스트 반환
+        /// 예시: Range=1 → 다이아몬드 5개 타일, Range=2 → 13개 타일
+        /// </summary>
         None,
 
-        /// <summary>아군에게만 영향</summary>
+        /// <summary>
+        /// 아군 유닛이 있는 타일만 선택
+        /// 필터: Tile.OccupyingUnit != null && IsSameTeam(unit, casterTeam)
+        /// VFX 통합: 필터링된 타일의 위치 리스트 반환
+        /// 효과 적용: 타일의 OccupyingUnit에 효과 적용
+        /// </summary>
         Ally,
 
-        /// <summary>적군에게만 영향</summary>
+        /// <summary>
+        /// 적군 유닛이 있는 타일만 선택
+        /// 필터: Tile.OccupyingUnit != null && !IsSameTeam(unit, casterTeam)
+        /// VFX 통합: 필터링된 타일의 위치 리스트 반환
+        /// 효과 적용: 타일의 OccupyingUnit에 효과 적용
+        /// </summary>
         Enemy,
 
-        /// <summary>모두에게 영향</summary>
-        Any
+        /// <summary>
+        /// 유닛이 있는 모든 타일 (팀 무관)
+        /// 필터: Tile.OccupyingUnit != null
+        /// VFX 통합: 필터링된 타일의 위치 리스트 반환
+        /// 효과 적용: 타일의 OccupyingUnit에 효과 적용
+        /// </summary>
+        Any,
+
+        /// <summary>
+        /// 유닛이 없는 빈 타일만 선택
+        /// 필터: Tile.OccupyingUnit == null
+        /// VFX 통합: 필터링된 타일의 위치 리스트 반환
+        /// 효과 적용: 타일에 유닛 소환 또는 지형 효과
+        /// </summary>
+        NotAny
     }
 }

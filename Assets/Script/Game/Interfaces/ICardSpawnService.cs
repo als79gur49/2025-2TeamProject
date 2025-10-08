@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Data;
 using Game.Services;
+using static Game.Interfaces.ITeamComponent;
 
 namespace Game.Interfaces
 {
@@ -24,12 +25,12 @@ namespace Game.Interfaces
         /// <returns>실행 성공 여부</returns>
         bool TryExecuteCard(CardData cardData, Vector2Int targetPosition);
 
-        /// <summary>카드를 사용하여 모든 효과를 실행 (플레이어/적군 구분)</summary>
+        /// <summary>카드를 사용하여 모든 효과를 실행 (팀 지정)</summary>
         /// <param name="cardData">사용할 카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
-        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <returns>실행 성공 여부</returns>
-        bool TryExecuteCard(CardData cardData, Vector2Int targetPosition, bool isPlayerCard);
+        bool TryExecuteCard(CardData cardData, Vector2Int targetPosition, TeamType casterTeam);
 
         /// <summary>소환 서비스 상태 정보 반환</summary>
         string GetStatus();

@@ -129,6 +129,7 @@ public void Initialize(
     float triggerNormalizedTime,
     Action<List<VFXTriggerData>> onTrigger,     // 리스트 콜백
     List<GameObject> predeterminedTargets,       // 다중 타겟
+    AffectedType affectedType,                   // 효과 대상 타입
     IGridManager gridManager = null              // 그리드 좌표 계산용
 )
 ```
@@ -168,7 +169,7 @@ private void ValidatePredeterminedTarget(VFXTriggerData triggerData)
 /// <summary>
 /// VFX 트리거 시점에 모든 타겟을 원자적으로 검증
 /// </summary>
-private List<VFXTriggerData> ValidateAllTargets()
+private List<VFXTriggerData> ValidateAllTargets(AffectedType affectedType)
 {
     var triggerDataList = new List<VFXTriggerData>();
 
@@ -188,8 +189,8 @@ private List<VFXTriggerData> ValidateAllTargets()
             NormalizedProgress = currentProgress
         };
 
-        // 개별 타겟 검증
-        ValidateSingleTarget(target, triggerData);
+        // 개별 타겟 검증 (AffectedType 전달)
+        ValidateSingleTarget(target, triggerData, affectedType);
 
         // 검증 실패한 타겟도 리스트에 포함 (AttackSuccess = false)
         triggerDataList.Add(triggerData);
@@ -201,7 +202,7 @@ private List<VFXTriggerData> ValidateAllTargets()
 /// <summary>
 /// 단일 타겟 검증 로직 (재사용 가능)
 /// </summary>
-private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData)
+private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData, AffectedType affectedType)
 {
     // 1. Null 체크
     if (target == null)
@@ -217,7 +218,20 @@ private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData)
         return;
     }
 
-    // 3. HealthComponent 존재 및 생존 체크
+    // 3. AffectedType.NotAny는 타일 타겟이므로 HealthComponent 검사 건너뛰기
+    if (affectedType == AffectedType.NotAny)
+    {
+        // 타일 GameObject는 항상 유효 (빈 타일 여부는 Effect에서 최종 확인)
+        Vector2Int gridPos = Vector2Int.zero;
+        if (gridManager != null)
+        {
+            gridPos = gridManager.WorldToGridPosition(target.transform.position);
+        }
+        triggerData.SetTargetValid(target, gridPos);
+        return;
+    }
+
+    // 4. HealthComponent 존재 및 생존 체크 (유닛 타겟만)
     var healthComponent = target.GetComponent<HealthComponent>();
     if (healthComponent == null)
     {
@@ -231,7 +245,7 @@ private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData)
         return;
     }
 
-    // 4. 그리드 좌표 계산 및 검증 성공 설정
+    // 5. 그리드 좌표 계산 및 검증 성공 설정
     Vector2Int gridPos = Vector2Int.zero;
     if (gridManager != null)
     {
@@ -253,8 +267,8 @@ private void OnParticleSystemStopped()
 {
     if (onTriggerCallback == null) return;
 
-    // 모든 타겟을 원자적으로 검증
-    var triggerDataList = ValidateAllTargets();
+    // 모든 타겟을 원자적으로 검증 (AffectedType 전달)
+    var triggerDataList = ValidateAllTargets(affectedType);
 
     // 리스트 콜백 호출
     onTriggerCallback.Invoke(triggerDataList);

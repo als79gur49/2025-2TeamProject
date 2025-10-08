@@ -41,9 +41,8 @@ namespace Game.Card.Effects
                 return false;
             }
 
-            // 회복 가능한 대상이 있는지 확인
-            var affectedUnits = GetAffectedUnits(targetPos, context);
-            return affectedUnits.Count > 0;
+            // 타일 기반: 사전 계산된 타일이 있는지 확인
+            return context.PredeterminedTiles != null && context.PredeterminedTiles.Count > 0;
         }
 
         public void Execute(Vector2Int targetPos, GameContext context)
@@ -54,15 +53,20 @@ namespace Game.Card.Effects
                 return;
             }
 
-            var affectedUnits = GetAffectedUnits(targetPos, context);
+            // 타일 기반: 사전 계산된 타일에서 유닛 찾기
             var healAmount = _effectData.Value;
+            int affectedCount = 0;
 
-            Debug.Log($"HealEffect: {affectedUnits.Count}개 유닛을 {healAmount}만큼 회복시킵니다.");
-
-            foreach (var unit in affectedUnits)
+            foreach (var tile in context.PredeterminedTiles)
             {
-                ApplyHealToUnit(unit, healAmount, null);
+                if (tile?.OccupyingUnit != null)
+                {
+                    tile.OccupyingUnit.Heal(healAmount);
+                    affectedCount++;
+                }
             }
+
+            Debug.Log($"HealEffect: {affectedCount}개 유닛을 {healAmount}만큼 회복시킵니다.");
 
             // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
@@ -70,132 +74,32 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
+        /// Phase 3.3: 타일 기반 타겟팅으로 리팩토링
         /// 공격 성공/실패 여부에 따라 회복 적용 여부 결정
-        /// NOTE: SpellEffectExecutor가 다중 타겟 처리를 담당하므로, 이 메서드는 단일 타겟만 처리
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
-            // 공격 실패 시 Miss 효과만 재생하고 종료
+            // VFX 트리거 시점 검증
             if (!triggerData.AttackSuccess)
             {
                 Debug.Log($"[HealEffect] Heal failed: {triggerData.ValidationFailureReason}");
-                PlayMissEffect(targetPos, context);
                 return;
             }
 
-            // 공격 성공: 타겟 회복
-            GameObject target = triggerData.PredeterminedTarget;
-            if (target == null)
+            // ✅ 타일 기반: 타일 좌표로 타일 조회
+            var targetTile = context.GridController.GetTileAtPosition(
+                new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y));
+
+            if (targetTile?.OccupyingUnit != null)
             {
-                Debug.LogWarning("[HealEffect] Heal success but no predetermined target");
-                return;
+                var healAmount = _effectData.Value;
+                // 타일에 유닛이 있으면 힐 적용
+                targetTile.OccupyingUnit.Heal(healAmount);
+                Debug.Log($"[HealEffect] {healAmount} heal to unit at {triggerData.TileGridPosition}");
             }
 
-            var healAmount = _effectData.Value;
-            Debug.Log($"[HealEffect] Heal success! Applying {healAmount} heal to {target.name} at {targetPos}");
-
-            // 타겟 회복
-            ApplyHealToUnit(target, healAmount, triggerData);
-
-            // VFX 위치 기반 Heal 효과 재생 (개별 타겟마다)
-            PlayHealEffect(triggerData.TriggerWorldPosition, context);
-        }
-
-        /// <summary>
-        /// Phase 2.12: GridController의 GetAffectedUnits() 메서드를 사용하여 영향받을 유닛들을 찾습니다.
-        /// </summary>
-        private List<GameObject> GetAffectedUnits(Vector2Int targetPos, GameContext context)
-        {
-            if (context?.GridController == null)
-            {
-                Debug.LogError("HealEffect: GridController가 null입니다.");
-                return new List<GameObject>();
-            }
-
-            // Phase 2.12: 중앙화된 GetAffectedUnits 메서드 사용
-            var allAffectedUnits = context.GridController.GetAffectedUnits(
-                targetPos,
-                _effectData.AffectedType,
-                _effectData.AffectedRange,
-                context.PlayerId
-            );
-
-            // 회복 가능한 유닛들만 필터링
-            var healableUnits = new List<GameObject>();
-            foreach (var unit in allAffectedUnits)
-            {
-                if (CanBeHealed(unit))
-                {
-                    healableUnits.Add(unit);
-                }
-            }
-
-            return healableUnits;
-        }
-
-        /// <summary>
-        /// 유닛이 회복 가능한 상태인지 확인합니다.
-        /// </summary>
-        private bool CanBeHealed(GameObject unit)
-        {
-            if (unit == null) return false;
-
-            // HealthComponent 확인
-            var healthComponent = unit.GetComponent<IHealthComponent>();
-            if (healthComponent == null)
-            {
-                Debug.LogWarning($"HealEffect: {unit.name}에 HealthComponent가 없습니다.");
-                return false;
-            }
-
-            // 생존 상태 확인
-            if (!healthComponent.IsAlive)
-            {
-                Debug.LogWarning($"HealEffect: {unit.name}은 죽은 상태이다.");
-                return false;
-            }
-
-            // 최대 체력보다 낮은 체력인지 확인
-            if (healthComponent.CurrentHealth >= healthComponent.MaxHealth)
-            {
-                Debug.LogWarning($"HealEffect: {unit.name}은 이미 최대 체력이다.");
-                return false; // 이미 최대 체력
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// 유닛에게 실제 회복을 적용합니다.
-        /// </summary>
-        private void ApplyHealToUnit(GameObject unit, int healAmount, VFXTriggerData triggerData)
-        {
-            if (unit == null)
-            {
-                Debug.LogWarning("HealEffect: 회복 대상 유닛이 null입니다.");
-                return;
-            }
-
-            var healthComponent = unit.GetComponent<IHealthComponent>();
-            if (healthComponent == null)
-            {
-                Debug.LogWarning($"HealEffect: {unit.name}에 HealthComponent가 없습니다.");
-                return;
-            }
-
-            // 실제 회복량 계산 (오버힐 방지)
-            var actualHealAmount = CalculateActualHealAmount(unit, healAmount);
-
-            if (actualHealAmount <= 0)
-            {
-                Debug.Log($"HealEffect: {unit.name}은(는) 이미 최대 체력입니다.");
-                return;
-            }
-
-            // 실제 체력 증가
-            healthComponent.Heal(actualHealAmount);
-
-            Debug.Log($"HealEffect: {unit.name}을(를) {actualHealAmount}만큼 회복 (요청: {healAmount})");
+            // VFX 재생 (타일 위치 기반)
+            PlayHealEffect(triggerData.TileWorldPosition, context);
         }
 
         /// <summary>
@@ -219,26 +123,6 @@ namespace Game.Card.Effects
             {
                 Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
             }
-        }
-
-        /// <summary>
-        /// 실제 회복량을 계산합니다 (오버힐 방지).
-        /// </summary>
-        private int CalculateActualHealAmount(GameObject unit, int requestedHeal)
-        {
-            if (unit == null || requestedHeal <= 0) return 0;
-
-            var healthComponent = unit.GetComponent<IHealthComponent>();
-            if (healthComponent == null) return 0;
-
-            // 현재 체력과 최대 체력 확인
-            var currentHealth = healthComponent.CurrentHealth;
-            var maxHealth = healthComponent.MaxHealth;
-
-            // 오버힐 방지: 최대 체력을 초과하지 않도록 계산
-            var actualHeal = Mathf.Min(requestedHeal, maxHealth - currentHealth);
-
-            return Mathf.Max(0, actualHeal);
         }
 
         /// <summary>

@@ -41,9 +41,8 @@ namespace Game.Card.Effects
                 return false;
             }
 
-            // 대상이 있는지 확인
-            var affectedUnits = GetAffectedUnits(targetPos, context);
-            return affectedUnits.Count > 0;
+            // 타일 기반: 사전 계산된 타일이 있는지 확인
+            return context.PredeterminedTiles != null && context.PredeterminedTiles.Count > 0;
         }
 
         public void Execute(Vector2Int targetPos, GameContext context)
@@ -54,15 +53,20 @@ namespace Game.Card.Effects
                 return;
             }
 
-            var affectedUnits = GetAffectedUnits(targetPos, context);
+            // 타일 기반: 사전 계산된 타일에서 유닛 찾기
             var damageAmount = _effectData.Value;
+            int affectedCount = 0;
 
-            Debug.Log($"DamageEffect: {affectedUnits.Count}개 유닛에게 {damageAmount} 피해를 적용합니다.");
-
-            foreach (var unit in affectedUnits)
+            foreach (var tile in context.PredeterminedTiles)
             {
-                ApplyDamageToUnit(unit, damageAmount, null);
+                if (tile?.OccupyingUnit != null)
+                {
+                    tile.OccupyingUnit.TakeDamage(damageAmount);
+                    affectedCount++;
+                }
             }
+
+            Debug.Log($"DamageEffect: {affectedCount}개 유닛에게 {damageAmount} 피해를 적용합니다.");
 
             // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
@@ -70,105 +74,32 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
+        /// Phase 3.2: 타일 기반 타겟팅으로 리팩토링
         /// 공격 성공/실패 여부에 따라 데미지 적용 여부 결정
-        /// NOTE: SpellEffectExecutor가 다중 타겟 처리를 담당하므로, 이 메서드는 단일 타겟만 처리
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
-            // 공격 실패 시 Miss 효과만 재생하고 종료
+            // VFX 트리거 시점 검증
             if (!triggerData.AttackSuccess)
             {
                 Debug.Log($"[DamageEffect] Attack failed: {triggerData.ValidationFailureReason}");
-                PlayMissEffect(targetPos, context);
                 return;
             }
 
-            // 공격 성공: 타겟에게 데미지 적용
-            GameObject target = triggerData.PredeterminedTarget;
-            if (target == null)
+            // ✅ 타일 기반: 타일 좌표로 타일 조회
+            var targetTile = context.GridController.GetTileAtPosition(
+                new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y));
+
+            if (targetTile?.OccupyingUnit != null)
             {
-                Debug.LogWarning("[DamageEffect] Attack success but no predetermined target");
-                return;
+                var damageAmount = _effectData.Value;
+                // 타일에 유닛이 있으면 데미지 적용
+                targetTile.OccupyingUnit.TakeDamage(damageAmount);
+                Debug.Log($"[DamageEffect] {damageAmount} damage to unit at {triggerData.TileGridPosition}");
             }
 
-            var damageAmount = _effectData.Value;
-            Debug.Log($"[DamageEffect] Attack success! Applying {damageAmount} damage to {target.name} at {targetPos}");
-
-            // 타겟에게 데미지 적용
-            ApplyDamageToUnit(target, damageAmount, triggerData);
-
-            // VFX 위치 기반 Hit 효과 재생 (개별 타겟마다)
-            PlayHitEffect(triggerData.TriggerWorldPosition, context);
-        }
-
-        /// <summary>
-        /// Phase 2.12: GridController의 GetAffectedUnits() 메서드를 사용하여 영향받을 유닛들을 찾습니다.
-        /// </summary>
-        private List<GameObject> GetAffectedUnits(Vector2Int targetPos, GameContext context)
-        {
-            if (context?.GridController == null)
-            {
-                Debug.LogError("DamageEffect: GridController가 null입니다.");
-                return new List<GameObject>();
-            }
-
-            // Phase 2.12: 중앙화된 GetAffectedUnits 메서드 사용
-            var affectedUnits = context.GridController.GetAffectedUnits(
-                targetPos,
-                _effectData.AffectedType,
-                _effectData.AffectedRange,
-                context.PlayerId
-            );
-
-            // 데미지를 줄 수 있는 유닛들만 필터링 (필요시)
-            // 현재는 모든 대상 유닛에게 데미지를 줄 수 있다고 가정
-            return affectedUnits;
-        }
-
-
-        /// <summary>
-        /// 유닛에게 실제 피해를 적용합니다.
-        /// </summary>
-        private void ApplyDamageToUnit(GameObject unit, int damage, VFXTriggerData triggerData)
-        {
-            if (unit == null)
-            {
-                Debug.LogError("DamageEffect: 유닛이 null입니다.");
-                return;
-            }
-
-            var healthComponent = unit.GetComponent<Game.Components.HealthComponent>();
-            if (healthComponent == null)
-            {
-                Debug.LogError($"DamageEffect: 유닛 {unit.name}에 HealthComponent가 없습니다.");
-                return;
-            }
-
-            // 방어력 계산 (IgnoreArmor 옵션 고려)
-            int finalDamage = _effectData.IgnoreArmor ? damage : CalculateDamageWithArmor(healthComponent, damage);
-
-            Debug.Log($"DamageEffect: 유닛 {unit.name}에게 {finalDamage} 피해 적용 (원본: {damage}, 방어력 무시: {_effectData.IgnoreArmor})");
-
-            // DamageInfo 구조체를 사용하여 피해 적용
-            var damageInfo = new Game.Interfaces.DamageInfo(
-                damage,
-                Game.Interfaces.DamageType.Physical,
-                null,
-                false,
-                _effectData.IgnoreArmor
-            );
-
-            // HealthComponent의 ProcessDamage는 private이므로 TakeDamage 사용
-            // TakeDamage는 내부적으로 방어력을 계산하므로, IgnoreArmor일 경우 직접 SetHealth 사용
-            if (_effectData.IgnoreArmor)
-            {
-                int newHealth = Mathf.Max(0, healthComponent.CurrentHealth - finalDamage);
-                healthComponent.SetHealth(newHealth);
-            }
-            else
-            {
-                healthComponent.TakeDamage(damage);
-            }
+            // VFX 재생 (타일 위치 기반)
+            PlayDamageEffect(triggerData.TileWorldPosition, context);
         }
 
         /// <summary>
@@ -182,32 +113,18 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
-        /// 공격 성공 시 Hit 효과 재생 (VFX Aware)
+        /// 공격 성공 시 Damage 효과 재생 (VFX Aware)
+        /// Phase 3.2: 타일 기반으로 변경
         /// </summary>
-        private void PlayHitEffect(Vector3 worldPos, GameContext context)
+        private void PlayDamageEffect(Vector3 worldPos, GameContext context)
         {
-            Debug.Log($"[DamageEffect] Playing hit effect at world position {worldPos}");
+            Debug.Log($"[DamageEffect] Playing damage effect at world position {worldPos}");
 
             // VFXData의 이펙트 프리팹 사용
             if (_effectData.EffectPrefab != null)
             {
                 Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
             }
-        }
-
-        /// <summary>
-        /// 방어력을 고려한 최종 피해량을 계산합니다.
-        /// </summary>
-        private int CalculateDamageWithArmor(Game.Components.HealthComponent healthComponent, int baseDamage)
-        {
-            if (healthComponent == null)
-            {
-                Debug.LogWarning("DamageEffect: HealthComponent가 null입니다. 기본 피해량 반환.");
-                return baseDamage;
-            }
-
-            // HealthComponent의 CalculateDamageAfterArmor 메서드를 사용
-            return healthComponent.CalculateDamageAfterArmor(baseDamage);
         }
 
         /// <summary>

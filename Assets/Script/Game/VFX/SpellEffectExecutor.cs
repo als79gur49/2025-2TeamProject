@@ -54,11 +54,11 @@ namespace Game.VFX
                 return;
             }
 
-            // 🆕 모든 잠재적 타겟 사전 계산
-            var allPotentialTargets = CalculateAllPotentialTargets(sortedEffects, targetPos, context);
+            // 🆕 모든 잠재적 타일 타겟 사전 계산 (Context에 저장됨)
+            CalculateAllPotentialTargets(sortedEffects, targetPos, context);
 
-            // Coroutine 실행 (더 이상 새 인스턴스 생성 안 함)
-            StartCoroutine(ExecuteWithVFX(sortedEffects, vfxData, targetPos, allPotentialTargets, context));
+            // Coroutine 실행 (타일 위치는 context.VFXPositions에서 가져옴)
+            StartCoroutine(ExecuteWithVFX(sortedEffects, vfxData, targetPos, context));
         }
 
         #endregion
@@ -66,13 +66,13 @@ namespace Game.VFX
         #region VFX Execution Coroutine
 
         /// <summary>
-        /// Phase 2 리팩토링: 다중 타겟 지원으로 변경된 VFX 실행 Coroutine
+        /// Phase 3: 타일 기반 다중 타겟 VFX 실행 Coroutine
+        /// 타겟 정보는 context.VFXPositions에서 가져옴
         /// </summary>
         private IEnumerator ExecuteWithVFX(
             IReadOnlyList<EffectData> effects,
             VFXData vfxData,
             Vector2Int targetPos,
-            List<GameObject> potentialTargets,  // 🆕 다중 타겟
             GameContext context)
         {
             GameObject vfxInstance = null;
@@ -93,7 +93,7 @@ namespace Game.VFX
                 if (trigger == null)
                     trigger = vfxInstance.AddComponent<VFXEventTrigger>();
 
-                // 🆕 리스트 기반 콜백으로 변경
+                // 🆕 리스트 기반 콜백으로 변경 (타일 위치 전달)
                 trigger.Initialize(
                     vfxData.TriggerNormalizedTime,
                     (triggerDataList) => {
@@ -101,7 +101,7 @@ namespace Game.VFX
                         ExecuteEffectsWithDataList(effects, triggerDataList, targetPos, context);
                         effectsExecuted = true;
                     },
-                    potentialTargets,           // 🆕 다중 타겟 전달
+                    context.VFXPositions,       // 🆕 타일 월드 좌표 리스트 전달
                     context.GridController      // 🆕 GridController 전달
                 );
 
@@ -155,7 +155,7 @@ namespace Game.VFX
 
         /// <summary>
         /// Phase 2: 검증된 TriggerData 리스트를 기반으로 효과 실행
-        /// 모든 타겟은 VFX 트리거 시점에 이미 검증되었음
+        /// AffectedType.None 효과 별도 처리 포함 (문제 3 해결)
         /// </summary>
         private void ExecuteEffectsWithDataList(
             IReadOnlyList<EffectData> effects,
@@ -176,7 +176,28 @@ namespace Game.VFX
                         continue;
                     }
 
-                    // 해당 효과에 적용 가능한 TriggerData 필터링
+                    // AffectedType.None 효과는 타겟 없이 즉시 실행 (문제 3 해결)
+                    if (effectData.AffectedType == AffectedType.None)
+                    {
+                        if (effect is IVFXAwareEffect vfxEffect)
+                        {
+                            // 더미 VFXTriggerData 생성 (AttackSuccess = true)
+                            var dummyTriggerData = new VFXTriggerData();
+                            dummyTriggerData.SetTileTargetValid(
+                                new Vector3Int(targetPos.x, targetPos.y, 0),
+                                context.GridController.GridToWorldPosition(targetPos)
+                            );
+                            vfxEffect.ExecuteWithVFXData(targetPos, context, dummyTriggerData);
+                        }
+                        else
+                        {
+                            effect.Execute(targetPos, context);
+                        }
+                        Debug.Log($"[SpellEffectExecutor] Effect {effectData.Type} (AffectedType.None) executed immediately");
+                        continue; // 다음 효과로
+                    }
+
+                    // 기존 로직: triggerDataList 기반 실행
                     var relevantTriggers = FilterTriggersForEffect(triggerDataList, effectData, targetPos);
 
                     Debug.Log($"[SpellEffectExecutor] Effect {effectData.Type}: {relevantTriggers.Count} relevant targets");
@@ -184,15 +205,17 @@ namespace Game.VFX
                     // 각 타겟에 효과 적용
                     foreach (var triggerData in relevantTriggers)
                     {
-                        // AttackSuccess 및 TargetGridPosition null 체크는 FilterTriggersForEffect에서 이미 처리됨
-                        // FilterTriggersForEffect를 통과한 경우 TargetGridPosition은 반드시 값을 가짐
+                        // AttackSuccess 및 TileGridPosition 체크는 FilterTriggersForEffect에서 이미 처리됨
+                        // FilterTriggersForEffect를 통과한 경우 TileGridPosition은 반드시 유효한 값을 가짐
+                        Vector2Int gridPos2D = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
+
                         if (effect is IVFXAwareEffect vfxAwareEffect)
                         {
-                            vfxAwareEffect.ExecuteWithVFXData(triggerData.TargetGridPosition.Value, context, triggerData);
+                            vfxAwareEffect.ExecuteWithVFXData(gridPos2D, context, triggerData);
                         }
                         else
                         {
-                            effect.Execute(triggerData.TargetGridPosition.Value, context);
+                            effect.Execute(gridPos2D, context);
                         }
                     }
                 }
@@ -224,18 +247,21 @@ namespace Game.VFX
                     continue;
                 }
 
-                // 1-1. TargetGridPosition null 체크 (불변 조건 검증)
-                if (!triggerData.TargetGridPosition.HasValue)
+                // 1-1. TileGridPosition 유효성 검증 (불변 조건 검증)
+                // TileGridPosition이 기본값인 경우 검증 실패로 간주
+                if (triggerData.TileGridPosition == Vector3Int.zero && centerPos != Vector2Int.zero)
                 {
-                    Debug.LogError($"[SpellEffectExecutor] Invariant violation: AttackSuccess is true but TargetGridPosition is null for target {triggerData.PredeterminedTarget?.name}");
+                    Debug.LogError($"[SpellEffectExecutor] Invariant violation: AttackSuccess is true but TileGridPosition is invalid at {triggerData.TileWorldPosition}");
                     continue;
                 }
 
-                // 2. 범위 체크
+                // 2. 범위 체크 (TileGridPosition 사용)
+                Vector2Int tilePos2D = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
+
                 if (effectData.AffectedRange == 0)
                 {
                     // 단일 타겟: 중앙 위치만
-                    if (triggerData.TargetGridPosition.Value == centerPos)
+                    if (tilePos2D == centerPos)
                     {
                         filtered.Add(triggerData);
                     }
@@ -243,8 +269,8 @@ namespace Game.VFX
                 else
                 {
                     // 다중 타겟: 맨하탄 거리 기반
-                    int distance = Mathf.Abs(triggerData.TargetGridPosition.Value.x - centerPos.x) +
-                                  Mathf.Abs(triggerData.TargetGridPosition.Value.y - centerPos.y);
+                    int distance = Mathf.Abs(tilePos2D.x - centerPos.x) +
+                                  Mathf.Abs(tilePos2D.y - centerPos.y);
 
                     if (distance <= effectData.AffectedRange)
                     {
@@ -332,60 +358,57 @@ namespace Game.VFX
         }
 
         /// <summary>
-        /// 모든 효과가 영향을 줄 수 있는 잠재적 타겟 계산
-        /// Phase 2 구현: 사전에 모든 타겟을 계산하여 VFX 트리거 시점에 원자적으로 검증
+        /// Phase 2 리팩토링: 타일 기반 타겟 계산 (EffectTargetingHelper 통합)
+        /// 모든 효과의 타겟 타일을 사전 계산하고 Context에 저장
         /// </summary>
         private List<GameObject> CalculateAllPotentialTargets(
             IReadOnlyList<EffectData> effects,
             Vector2Int targetPos,
             GameContext context)
         {
-            // 1. 최대 범위 계산
-            int maxRange = effects.Max(e => e.AffectedRange);
+            context.PredeterminedTiles.Clear();
+            context.VFXPositions.Clear();
 
-            // 2. AffectedType 통합 (가장 포괄적인 타입 선택)
-            AffectedType unifiedType = DetermineUnifiedAffectedType(effects);
+            var uniqueTiles = new HashSet<Tile>();
 
-            // 3. 범위 내 모든 유닛 획득
-            if (maxRange == 0)
+            // ✅ 통합 타일 타겟팅 시스템 (EffectTargetingHelper 사용)
+            foreach (var effectData in effects)
             {
-                // 단일 타겟: 중앙 타겟만
-                var centerTarget = context.GridController.GetUnitAtPosition(targetPos);
-                return centerTarget != null ? new List<GameObject> { centerTarget } : new List<GameObject>();
-            }
-            else
-            {
-                // 다중 타겟: 최대 범위 내 모든 유닛
-                return context.GridController.GetAffectedUnits(
+                var tiles = EffectTargetingHelper.GetTargetTiles(
                     targetPos,
-                    unifiedType,
-                    maxRange,
-                    context.PlayerId
-                );
+                    effectData,
+                    context);
+
+                foreach (var tile in tiles)
+                {
+                    uniqueTiles.Add(tile);
+                }
             }
+
+            // Context에 타일 저장
+            context.PredeterminedTiles.AddRange(uniqueTiles);
+            context.VFXPositions = EffectTargetingHelper.TilesToWorldPositions(
+                context.PredeterminedTiles);
+
+            // VFXEventTrigger 호환성: 타일의 GameObject 반환
+            var targetGameObjects = new List<GameObject>();
+            foreach (var tile in uniqueTiles)
+            {
+                // 타일 자체의 GameObject 전달 (NotAny용) 또는 유닛 GameObject (Ally/Enemy용)
+                if (tile.OccupyingUnit != null)
+                {
+                    targetGameObjects.Add(tile.OccupyingUnit.gameObject);
+                }
+                else
+                {
+                    // 빈 타일: 타일 GameObject 전달
+                    targetGameObjects.Add(tile.gameObject);
+                }
+            }
+
+            return targetGameObjects;
         }
 
-        /// <summary>
-        /// 여러 효과의 AffectedType을 통합
-        /// Any > Enemy > Ally 우선순위
-        /// </summary>
-        private AffectedType DetermineUnifiedAffectedType(IReadOnlyList<EffectData> effects)
-        {
-            bool hasAny = effects.Any(e => e.AffectedType == AffectedType.Any);
-            if (hasAny) return AffectedType.Any;
-
-            bool hasEnemy = effects.Any(e => e.AffectedType == AffectedType.Enemy);
-            bool hasAlly = effects.Any(e => e.AffectedType == AffectedType.Ally);
-
-            // Enemy와 Ally 모두 있으면 Any
-            if (hasEnemy && hasAlly) return AffectedType.Any;
-
-            // 하나만 있으면 해당 타입
-            if (hasEnemy) return AffectedType.Enemy;
-            if (hasAlly) return AffectedType.Ally;
-
-            return AffectedType.None;
-        }
 
         #endregion
     }

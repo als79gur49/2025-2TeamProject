@@ -4,15 +4,47 @@ using UnityEngine;
 namespace Game.VFX
 {
     /// <summary>
-    /// VFX 트리거 시점에 게임 로직으로 전달되는 동적 데이터
-    /// TCG 게임 특성: 사전 결정된 타겟 유효성 검증 중심
+    /// VFX 트리거 데이터 - 타일 기반 설계
+    /// 모든 타겟팅 정보를 타일 위치로 전달
+    /// Phase 1.3: GameObject 기반 → 타일 좌표 기반으로 전환
     /// </summary>
     public class VFXTriggerData
     {
-        #region Basic Trigger Info
+        #region Tile-Based Targeting (Phase 1.3)
 
-        /// <summary>VFX 트리거가 발생한 월드 좌표</summary>
-        public Vector3 TriggerWorldPosition { get; set; }
+        /// <summary>
+        /// 타겟 타일의 그리드 좌표
+        /// </summary>
+        public Vector3Int TileGridPosition { get; set; }
+
+        /// <summary>
+        /// 타겟 타일의 월드 좌표 (VFX 재생 위치)
+        /// </summary>
+        public Vector3 TileWorldPosition { get; set; }
+
+        /// <summary>
+        /// VFX 트리거 시점의 검증 결과
+        /// </summary>
+        public bool AttackSuccess { get; set; }
+
+        /// <summary>
+        /// 검증 실패 사유 (디버깅용)
+        /// </summary>
+        public string ValidationFailureReason { get; set; }
+
+        #endregion
+
+        #region Legacy Support (Deprecated)
+
+        /// <summary>
+        /// [Deprecated] VFX 트리거가 발생한 월드 좌표
+        /// → TileWorldPosition 사용 권장
+        /// </summary>
+        public Vector3 TriggerWorldPosition
+        {
+            get => TileWorldPosition;
+            set => TileWorldPosition = value;
+        }
 
         /// <summary>VFX 재생 진행도 (0.0 ~ 1.0)</summary>
         public float NormalizedProgress { get; set; }
@@ -20,31 +52,11 @@ namespace Game.VFX
         /// <summary>트리거 발생 시간 (게임 시작 기준)</summary>
         public float TriggerTime { get; set; }
 
-        #endregion
-
-        #region TCG-Specific Target Validation
-
-        /// <summary>타겟 공격 성공 여부 (TCG 핵심 정보)</summary>
-        public bool AttackSuccess { get; set; }
-
-        /// <summary>공격 대상 (사전 결정된 타겟)</summary>
-        public GameObject PredeterminedTarget { get; set; }
-
-        /// <summary>타겟의 그리드 좌표 (TCG 보드 기준)</summary>
+        /// <summary>
+        /// [Deprecated] 타겟의 그리드 좌표 (TCG 보드 기준)
+        /// → TileGridPosition 사용 권장
+        /// </summary>
         public Vector2Int? TargetGridPosition { get; set; }
-
-        /// <summary>타겟 유효성 실패 이유 (디버깅용)</summary>
-        public string ValidationFailureReason { get; set; }
-
-        #endregion
-
-        #region Multi-Target Support (AOE Effects)
-
-        /// <summary>다중 타겟 리스트 (범위 효과용)</summary>
-        public List<GameObject> ValidTargets { get; private set; }
-
-        /// <summary>유효하지 않은 타겟 리스트 (디버깅/로그용)</summary>
-        public List<GameObject> InvalidTargets { get; private set; }
 
         #endregion
 
@@ -59,8 +71,6 @@ namespace Game.VFX
 
         public VFXTriggerData()
         {
-            ValidTargets = new List<GameObject>();
-            InvalidTargets = new List<GameObject>();
             CustomData = new Dictionary<string, object>();
 
             TriggerTime = Time.time;
@@ -71,27 +81,25 @@ namespace Game.VFX
 
         #region Helper Methods
 
-        /// <summary>타겟 유효성 검증 성공 설정</summary>
-        public void SetTargetValid(GameObject target, Vector2Int gridPos)
+        /// <summary>
+        /// 타일 기반 타겟 유효성 검증 성공 설정
+        /// </summary>
+        public void SetTileTargetValid(Vector3Int gridPos, Vector3 worldPos)
         {
             AttackSuccess = true;
-            PredeterminedTarget = target;
-            TargetGridPosition = gridPos;
+            TileGridPosition = gridPos;
+            TileWorldPosition = worldPos;
             ValidationFailureReason = null;
-
-            if (!ValidTargets.Contains(target))
-                ValidTargets.Add(target);
         }
 
-        /// <summary>타겟 유효성 검증 실패 설정</summary>
-        public void SetTargetInvalid(GameObject target, string reason)
+        /// <summary>
+        /// 타일 기반 타겟 유효성 검증 실패 설정
+        /// </summary>
+        public void SetTileTargetInvalid(Vector3Int gridPos, string reason)
         {
             AttackSuccess = false;
-            PredeterminedTarget = target;
+            TileGridPosition = gridPos;
             ValidationFailureReason = reason;
-
-            if (target != null && !InvalidTargets.Contains(target))
-                InvalidTargets.Add(target);
         }
 
         /// <summary>커스텀 데이터 추가</summary>

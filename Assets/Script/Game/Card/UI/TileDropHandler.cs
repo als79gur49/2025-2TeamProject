@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
+using static Game.Interfaces.ITeamComponent;
 
 namespace Game.Card.UI
 {
@@ -232,7 +233,7 @@ namespace Game.Card.UI
             }
 
             // 유닛 소환 시도 (TryExecuteCard 사용)
-            bool spawnSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, true);
+            bool spawnSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, TeamType.Player);
 
             if (spawnSuccess)
             {
@@ -271,7 +272,7 @@ namespace Game.Card.UI
             }
 
             // 주문 발동 시도 (TryExecuteCard 사용)
-            bool spellSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, true);
+            bool spellSuccess = cardSpawnService.TryExecuteCard(cardData, gridPosition, TeamType.Player);
 
             if (spellSuccess)
             {

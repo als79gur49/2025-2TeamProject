@@ -272,9 +272,9 @@ namespace Game.Components
         /// <param name="targetPosition">효과의 중심 위치</param>
         /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
         /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
-        /// <param name="originPlayerId">효과를 발동시킨 플레이어 ID (팀 구분용)</param>
+        /// <param name="casterTeam">효과를 발동시킨 팀 (팀 구분용)</param>
         /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
-        public List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1)
+        public List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam)
         {
             var affectedUnits = new List<GameObject>();
 
@@ -302,7 +302,7 @@ namespace Game.Components
             foreach (var position in positionsToCheck)
             {
                 var unit = GetUnitAtPosition(position);
-                if (unit != null && IsUnitValidTarget(unit, affectedType, originPlayerId))
+                if (unit != null && IsUnitValidTarget(unit, affectedType, casterTeam))
                 {
                     affectedUnits.Add(unit);
                 }
@@ -316,9 +316,9 @@ namespace Game.Components
         /// </summary>
         /// <param name="unit">확인할 유닛</param>
         /// <param name="affectedType">대상 타입 조건</param>
-        /// <param name="originPlayerId">효과 발동자의 플레이어 ID</param>
+        /// <param name="casterTeam">효과 발동자의 팀</param>
         /// <returns>유효한 대상이면 true</returns>
-        private bool IsUnitValidTarget(GameObject unit, AffectedType affectedType, int originPlayerId)
+        private bool IsUnitValidTarget(GameObject unit, AffectedType affectedType, TeamType casterTeam)
         {
             if (unit == null) return false;
 
@@ -334,8 +334,8 @@ namespace Game.Components
             // AffectedType에 따른 대상 필터링
             return affectedType switch
             {
-                AffectedType.Ally => IsAllyUnit(teamComponent, originPlayerId),
-                AffectedType.Enemy => IsEnemyUnit(teamComponent, originPlayerId),
+                AffectedType.Ally => IsAllyUnit(teamComponent, casterTeam),
+                AffectedType.Enemy => IsEnemyUnit(teamComponent, casterTeam),
                 AffectedType.Any => true, // 모든 유닛이 대상
                 AffectedType.None => false, // 아무도 대상 아님 (위에서 이미 처리됨)
                 _ => false
@@ -346,42 +346,30 @@ namespace Game.Components
         /// Phase 2.12: 유닛이 아군인지 확인합니다.
         /// </summary>
         /// <param name="teamComponent">유닛의 팀 컴포넌트</param>
-        /// <param name="originPlayerId">기준이 되는 플레이어 ID</param>
+        /// <param name="casterTeam">기준이 되는 시전자 팀</param>
         /// <returns>아군이면 true</returns>
-        private bool IsAllyUnit(ITeamComponent teamComponent, int originPlayerId)
+        private bool IsAllyUnit(ITeamComponent teamComponent, TeamType casterTeam)
         {
             if (teamComponent == null) return false;
 
-            // originPlayerId가 유효하지 않은 경우 Player 팀을 아군으로 간주
-            if (originPlayerId < 0)
-            {
-                return teamComponent.Team == TeamType.Player;
-            }
-
-            // TODO: 실제 플레이어 ID 기반 팀 확인 로직 구현 필요
-            // 현재는 Player 팀을 아군으로 간주하는 단순 로직 사용
-            return teamComponent.Team == TeamType.Player;
+            // 시전자와 같은 팀이면 아군
+            return teamComponent.Team == casterTeam;
         }
 
         /// <summary>
         /// Phase 2.12: 유닛이 적군인지 확인합니다.
         /// </summary>
         /// <param name="teamComponent">유닛의 팀 컴포넌트</param>
-        /// <param name="originPlayerId">기준이 되는 플레이어 ID</param>
+        /// <param name="casterTeam">기준이 되는 시전자 팀</param>
         /// <returns>적군이면 true</returns>
-        private bool IsEnemyUnit(ITeamComponent teamComponent, int originPlayerId)
+        private bool IsEnemyUnit(ITeamComponent teamComponent, TeamType casterTeam)
         {
             if (teamComponent == null) return false;
 
-            // originPlayerId가 유효하지 않은 경우 Enemy 팀을 적군으로 간주
-            if (originPlayerId < 0)
-            {
-                return teamComponent.Team == TeamType.Enemy;
-            }
-
-            // TODO: 실제 플레이어 ID 기반 팀 확인 로직 구현 필요
-            // 현재는 Enemy 팀을 적군으로 간주하는 단순 로직 사용
-            return teamComponent.Team == TeamType.Enemy;
+            // 시전자와 다른 팀이면서 None이나 Neutral이 아니면 적군
+            return teamComponent.Team != casterTeam &&
+                   teamComponent.Team != TeamType.None &&
+                   teamComponent.Team != TeamType.Neutral;
         }
 
         /// <summary>
@@ -408,11 +396,11 @@ namespace Game.Components
         /// <param name="targetPosition">대상 위치</param>
         /// <param name="affectedType">영향 타입</param>
         /// <param name="affectedRange">영향 범위</param>
-        /// <param name="originPlayerId">발동자 ID</param>
-        public void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, int originPlayerId = -1)
+        /// <param name="casterTeam">시전자 팀</param>
+        public void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam)
         {
-            var units = GetAffectedUnits(targetPosition, affectedType, affectedRange, originPlayerId);
-            Debug.Log($"GetAffectedUnits Debug: 위치({targetPosition.x}, {targetPosition.y}), 타입:{affectedType}, 범위:{affectedRange}, 대상:{units.Count}개");
+            var units = GetAffectedUnits(targetPosition, affectedType, affectedRange, casterTeam);
+            Debug.Log($"GetAffectedUnits Debug: 위치({targetPosition.x}, {targetPosition.y}), 타입:{affectedType}, 범위:{affectedRange}, 시전자팀:{casterTeam}, 대상:{units.Count}개");
 
             foreach (var unit in units)
             {

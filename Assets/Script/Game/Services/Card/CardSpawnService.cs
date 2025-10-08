@@ -7,6 +7,7 @@ using Game.Card.Effects;
 using System.Collections.Generic;
 using System.Linq;
 using Game.VFX;
+using static Game.Interfaces.ITeamComponent;
 
 namespace Game.Services
 {
@@ -86,8 +87,8 @@ namespace Game.Services
                     gridController,
                     this,  // CardSpawnService itself
                     spawnValidator,
-                    0,     // PlayerId - will be updated per card usage
-                    Vector2Int.zero // OriginPosition - will be updated per card usage
+                    TeamType.Player,  // CasterTeam - will be updated per card usage
+                    Vector2Int.zero   // OriginPosition - will be updated per card usage
                 );
 
                 isInitialized = true;
@@ -149,17 +150,17 @@ namespace Game.Services
         /// <returns>실행 성공 여부</returns>
         public bool TryExecuteCard(CardData cardData, Vector2Int targetPosition)
         {
-            return TryExecuteCard(cardData, targetPosition, true);
+            return TryExecuteCard(cardData, targetPosition, TeamType.Player);
         }
 
         /// <summary>
-        /// 카드를 사용하여 모든 효과를 실행 (플레이어/적군 구분)
+        /// 카드를 사용하여 모든 효과를 실행 (팀 지정)
         /// </summary>
         /// <param name="cardData">사용할 카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
-        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <returns>실행 성공 여부</returns>
-        public bool TryExecuteCard(CardData cardData, Vector2Int targetPosition, bool isPlayerCard)
+        public bool TryExecuteCard(CardData cardData, Vector2Int targetPosition, TeamType casterTeam)
         {
             if (!isInitialized)
             {
@@ -180,12 +181,13 @@ namespace Game.Services
                 return false;
             }
 
-            Log($"🎯 Executing card: {cardData.CardName} at position {targetPosition} (Player: {isPlayerCard})");
+            Log($"🎯 Executing card: {cardData.CardName} at position {targetPosition} (Team: {casterTeam})");
 
             // Update GameContext for this card execution
-            UpdateGameContext(isPlayerCard ? 0 : 1, targetPosition);
+            UpdateGameContext(casterTeam, targetPosition);
 
             // 1. Resource validation and spending
+            bool isPlayerCard = (casterTeam == TeamType.Player);
             if (resourceManager != null && !resourceManager.SpendResources(isPlayerCard, cardData.ManaCost))
             {
                 LogError($"❌ Failed to spend resources for {cardData.CardName}");
@@ -193,13 +195,13 @@ namespace Game.Services
             }
 
             // 2. Execute all card effects using factory pattern
-            bool allEffectsSuccess = ExecuteAllCardEffects(cardData, targetPosition, isPlayerCard);
+            bool allEffectsSuccess = ExecuteAllCardEffects(cardData, targetPosition, casterTeam);
 
             if (!allEffectsSuccess)
             {
                 LogError($"❌ One or more effects failed for {cardData.CardName}");
                 // Restore resources on failure
-                RestoreResources(cardData, isPlayerCard);
+                RestoreResources(cardData, casterTeam);
                 return false;
             }
 
@@ -210,9 +212,9 @@ namespace Game.Services
         /// <summary>
         /// GameContext 업데이트
         /// </summary>
-        /// <param name="playerId">플레이어 ID</param>
+        /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <param name="originPosition">원점 위치</param>
-        private void UpdateGameContext(int playerId, Vector2Int originPosition)
+        private void UpdateGameContext(TeamType casterTeam, Vector2Int originPosition)
         {
             if (gameContext != null)
             {
@@ -222,7 +224,7 @@ namespace Game.Services
                     gridController,
                     this,
                     spawnValidator,
-                    playerId,
+                    casterTeam,
                     originPosition
                 );
             }
@@ -234,9 +236,9 @@ namespace Game.Services
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="targetPosition">대상 위치</param>
-        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
+        /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <returns>모든 효과 실행 성공 여부</returns>
-        private bool ExecuteAllCardEffects(CardData cardData, Vector2Int targetPosition, bool isPlayerCard)
+        private bool ExecuteAllCardEffects(CardData cardData, Vector2Int targetPosition, TeamType casterTeam)
         {
             var effectDataList = cardData.EffectDataList;
             if (effectDataList.Count == 0)
@@ -316,12 +318,12 @@ namespace Game.Services
         /// 팀에 따라 자원을 복구하는 헬퍼 메서드
         /// </summary>
         /// <param name="cardData">복구할 카드의 데이터</param>
-        /// <param name="isPlayerUnit">플레이어 유닛인지 여부</param>
-        private void RestoreResources(CardData cardData, bool isPlayerUnit)
+        /// <param name="casterTeam">카드를 사용한 팀</param>
+        private void RestoreResources(CardData cardData, TeamType casterTeam)
         {
             if (resourceManager == null) return;
 
-            if (isPlayerUnit)
+            if (casterTeam == TeamType.Player)
             {
                 resourceManager.RestorePlayerResources(cardData.ManaCost);
                 Log($"🔄 Restored {cardData.ManaCost}M to Player");
