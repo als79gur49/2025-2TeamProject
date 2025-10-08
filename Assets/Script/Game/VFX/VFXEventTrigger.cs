@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Game.Interfaces;
 using Game.Services;
@@ -8,8 +9,8 @@ using Game.Components;
 namespace Game.VFX
 {
     /// <summary>
-    /// VFX 프리팹에 부착되어 특정 시점에 TriggerData를 전달
-    /// TCG 특성: 사전 결정된 타겟 유효성 검증
+    /// VFX 프리팹에 부착되어 특정 시점에 다중 타겟 TriggerData를 전달
+    /// Phase 2 완료: 원자적 다중 타겟 검증 시스템 구현
     /// </summary>
     public class VFXEventTrigger : MonoBehaviour
     {
@@ -38,14 +39,15 @@ namespace Game.VFX
 
         #region Runtime State
 
-        private Action<VFXTriggerData> onTriggerCallback;
-        private GameObject predeterminedTarget;
-        private IGridManager gridManager;
+        private Action<List<VFXTriggerData>> onTriggerCallbackList;
+        private List<GameObject> predeterminedTargets;
+        private IGridController gridController;
 
         private bool triggered = false;
         private bool destroyed = false;
         private float startTime;
         private float vfxDuration;
+        private float currentProgress;
 
         private ParticleSystem[] particleSystems;
 
@@ -54,20 +56,26 @@ namespace Game.VFX
         #region Initialization
 
         /// <summary>
-        /// VFX 트리거 초기화 (TriggerData 콜백 전용)
+        /// VFX 트리거 초기화 (원자적 다중 타겟 검증)
+        /// Phase 2: 모든 타겟을 VFX 트리거 시점에 동시 검증
         /// </summary>
         /// <param name="normalizedTriggerTime">트리거 발생 정규화 시간 (0.0 ~ 1.0)</param>
-        /// <param name="callback">TriggerData를 전달받는 콜백</param>
-        /// <param name="target">사전 결정된 타겟 (TCG 특성)</param>
-        public void Initialize(float normalizedTriggerTime, Action<VFXTriggerData> callback, GameObject target = null)
+        /// <param name="callback">List<VFXTriggerData>를 전달받는 콜백</param>
+        /// <param name="targets">사전 결정된 타겟 리스트 (T=0s에 계산됨)</param>
+        /// <param name="controller">그리드 좌표 계산용 GridController (null 가능)</param>
+        public void Initialize(
+            float normalizedTriggerTime,
+            Action<List<VFXTriggerData>> callback,
+            List<GameObject> targets,
+            IGridController controller = null)
         {
             this.triggerType = TriggerType.NormalizedTime;
             this.triggerValue = Mathf.Clamp01(normalizedTriggerTime);
-            this.onTriggerCallback = callback;
-            this.predeterminedTarget = target;
-            
-            // GridManager 참조
-            gridManager = ServiceLocator.Get<IGridManager>();
+            this.onTriggerCallbackList = callback;
+            this.predeterminedTargets = targets ?? new List<GameObject>();
+
+            // GridController 참조 (인수로 전달받음, ServiceLocator 사용 안 함)
+            this.gridController = controller;
 
             // VFX 지속 시간 계산
             vfxDuration = CalculateVFXDuration();
@@ -80,9 +88,10 @@ namespace Game.VFX
             {
                 Debug.Log($"[VFXEventTrigger] Initialized: Type={triggerType}, " +
                          $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s, " +
-                         $"Target={target?.name ?? "None"}");
+                         $"PotentialTargets={this.predeterminedTargets.Count}");
             }
         }
+
 
         #endregion
 
@@ -137,11 +146,12 @@ namespace Game.VFX
 
         private void Update()
         {
-            if (triggered || destroyed || onTriggerCallback == null)
+            if (triggered || destroyed || onTriggerCallbackList == null)
                 return;
 
             float elapsed = Time.time - startTime;
             float normalizedTime = vfxDuration > 0 ? elapsed / vfxDuration : 0f;
+            currentProgress = normalizedTime;
 
             // Timeout 체크
             if (elapsed >= maxLifetime)
@@ -179,27 +189,17 @@ namespace Game.VFX
             if (triggered) return;
             triggered = true;
 
-            // TriggerData 생성 및 기본 정보 설정
-            VFXTriggerData triggerData = new VFXTriggerData
-            {
-                TriggerWorldPosition = transform.position,
-                NormalizedProgress = normalizedTime
-            };
+            var triggerDataList = ValidateAllTargets();
 
-            // TCG 타겟 유효성 검증
-            ValidatePredeterminedTarget(triggerData);
-
-            // 콜백 실행
             try
             {
-                onTriggerCallback?.Invoke(triggerData);
+                onTriggerCallbackList.Invoke(triggerDataList);
 
                 if (logTriggerEvents)
                 {
                     Debug.Log($"[VFXEventTrigger] Trigger fired: " +
                              $"Progress={normalizedTime:F2}, " +
-                             $"AttackSuccess={triggerData.AttackSuccess}, " +
-                             $"Target={predeterminedTarget?.name ?? "None"}");
+                             $"ValidatedTargets={triggerDataList.Count}");
                 }
             }
             catch (Exception ex)
@@ -233,52 +233,87 @@ namespace Game.VFX
         #region TCG Target Validation
 
         /// <summary>
-        /// TCG 타겟 유효성 검증
-        /// 물리 충돌 없이 사전 결정된 타겟의 유효성만 검증
+        /// VFX 트리거 시점에 모든 타겟을 원자적으로 검증
         /// </summary>
-        private void ValidatePredeterminedTarget(VFXTriggerData triggerData)
+        private List<VFXTriggerData> ValidateAllTargets()
         {
+            var triggerDataList = new List<VFXTriggerData>();
+
             // 타겟이 없는 경우
-            if (predeterminedTarget == null)
+            if (predeterminedTargets == null || predeterminedTargets.Count == 0)
             {
-                triggerData.SetTargetInvalid(null, "No predetermined target");
+                if (logTriggerEvents)
+                    Debug.LogWarning("[VFXEventTrigger] No predetermined targets");
+                return triggerDataList;
+            }
+
+            // 각 타겟을 개별적으로 검증
+            foreach (var target in predeterminedTargets)
+            {
+                var triggerData = new VFXTriggerData
+                {
+                    TriggerWorldPosition = target != null ? target.transform.position : Vector3.zero,
+                    NormalizedProgress = currentProgress
+                };
+
+                // 개별 타겟 검증
+                ValidateSingleTarget(target, triggerData);
+
+                // 검증 실패한 타겟도 리스트에 포함 (AttackSuccess = false)
+                triggerDataList.Add(triggerData);
+            }
+
+            return triggerDataList;
+        }
+
+        /// <summary>
+        /// 단일 타겟 검증 로직 (재사용 가능)
+        /// </summary>
+        private void ValidateSingleTarget(GameObject target, VFXTriggerData triggerData)
+        {
+            // 1. Null 체크
+            if (target == null)
+            {
+                triggerData.SetTargetInvalid(null, "Target is null");
                 return;
             }
 
-            // 타겟이 파괴된 경우
-            if (!predeterminedTarget.activeInHierarchy)
+            // 2. 활성화 상태 체크
+            if (!target.activeInHierarchy)
             {
-                triggerData.SetTargetInvalid(predeterminedTarget, "Target destroyed or inactive");
+                triggerData.SetTargetInvalid(target, "Target destroyed or inactive");
                 return;
             }
 
-            // HealthComponent 체크 (공격 가능 여부)
-            var healthComponent = predeterminedTarget.GetComponent<HealthComponent>();
+            // 3. HealthComponent 존재 및 생존 체크
+            var healthComponent = target.GetComponent<HealthComponent>();
             if (healthComponent == null)
             {
-                triggerData.SetTargetInvalid(predeterminedTarget, "Target does not have HealthComponent");
+                triggerData.SetTargetInvalid(target, "Target does not have HealthComponent");
                 return;
             }
 
             if (!healthComponent.IsAlive)
             {
-                triggerData.SetTargetInvalid(predeterminedTarget, "Target is not alive");
+                triggerData.SetTargetInvalid(target, "Target is not alive");
                 return;
             }
 
-            // GridManager를 통한 그리드 좌표 검증
-            if (gridManager != null)
+            // 4. 그리드 좌표 계산 및 검증 성공 설정
+            Vector2Int gridPos = Vector2Int.zero;
+            if (gridController != null)
             {
-                Vector2Int gridPos = gridManager.WorldToGridPosition(predeterminedTarget.transform.position);
-                triggerData.SetTargetValid(predeterminedTarget, gridPos);
+                gridPos = gridController.WorldToGridPosition(target.transform.position);
             }
             else
             {
-                // GridManager 없이도 성공 처리 (그리드 좌표는 null)
-                triggerData.SetTargetValid(predeterminedTarget, Vector2Int.zero);
-                Debug.LogWarning($"[VFXEventTrigger] GridManager not found, grid position unavailable");
+                if (logTriggerEvents)
+                    Debug.LogWarning($"[VFXEventTrigger] GridController not available for {target.name}");
             }
+
+            triggerData.SetTargetValid(target, gridPos);
         }
+
 
         #endregion
 
@@ -308,7 +343,7 @@ namespace Game.VFX
             destroyed = true;
 
             // 트리거 미발생 시 강제 실행
-            if (!triggered && onTriggerCallback != null)
+            if (!triggered && onTriggerCallbackList != null)
             {
                 if (logTriggerEvents)
                     Debug.LogWarning($"[VFXEventTrigger] Destroyed before trigger, forcing execution");

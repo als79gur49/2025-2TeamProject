@@ -15,7 +15,7 @@ namespace Game.VFX
         [Header("Trigger Settings")]
         [SerializeField] [Range(0f, 1f)] private float triggerNormalizedTime = 0.7f;
 
-        [Header("Duration Settings")]
+        [Header("Duration Settings 수동 필수")]
         [SerializeField] private float duration = 2f;
         [SerializeField] private bool isLooping = false;
 

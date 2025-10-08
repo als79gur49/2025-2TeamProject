@@ -310,13 +310,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 12, y: 28, z: 15}
+  m_LocalRotation: {x: 0.4008441, y: 0.58251524, z: -0.4008441, w: 0.58251524}
+  m_LocalPosition: {x: -4.6, y: 28, z: 15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 90, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: 69.066, y: 90, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -688,7 +688,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.043137256}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1122,6 +1122,7 @@ MonoBehaviour:
   gameServiceManager: {fileID: 933723240}
   cardServiceManager: {fileID: 430737604}
   resourceManager: {fileID: 1971894937}
+  spellEffectExecutor: {fileID: 1958192044}
   autoInitializeOnStart: 1
   logInitializationSteps: 1
   showDebugInfo: 1
@@ -1328,7 +1329,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerUnitPrefab: {fileID: 3546852586526391875, guid: 713a6ad9f407f514b8a5551b9fed8eac,
     type: 3}
-  enemyUnitPrefab: {fileID: 3546852586526391875, guid: 09969d1e6af0a4246a758cc626655001,
+  enemyUnitPrefab: {fileID: 3546852586526391875, guid: 713a6ad9f407f514b8a5551b9fed8eac,
     type: 3}
   playerUnitData: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
@@ -1343,6 +1344,8 @@ MonoBehaviour:
   - {x: 2, y: 5}
   - {x: 3, y: 5}
   - {x: 4, y: 5}
+  playerMaterial: {fileID: 2100000, guid: de8c0f397648e31469c4826ac4239c30, type: 2}
+  enemyMaterial: {fileID: 2100000, guid: 9b3829dea0950824a96caddef56ee6a6, type: 2}
 --- !u!1001 &1925692108
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1427,6 +1430,50 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f6eeca3a10e323a46a4d7bc4cbd31e95, type: 3}
+--- !u!1 &1958192043
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1958192045}
+  - component: {fileID: 1958192044}
+  m_Layer: 0
+  m_Name: SpellExecuter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1958192044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1958192043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d7bc090bda74624083ba7f6f2ece652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1958192045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1958192043}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 12, y: 28, z: 15}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1971894936
 GameObject:
   m_ObjectHideFlags: 0
@@ -1494,3 +1541,4 @@ SceneRoots:
   - {fileID: 1971894938}
   - {fileID: 169133379}
   - {fileID: 1613498408}
+  - {fileID: 1958192045}

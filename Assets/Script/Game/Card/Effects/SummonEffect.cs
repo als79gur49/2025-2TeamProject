@@ -82,6 +82,9 @@ namespace Game.Card.Effects
         /// <summary>
         /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
         /// 공격 성공/실패 여부에 따라 소환 적용 여부 결정
+        /// NOTE: SummonEffect는 위치 기반이므로 다중 타겟 개념이 적용되지 않음
+        ///       SpellEffectExecutor가 AffectedRange > 0일 때도 이 메서드를 호출하지만,
+        ///       소환은 targetPos 중심으로 범위 내 빈 공간에 실행됨
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
@@ -103,7 +106,7 @@ namespace Game.Card.Effects
             var availablePositions = GetAvailableSummonPositions(targetPos, context);
             var summonCount = Mathf.Min(_effectData.Value, availablePositions.Count);
 
-            Debug.Log($"[SummonEffect] Summon success! Summoning {summonCount} {_effectData.UnitToSummon.UnitName}");
+            Debug.Log($"[SummonEffect] Summon success! Summoning {summonCount} {_effectData.UnitToSummon.UnitName} at {targetPos}");
 
             for (int i = 0; i < summonCount; i++)
             {

@@ -5,19 +5,28 @@ using TMPro;
 /// <summary>
 /// 설정 패널 (VolumeController 연동)
 /// 기존 SettingPanel의 기능을 AudioServiceContainer와 통합하여 개선
+/// IOpenablePanel을 구현하여 확장 메서드로 Open/Close 버튼 자동 바인딩 지원
 /// </summary>
-public class SettingsPanel : UIPanel
+public class SettingsPanel : UIPanel, IOpenablePanel
 {
+    [Header("Panel Buttons (IOpenablePanel)")]
+    [SerializeField] private Button openButton;  // 외부에서 설정 패널을 여는 버튼
+    [SerializeField] private Button closeButton; // 패널 내부의 닫기 버튼
+
+    // IOpenablePanel 구현
+    public Button OpenButton => openButton;
+    public Button CloseButton => closeButton;
+
     [Header("볼륨 설정 UI")]
     [SerializeField] private Slider masterVolumeSlider;
     [SerializeField] private Slider bgmVolumeSlider;
     [SerializeField] private Slider effectVolumeSlider;
-    
+
     [Header("볼륨 표시 텍스트")]
     [SerializeField] private TextMeshProUGUI masterVolumeText;
     [SerializeField] private TextMeshProUGUI bgmVolumeText;
     [SerializeField] private TextMeshProUGUI effectVolumeText;
-    
+
     [Header("음소거 토글")]
     [SerializeField] private Toggle masterMuteToggle;
     [SerializeField] private Toggle bgmMuteToggle;
@@ -32,11 +41,10 @@ public class SettingsPanel : UIPanel
     [SerializeField] private Toggle buttonSoundsToggle;
     [SerializeField] private Toggle panelSoundsToggle;
     [SerializeField] private Toggle hoverSoundsToggle;
-    
+
     [Header("기타 버튼")]
     [SerializeField] private Button resetButton;
     [SerializeField] private Button applyButton;
-    [SerializeField] private Button closeButton;
     
     [Header("설정")]
     [SerializeField] private bool autoApplyChanges = true;
@@ -54,13 +62,16 @@ public class SettingsPanel : UIPanel
     protected override void OnInitialize()
     {
         base.OnInitialize();
-        
+
+        // 확장 메서드로 Open/Close 버튼 자동 바인딩
+        this.AutoBindOpenCloseButtons();
+
         // 서비스 초기화
         InitializeServices();
-        
+
         // UI 이벤트 설정
         SetupUIEvents();
-        
+
         // 초기 설정 로드
         LoadCurrentSettings();
     }
@@ -75,9 +86,12 @@ public class SettingsPanel : UIPanel
     
     protected override void OnCleanup()
     {
+        // Open/Close 버튼 바인딩 해제 (확장 메서드)
+        this.UnbindOpenCloseButtons();
+
         // 이벤트 정리
         CleanupUIEvents();
-        
+
         base.OnCleanup();
     }
     
@@ -155,15 +169,12 @@ public class SettingsPanel : UIPanel
         if (hoverSoundsToggle != null)
             hoverSoundsToggle.onValueChanged.AddListener(OnHoverSoundsChanged);
         
-        // 버튼 이벤트
+        // 기타 버튼 이벤트 (Open/Close는 확장 메서드로 자동 처리됨)
         if (resetButton != null)
             resetButton.onClick.AddListener(OnResetClicked);
-        
+
         if (applyButton != null)
             applyButton.onClick.AddListener(OnApplyClicked);
-        
-        if (closeButton != null)
-            closeButton.onClick.AddListener(OnCloseClicked);
         
         // VolumeController 이벤트 구독
         if (volumeController != null)
@@ -207,15 +218,12 @@ public class SettingsPanel : UIPanel
         if (hoverSoundsToggle != null)
             hoverSoundsToggle.onValueChanged.RemoveListener(OnHoverSoundsChanged);
         
-        // 버튼 이벤트 정리
+        // 기타 버튼 이벤트 정리
         if (resetButton != null)
             resetButton.onClick.RemoveListener(OnResetClicked);
-        
+
         if (applyButton != null)
             applyButton.onClick.RemoveListener(OnApplyClicked);
-        
-        if (closeButton != null)
-            closeButton.onClick.RemoveListener(OnCloseClicked);
         
         // VolumeController 이벤트 해제
         if (volumeController != null)
@@ -467,22 +475,6 @@ public class SettingsPanel : UIPanel
         }
     }
     
-    /// <summary>
-    /// 닫기 버튼 클릭
-    /// </summary>
-    private void OnCloseClicked()
-    {
-        Debug.Log("설정 패널 닫기");
-        
-        // 자동 적용이 비활성화된 경우 저장
-        if (!autoApplyChanges && volumeController != null)
-        {
-            volumeController.SaveVolumeSettings();
-        }
-        
-        // 패널 숨김
-        OnHide();
-    }
     
     #endregion
     

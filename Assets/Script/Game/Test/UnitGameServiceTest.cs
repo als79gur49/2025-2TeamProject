@@ -22,6 +22,12 @@ namespace Game
         private List<Vector2Int> playerStartPositions;
         [SerializeField]
         private List<Vector2Int> enemyStartPositions;
+        [SerializeField]
+        [Tooltip("플레이어 유닛에 적용할 Material")]
+        private Material playerMaterial;
+        [SerializeField]
+        [Tooltip("적 유닛에 적용할 Material")]
+        private Material enemyMaterial;
 
         private Unit unitObject;
         private void Start()
@@ -98,10 +104,46 @@ namespace Game
                 Debug.LogWarning($"[UnitGameServiceTest] 위치 ({position.x}, {position.y})에서 Tile을 찾을 수 없습니다.");
             }
 
-            // 6. 턴 시작
+            // 6. Material 적용 (팀에 따라)
+            Material targetMaterial = isPlayer ? playerMaterial : enemyMaterial;
+            ApplyMaterialToUnit(unit, targetMaterial);
+
+            // 7. 턴 시작
             unit.OnTurnStart();
 
             Debug.Log($"[UnitGameServiceTest] {(isPlayer ? "Player" : "Enemy")} 유닛 소환 완료: {unit.name} at ({position.x}, {position.y})");
+        }
+
+        /// <summary>
+        /// 유닛의 자식 오브젝트에 있는 모든 Renderer에 Material 적용
+        /// </summary>
+        private void ApplyMaterialToUnit(Unit unit, Material material)
+        {
+            if (material == null)
+            {
+                Debug.LogWarning($"[UnitGameServiceTest] {unit.name}: Material이 설정되지 않았습니다. Material 적용을 건너뜁니다.");
+                return;
+            }
+
+            // 자식 오브젝트의 모든 Renderer 컴포넌트 가져오기
+            Renderer[] renderers = unit.GetComponentsInChildren<Renderer>(true);
+
+            if (renderers.Length == 0)
+            {
+                Debug.LogWarning($"[UnitGameServiceTest] {unit.name}: 자식 오브젝트에서 Renderer를 찾을 수 없습니다.");
+                return;
+            }
+
+            // 각 Renderer에 Material 적용
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer != null)
+                {
+                    renderer.material = material;
+                }
+            }
+
+            Debug.Log($"[UnitGameServiceTest] {unit.name}: {renderers.Length}개의 Renderer에 Material 적용 완료");
         }
     }
 }

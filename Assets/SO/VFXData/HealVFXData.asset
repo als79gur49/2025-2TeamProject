@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
-  m_Name: FireballVFXData
+  m_Name: HealVFXData
   m_EditorClassIdentifier: 
-  vfxPrefab: {fileID: 1056904543853562, guid: a669fb96d2b76904c84ecadd439b8273, type: 3}
-  triggerNormalizedTime: 0.02
-  duration: 4
+  vfxPrefab: {fileID: 1881552412633134, guid: c030573ca1b7606479e47558afd3f50f, type: 3}
+  triggerNormalizedTime: 0.124
+  duration: 3
   isLooping: 0

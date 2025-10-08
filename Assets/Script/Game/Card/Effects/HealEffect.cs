@@ -71,6 +71,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
         /// 공격 성공/실패 여부에 따라 회복 적용 여부 결정
+        /// NOTE: SpellEffectExecutor가 다중 타겟 처리를 담당하므로, 이 메서드는 단일 타겟만 처리
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
@@ -91,12 +92,12 @@ namespace Game.Card.Effects
             }
 
             var healAmount = _effectData.Value;
-            Debug.Log($"[HealEffect] Heal success! Applying {healAmount} heal to {target.name}");
+            Debug.Log($"[HealEffect] Heal success! Applying {healAmount} heal to {target.name} at {targetPos}");
 
             // 타겟 회복
             ApplyHealToUnit(target, healAmount, triggerData);
 
-            // VFX 위치 기반 Heal 효과 재생
+            // VFX 위치 기반 Heal 효과 재생 (개별 타겟마다)
             PlayHealEffect(triggerData.TriggerWorldPosition, context);
         }
 

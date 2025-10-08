@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
-  m_Name: FireballVFXData
+  m_Name: SummonCircleVFXData
   m_EditorClassIdentifier: 
-  vfxPrefab: {fileID: 1056904543853562, guid: a669fb96d2b76904c84ecadd439b8273, type: 3}
-  triggerNormalizedTime: 0.02
+  vfxPrefab: {fileID: 1231247210357622, guid: 2fb9cee2b34d2ee4bb5f181d2df61846, type: 3}
+  triggerNormalizedTime: 0.153
   duration: 4
   isLooping: 0

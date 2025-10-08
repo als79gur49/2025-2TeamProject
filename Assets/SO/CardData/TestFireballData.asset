@@ -23,17 +23,16 @@ MonoBehaviour:
   keywords: []
   effectDataList:
   - type: 0
-    value: 15
+    value: 144
     priority: 0
     affectedType: 2
-    affectedRange: 0
+    affectedRange: 2
     unitToSummon: {fileID: 0}
     ignoreArmor: 0
     duration: 0
-    effectPrefab: {fileID: 1056904543853562, guid: 4cf45cdce36e66e4a93614abb5ae7821,
-      type: 3}
+    effectPrefab: {fileID: 0}
     effectAnimation: 
-    vfxData: {fileID: 0}
+    vfxData: {fileID: 11400000, guid: 732577c733982c345993bb18ce91f0f3, type: 2}
     initialized: 1
   maxCopiesInDeck: 3
   isPlayableFromHand: 1

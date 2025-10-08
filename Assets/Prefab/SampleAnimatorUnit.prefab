@@ -464,10 +464,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a94c6cb6efa82d4fad567f159987f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveDuration: 1.19
-  moveFrontTransitionDuration: 0.223
-  moveBackTransitionDuration: 0.161
-  attackDuration: 0.957
+  moveDuration: 0.78
+  moveFrontTransitionDuration: 0.163
+  moveBackTransitionDuration: 0.14
+  attackDuration: 0.543
   attackFrontTransitionDuration: 0.05
   attackBackTransitionDuration: 0.05
   speedCurve:

@@ -71,6 +71,7 @@ namespace Game.Card.Effects
         /// <summary>
         /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
         /// 공격 성공/실패 여부에 따라 데미지 적용 여부 결정
+        /// NOTE: SpellEffectExecutor가 다중 타겟 처리를 담당하므로, 이 메서드는 단일 타겟만 처리
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
@@ -91,12 +92,12 @@ namespace Game.Card.Effects
             }
 
             var damageAmount = _effectData.Value;
-            Debug.Log($"[DamageEffect] Attack success! Applying {damageAmount} damage to {target.name}");
+            Debug.Log($"[DamageEffect] Attack success! Applying {damageAmount} damage to {target.name} at {targetPos}");
 
             // 타겟에게 데미지 적용
             ApplyDamageToUnit(target, damageAmount, triggerData);
 
-            // VFX 위치 기반 Hit 효과 재생
+            // VFX 위치 기반 Hit 효과 재생 (개별 타겟마다)
             PlayHitEffect(triggerData.TriggerWorldPosition, context);
         }
 

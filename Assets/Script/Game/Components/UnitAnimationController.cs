@@ -315,7 +315,7 @@ namespace Game.Components
             OnAttackEnd?.Invoke(target);
 
             if (logAnimationEvents)
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation ended on {target?.name}");
+                Debug.Log($"[UnitAnimationController] {gameObject?.name}: Attack animation ended on {target?.name}");
         }
 
         #endregion
