@@ -173,20 +173,12 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// 시각적 효과를 재생합니다.
+        /// VFX는 SpellEffectExecutor에서 처리되므로 여기서는 로그만 남김
         /// </summary>
         private void PlayVisualEffect(Vector2Int targetPos, GameContext context)
         {
-            if (_effectData.EffectPrefab != null)
-            {
-                var worldPos = new Vector3(targetPos.x, 0, targetPos.y);
-                Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
-            }
-
-            if (!string.IsNullOrEmpty(_effectData.EffectAnimation))
-            {
-                // TODO: 애니메이션 재생 로직 구현
-                Debug.Log($"SummonEffect: 애니메이션 재생 - {_effectData.EffectAnimation}");
-            }
+            Debug.Log($"[SummonEffect] Visual effect requested at {targetPos}");
+            // VFX는 VFXData를 통해 SpellEffectExecutor에서 처리됨
         }
 
         /// <summary>
@@ -200,16 +192,12 @@ namespace Game.Card.Effects
 
         /// <summary>
         /// 소환 성공 시 Summon 효과 재생 (VFX Aware)
+        /// VFX는 SpellEffectExecutor에서 처리되므로 여기서는 로그만 남김
         /// </summary>
         private void PlaySummonEffect(Vector3 worldPos, GameContext context)
         {
             Debug.Log($"[SummonEffect] Playing summon effect at world position {worldPos}");
-
-            // VFXData의 이펙트 프리팹 사용
-            if (_effectData.EffectPrefab != null)
-            {
-                Object.Instantiate(_effectData.EffectPrefab, worldPos, Quaternion.identity);
-            }
+            // VFX는 VFXData를 통해 SpellEffectExecutor에서 처리됨
         }
 
         public override string ToString()

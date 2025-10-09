@@ -30,10 +30,6 @@ namespace Game.Card.Effects
         [SerializeField] private bool ignoreArmor = false;
         [SerializeField] private float duration = 0f; // 0 = 즉시, 0+ = 지속 시간
 
-        [Header("시각적 효과")]
-        [SerializeField] private GameObject effectPrefab;
-        [SerializeField] private string effectAnimation = "";
-
         [Header("VFX 설정 (VFX Dynamic Data System)")]
         [SerializeField] private VFXData vfxData;
 
@@ -66,12 +62,6 @@ namespace Game.Card.Effects
 
         /// <summary>지속 시간 (0 = 즉시, 0+ = 지속 효과)</summary>
         public float Duration => duration;
-
-        /// <summary>효과 프리팹</summary>
-        public GameObject EffectPrefab => effectPrefab;
-
-        /// <summary>효과 애니메이션 이름</summary>
-        public string EffectAnimation => effectAnimation;
 
         /// <summary>VFX 데이터 (VFX Dynamic Data System)</summary>
         public VFXData VFXData => vfxData;
