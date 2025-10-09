@@ -391,29 +391,29 @@ namespace Game.Services
                 return false;
             }
 
-            // 4. 소환 영역 검증 (플레이어: 좌측 1열, 적군: 우측 1열)
-            //var gridSize = gridController.GridSize;
-            //
-            //if (isPlayerUnit)
-            //{
-            //    // 플레이어는 좌측 첫 번째 열(x=0)에만 소환 가능
-            //    if (gridPosition.y != 0)
-            //    {
-            //        Log($"❌ Player unit can only spawn in leftmost column (x=0), attempted x={gridPosition.x}");
-            //        return false;
-            //    }
-            //}
-            //else
-            //{
-            //    // 적군은 우측 마지막 열에만 소환 가능
-            //    int rightmostColumn = gridSize.x - 1;
-            //    if (gridPosition.x != rightmostColumn)
-            //    {
-            //        Log($"❌ Enemy unit can only spawn in rightmost column (x={rightmostColumn}), attempted x={gridPosition.x}");
-            //        return false;
-            //    }
-            //}
-
+           //  4. 소환 영역 검증 (플레이어: 좌측 1열, 적군: 우측 1열)
+           // var gridSize = gridController.GridSize;
+           // 
+           // if (isPlayerUnit)
+           // {
+           //     // 플레이어는 좌측 첫 번째 열(x=0)에만 소환 가능
+           //     if (gridPosition.y != 0)
+           //     {
+           //         Log($"❌ Player unit can only spawn in leftmost column (x=0), attempted x={gridPosition.x}");
+           //         return false;
+           //     }
+           // }
+           // else
+           // {
+           //     // 적군은 우측 마지막 열에만 소환 가능
+           //     int rightmostColumn = gridSize.x - 1;
+           //     if (gridPosition.x != rightmostColumn)
+           //     {
+           //         Log($"❌ Enemy unit can only spawn in rightmost column (x={rightmostColumn}), attempted x={gridPosition.x}");
+           //         return false;
+           //     }
+           // }
+           //
             Log($"✅ Position validation passed for {(isPlayerUnit ? "Player" : "Enemy")} unit at {gridPosition}");
             return true;
         }

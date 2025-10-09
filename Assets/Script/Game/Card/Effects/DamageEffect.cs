@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Game.Interfaces;
 using Game.VFX;
+using Game.Components;
 
 namespace Game.Card.Effects
 {
@@ -9,6 +10,7 @@ namespace Game.Card.Effects
     /// CardData 리팩토링 Phase 1.2: 데미지 효과 구현
     /// ICardEffect를 구현하여 대상에게 피해를 주는 효과입니다.
     /// VFX Dynamic Data System: IVFXAwareEffect 구현으로 공격 성공/실패 반응
+    /// HashSet 중복 제거: 동일한 HealthComponent에 중복 피해 방지
     /// </summary>
     public class DamageEffect : IVFXAwareEffect
     {
@@ -45,6 +47,10 @@ namespace Game.Card.Effects
             return context.PredeterminedTiles != null && context.PredeterminedTiles.Count > 0;
         }
 
+        /// <summary>
+        /// ✅ 범위 공격 중복 제거 적용
+        /// HashSet으로 동일한 HealthComponent에 중복 피해 방지
+        /// </summary>
         public void Execute(Vector2Int targetPos, GameContext context)
         {
             if (!CanExecute(targetPos, context))
@@ -53,52 +59,57 @@ namespace Game.Card.Effects
                 return;
             }
 
-            // 타일 기반: 사전 계산된 타일에서 유닛 찾기
             var damageAmount = _effectData.Value;
+
+            // ✅ 중복 제거용 HashSet
+            HashSet<HealthComponent> damagedTargets = new HashSet<HealthComponent>();
             int affectedCount = 0;
 
             foreach (var tile in context.PredeterminedTiles)
             {
-                if (tile?.OccupyingUnit != null)
+                if (tile == null) continue;
+
+                // 타일에서 공격 가능한 타겟 가져오기 (유닛 우선, 없으면 기지)
+                HealthComponent targetHealth = tile.GetDamageableTarget();
+
+                // ✅ 이미 피해받은 타겟인지 확인 (Add는 새로 추가되면 true 반환)
+                if (targetHealth != null && targetHealth.IsAlive && damagedTargets.Add(targetHealth))
                 {
-                    tile.OccupyingUnit.TakeDamage(damageAmount);
+                    targetHealth.TakeDamage(damageAmount);
                     affectedCount++;
                 }
             }
 
-            Debug.Log($"DamageEffect: {affectedCount}개 유닛에게 {damageAmount} 피해를 적용합니다.");
+            Debug.Log($"DamageEffect: {context.PredeterminedTiles.Count}개 타일 중 {affectedCount}개 고유 타겟에게 {damageAmount} 피해를 적용했습니다.");
 
-            // 시각적 효과 재생
             PlayVisualEffect(targetPos, context);
         }
 
         /// <summary>
-        /// VFX TriggerData를 포함한 효과 실행 (IVFXAwareEffect 구현)
-        /// Phase 3.2: 타일 기반 타겟팅으로 리팩토링
-        /// 공격 성공/실패 여부에 따라 데미지 적용 여부 결정
+        /// ✅ VFX 데이터 포함 실행 - 범위 공격 중복 제거 적용
         /// </summary>
         public void ExecuteWithVFXData(Vector2Int targetPos, GameContext context, VFXTriggerData triggerData)
         {
-            // VFX 트리거 시점 검증
             if (!triggerData.AttackSuccess)
             {
                 Debug.Log($"[DamageEffect] Attack failed: {triggerData.ValidationFailureReason}");
                 return;
             }
 
-            // ✅ 타일 기반: 타일 좌표로 타일 조회
             var targetTile = context.GridController.GetTileAtPosition(
                 new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y));
 
-            if (targetTile?.OccupyingUnit != null)
+            // ✅ 단일 타겟 공격 (VFX 트리거는 보통 단일 타일)
+            HealthComponent targetHealth = targetTile?.GetDamageableTarget();
+
+            if (targetHealth != null && targetHealth.IsAlive)
             {
                 var damageAmount = _effectData.Value;
-                // 타일에 유닛이 있으면 데미지 적용
-                targetTile.OccupyingUnit.TakeDamage(damageAmount);
-                Debug.Log($"[DamageEffect] {damageAmount} damage to unit at {triggerData.TileGridPosition}");
+                targetHealth.TakeDamage(damageAmount);
+
+                Debug.Log($"[DamageEffect] {damageAmount} damage to target at {triggerData.TileGridPosition}");
             }
 
-            // VFX 재생 (타일 위치 기반)
             PlayDamageEffect(triggerData.TileWorldPosition, context);
         }
 

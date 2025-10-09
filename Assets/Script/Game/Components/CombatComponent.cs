@@ -729,5 +729,100 @@ namespace Game.Components
         }
 
         #endregion
+
+        #region Tile-Based Attack System
+
+        /// <summary>
+        /// 타일 기반 범위 공격 (DamageEffect 패턴)
+        /// HashSet으로 중복 제거하여 다중 타일 점유 엔티티(Base)가 중복 피해를 받지 않도록 방지
+        /// </summary>
+        /// <param name="targetTiles">공격할 타일 목록</param>
+        /// <param name="isSpecialAttack">특수 공격 여부</param>
+        /// <param name="forceCritical">강제 크리티컬 여부</param>
+        /// <returns>피해를 받은 고유 타겟 수</returns>
+        public int AttackTiles(List<Tile> targetTiles, bool isSpecialAttack = false, bool forceCritical = false)
+        {
+            if (targetTiles == null || targetTiles.Count == 0)
+            {
+                Debug.LogWarning("[CombatComponent] No target tiles provided");
+                return 0;
+            }
+
+            if (!CanAttack)
+            {
+                Debug.LogWarning("[CombatComponent] Cannot attack - cooldown or dead");
+                return 0;
+            }
+
+            // ✅ 중복 제거용 HashSet (HealthComponent 인스턴스 기준)
+            HashSet<HealthComponent> damagedTargets = new HashSet<HealthComponent>();
+            int affectedCount = 0;
+
+            // 크리티컬 판정 (범위 공격 전체에 동일 적용)
+            bool isCritical = forceCritical || this.RollCritical();
+
+            // 피해량 계산
+            int baseDamage = isSpecialAttack ? CurrentAttackPower * specialAttackDamageMultiplier : CurrentAttackPower;
+            int finalDamage = this.CalculateFinalDamage(baseDamage, isCritical);
+
+            foreach (var tile in targetTiles)
+            {
+                if (tile == null) continue;
+
+                // 타일에서 공격 가능한 타겟 가져오기 (유닛 우선, 없으면 Base)
+                HealthComponent targetHealth = tile.GetDamageableTarget();
+
+                // ✅ 이미 피해받은 타겟인지 확인 (Add는 새로 추가되면 true 반환)
+                if (targetHealth != null && targetHealth.IsAlive && damagedTargets.Add(targetHealth))
+                {
+                    // 팀 체크 (아군은 공격 불가)
+                    GameObject targetObject = targetHealth.gameObject;
+                    if (this.CanAttackByTeam(targetObject))
+                    {
+                        // 방어력 관통 적용
+                        if (CanPierceArmor && targetHealth is IAdvancedHealthComponent)
+                        {
+                            var damageInfo = new DamageInfo(finalDamage, attackType, gameObject, isCritical, armorPenetration > 0.5f);
+                            targetHealth.TakeDamage(finalDamage);
+                        }
+                        else
+                        {
+                            targetHealth.TakeDamage(finalDamage);
+                        }
+
+                        affectedCount++;
+
+                        Debug.Log($"[CombatComponent] {gameObject.name} hit {targetObject.name} for {finalDamage} damage" +
+                                  (isCritical ? " (CRITICAL!)" : "") + (isSpecialAttack ? " (SPECIAL!)" : ""));
+
+                        // 이벤트 발생
+                        var result = CombatResult.Hit(finalDamage, targetObject, attackType, isCritical,
+                            isSpecialAttack ? "Special attack hit!" : (isCritical ? "Critical hit!" : "Attack hit!"));
+
+                        OnAttackPerformed?.Invoke(targetObject, result);
+
+                        if (isCritical)
+                        {
+                            OnCriticalAttack?.Invoke(targetObject, result);
+                        }
+
+                        if (isSpecialAttack)
+                        {
+                            OnSpecialAttack?.Invoke(targetObject, result);
+                        }
+                    }
+                }
+            }
+
+            // 공격 쿨다운 적용
+            lastAttackTime = Time.time;
+            EnterCombat();
+
+            Debug.Log($"[CombatComponent] AttackTiles: {targetTiles.Count}개 타일 중 {affectedCount}개 고유 타겟에게 {finalDamage} 피해 적용");
+
+            return affectedCount;
+        }
+
+        #endregion
     }
 }

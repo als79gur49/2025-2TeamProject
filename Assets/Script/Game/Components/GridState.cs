@@ -27,6 +27,12 @@ namespace Game.Components
         private readonly HashSet<Vector2Int> blockedPositions = new HashSet<Vector2Int>();
         private readonly Dictionary<Vector2Int, Color> highlightedTiles = new Dictionary<Vector2Int, Color>();
 
+        // ✅ Base 추적: Base 객체 → 점유 타일 목록
+        private readonly Dictionary<GameObject, List<Vector2Int>> basePositions = new Dictionary<GameObject, List<Vector2Int>>();
+
+        // ✅ 역방향 조회: 타일 위치 → Base 객체 (빠른 조회용)
+        private readonly Dictionary<Vector2Int, GameObject> positionToBase = new Dictionary<Vector2Int, GameObject>();
+
         // ✅ 이벤트
         public event Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;
         public event Action<Vector2Int, GameObject> OnUnitPlaced;
@@ -396,6 +402,144 @@ namespace Game.Components
         }
 
         /// <summary>
+        /// Base 배치 - 시작 위치와 크기 기반으로 여러 타일 점유
+        /// </summary>
+        public bool PlaceBase(GameObject baseObject, Vector2Int startPosition, Vector2Int baseSize, TeamType team)
+        {
+            if (baseObject == null)
+            {
+                Debug.LogWarning("[GridState] Cannot place null base object");
+                return false;
+            }
+
+            // Base 컴포넌트 확인
+            Base baseComponent = baseObject.GetComponent<Base>();
+            if (baseComponent == null)
+            {
+                Debug.LogError($"[GridState] Object {baseObject.name} does not have Base component");
+                return false;
+            }
+
+            // 모든 타일이 유효하고 비어있는지 확인
+            List<Vector2Int> positions = new List<Vector2Int>();
+            for (int x = 0; x < baseSize.x; x++)
+            {
+                for (int y = 0; y < baseSize.y; y++)
+                {
+                    Vector2Int pos = new Vector2Int(startPosition.x + x, startPosition.y + y);
+
+                    if (!IsValidPosition(pos))
+                    {
+                        Debug.LogWarning($"[GridState] Invalid position for base: {pos}");
+                        return false;
+                    }
+
+                    if (positionToBase.ContainsKey(pos))
+                    {
+                        Debug.LogWarning($"[GridState] Position {pos} already has a base");
+                        return false;
+                    }
+
+                    positions.Add(pos);
+                }
+            }
+
+            // Base 초기화
+            baseComponent.Initialize(startPosition, team);
+
+            // 모든 타일에 Base 배치
+            foreach (var position in positions)
+            {
+                positionToBase[position] = baseObject;
+                UpdatePhysicalTileBase(position, baseObject);
+            }
+
+            // Base → 타일 목록 매핑 저장
+            basePositions[baseObject] = positions;
+
+            Debug.Log($"[GridState] Base placed at {startPosition} with size {baseSize}, occupying {positions.Count} tiles");
+            return true;
+        }
+
+        /// <summary>
+        /// Base 제거 - 점유한 모든 타일에서 제거
+        /// </summary>
+        public bool RemoveBase(GameObject baseObject)
+        {
+            if (!basePositions.TryGetValue(baseObject, out var positions))
+            {
+                Debug.LogWarning("[GridState] Base not found in tracking");
+                return false;
+            }
+
+            // 모든 타일에서 Base 제거
+            foreach (var position in positions)
+            {
+                positionToBase.Remove(position);
+                UpdatePhysicalTileBase(position, null);
+            }
+
+            basePositions.Remove(baseObject);
+
+            Debug.Log($"[GridState] Base removed from {positions.Count} tiles");
+            return true;
+        }
+
+        /// <summary>
+        /// 특정 위치의 Base 반환
+        /// </summary>
+        public GameObject GetBaseAtPosition(Vector2Int position)
+        {
+            return positionToBase.GetValueOrDefault(position);
+        }
+
+        /// <summary>
+        /// Base가 점유한 모든 타일 위치 반환
+        /// </summary>
+        public List<Vector2Int> GetBaseOccupiedPositions(GameObject baseObject)
+        {
+            return basePositions.GetValueOrDefault(baseObject, new List<Vector2Int>());
+        }
+
+        /// <summary>
+        /// 모든 Base 객체 반환
+        /// </summary>
+        public IEnumerable<GameObject> GetAllBases()
+        {
+            return basePositions.Keys;
+        }
+
+        /// <summary>
+        /// 물리적 Tile의 기지 상태 업데이트
+        /// </summary>
+        private void UpdatePhysicalTileBase(Vector2Int position, GameObject baseObject)
+        {
+            if (!IsValidPosition(position))
+                return;
+
+            GameObject tileObject = GameObject.Find($"Tile_{position.x}_{position.y}");
+            if (tileObject != null)
+            {
+                Tile tile = tileObject.GetComponent<Tile>();
+                if (tile != null)
+                {
+                    if (baseObject != null)
+                    {
+                        Base baseComponent = baseObject.GetComponent<Base>();
+                        if (baseComponent != null)
+                        {
+                            tile.PlaceBase(baseComponent);
+                        }
+                    }
+                    else
+                    {
+                        tile.RemoveBase();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// 모든 상태 초기화
         /// </summary>
         public void ClearAllState()
@@ -403,9 +547,14 @@ namespace Game.Components
             unitPositions.Clear();
             positionUnits.Clear();
             blockedPositions.Clear();
+
+            // ✅ Base 정리
+            basePositions.Clear();
+            positionToBase.Clear();
+
             ClearAllHighlights();
 
-            Debug.Log("[GridState] All state cleared");
+            Debug.Log("[GridState] All state cleared (including bases)");
         }
 
         /// <summary>
