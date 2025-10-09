@@ -178,51 +178,117 @@ namespace Game.Components
             return CanMove && distance <= currentMovementPoints && distance >= 0;
         }
 
-        public List<Vector2Int> GetValidMovePositions()
-        {
-            return GetValidMovePositions(currentMovementPoints);
-        }
-
-        public List<Vector2Int> GetValidMovePositions(int range)
+        /// <summary>
+        /// 좌우 방향으로만 이동 가능한 위치 탐색 (Y축만 허용, X축 및 대각선 금지)
+        /// </summary>
+        /// <param name="direction">방향 필터 (1: 우측만, -1: 좌측만, 0: 양방향)</param>
+        public List<Vector2Int> GetValidMovePositions(int direction = 0)
         {
             var validPositions = new List<Vector2Int>();
-            
+
             if (gridManager == null) return validPositions;
 
             var currentPosition = gridManager.GetUnitPosition(gameObject);
-            
-            if (CanFly || CanPhaseThrough)
+            int range = currentMovementPoints;
+
+            // 좌우 방향으로만 탐색 (Y축만, X축 고정)
+            if (direction > 0)
             {
-                // 비행이나 위상 이동 가능하면 범위 내 모든 위치
-                for (int x = -range; x <= range; x++)
+                // 우측 방향만 (Y+)
+                for (int y = 1; y <= range; y++)
                 {
-                    for (int y = -range; y <= range; y++)
+                    var pos = new Vector2Int(currentPosition.x, currentPosition.y + y);
+
+                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
                     {
-                        if (Mathf.Abs(x) + Mathf.Abs(y) <= range)
-                        {
-                            var pos = currentPosition + new Vector2Int(x, y);
-                            if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
-                            {
-                                validPositions.Add(pos);
-                            }
-                        }
+                        validPositions.Add(pos);
+
+                        // 장애물이 있으면 더 이상 진행 불가
+                        if (!CanContinuePath(currentPosition, pos))
+                            break;
+                    }
+                    else
+                    {
+                        break; // 유효하지 않거나 점유된 경우 더 이상 진행 불가
+                    }
+                }
+            }
+            else if (direction < 0)
+            {
+                // 좌측 방향만 (Y-)
+                for (int y = 1; y <= range; y++)
+                {
+                    var pos = new Vector2Int(currentPosition.x, currentPosition.y - y);
+
+                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    {
+                        validPositions.Add(pos);
+
+                        // 장애물이 있으면 더 이상 진행 불가
+                        if (!CanContinuePath(currentPosition, pos))
+                            break;
+                    }
+                    else
+                    {
+                        break; // 유효하지 않거나 점유된 경우 더 이상 진행 불가
                     }
                 }
             }
             else
             {
-                // 일반 이동은 경로 탐색 사용
-                var allPositions = gridManager.GetPositionsInRange(currentPosition, range, false);
-                foreach (var pos in allPositions)
+                // 양방향 탐색 (direction == 0)
+                // 우측 방향
+                for (int y = 1; y <= range; y++)
                 {
-                    if (CanMoveTo(pos))
+                    var pos = new Vector2Int(currentPosition.x, currentPosition.y + y);
+
+                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
                     {
                         validPositions.Add(pos);
+
+                        if (!CanContinuePath(currentPosition, pos))
+                            break;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                // 좌측 방향
+                for (int y = 1; y <= range; y++)
+                {
+                    var pos = new Vector2Int(currentPosition.x, currentPosition.y - y);
+
+                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    {
+                        validPositions.Add(pos);
+
+                        if (!CanContinuePath(currentPosition, pos))
+                            break;
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }
 
             return validPositions;
+        }
+
+        /// <summary>
+        /// 경로를 계속 진행할 수 있는지 확인 (지형 체크 등)
+        /// </summary>
+        private bool CanContinuePath(Vector2Int from, Vector2Int to)
+        {
+            // 비행이나 위상 이동이 가능하면 항상 통과
+            if (CanFly || CanPhaseThrough)
+                return true;
+
+            // 추가적인 지형 체크가 필요하면 여기에 구현
+            // 현재는 기본적으로 통과 허용
+            return true;
         }
 
         public MovementResult MoveTo(Vector2Int targetPosition)

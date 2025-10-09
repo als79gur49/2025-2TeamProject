@@ -23,8 +23,7 @@ namespace Game.Interfaces
         // ✅ 이동 가능성 확인
         bool CanMoveTo(Vector2Int targetPosition);
         bool CanMoveDistance(int distance);
-        List<Vector2Int> GetValidMovePositions();
-        List<Vector2Int> GetValidMovePositions(int range);
+        List<Vector2Int> GetValidMovePositions(int direction = 0);
         
         // ✅ 이동 실행
         MovementResult MoveTo(Vector2Int targetPosition);

@@ -515,21 +515,44 @@ public class Unit : MonoBehaviour
     private void MoveForward()
     {
         if (currentTile == null || gridManager == null) return;
-        
+
         if (useComponentSystem && movementComponent != null)
         {
-            // Use advanced movement system
+            // Use advanced movement system with intelligent path finding
             int direction = IsPlayerUnit ? 1 : -1;
-            var targetPosition = new Vector2Int(currentTile.X, currentTile.Y + (direction * MovementRange));
-            
-            var result = movementComponent.MoveTo(targetPosition);
-            if (result.Success)
+
+            // Get all valid move positions
+            var validPositions = movementComponent.GetValidMovePositions();
+
+            // Find the furthest position in the forward direction
+            Vector2Int? bestPosition = null;
+            int maxDistance = 0;
+
+            foreach (var pos in validPositions)
             {
-                Debug.Log($"{gameObject.name} moved to ({targetPosition.x}, {targetPosition.y})");
+                int distance = (pos.y - currentTile.Y) * direction;
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                    bestPosition = pos;
+                }
+            }
+
+            if (bestPosition.HasValue)
+            {
+                var result = movementComponent.MoveTo(bestPosition.Value);
+                if (result.Success)
+                {
+                    Debug.Log($"{gameObject.name} moved {maxDistance} tiles to ({bestPosition.Value.x}, {bestPosition.Value.y})");
+                }
+                else
+                {
+                    Debug.Log($"{gameObject.name} movement failed - {result.Message}");
+                }
             }
             else
             {
-                Debug.Log($"{gameObject.name} cannot move forward - {result.Message}");
+                Debug.Log($"{gameObject.name} cannot move forward - no valid positions available");
             }
         }
         else
@@ -538,7 +561,7 @@ public class Unit : MonoBehaviour
            // int targetX = currentTile.X;
            // int targetY = currentTile.Y + (isPlayerUnit ? movementRange : -movementRange);
            // var targetPos = new Vector2Int(targetX, targetY);
-           // 
+           //
            // if (gridManager.CanMoveUnit(gameObject, targetPos))
            // {
            //     var result = gridManager.MoveUnit(gameObject, targetPos);
