@@ -275,25 +275,25 @@ namespace Game.Services
             // CardData의 기본 검증 먼저 수행
             if (!cardData.IsValidTargetWithContext(originPosition, targetPosition, isPlayerCard))
             {
-                Log($"❌ CardData basic validation failed for {cardData.CardName}");
+                Log($"CardData basic validation failed for {cardData.CardName}");
                 return false;
             }
 
             // 추가적인 SpawnValidator 전용 검증
             if (!ValidatePlacementTarget(cardData, targetPosition))
             {
-                Log($"❌ Placement target validation failed for {cardData.CardName}");
+                Log($"Placement target validation failed for {cardData.CardName}");
                 return false;
             }
 
             // TargetRange 검증 (플레이어/적군 기준점 기반)
             if (!ValidateTargetRange(cardData, targetPosition, isPlayerCard))
             {
-                Log($"❌ Target range validation failed for {cardData.CardName}");
+                Log($"Target range validation failed for {cardData.CardName}");
                 return false;
             }
 
-            Log($"✅ All target validations passed for {cardData.CardName}");
+            Log($"All target validations passed for {cardData.CardName}");
             return true;
         }
 
@@ -378,11 +378,11 @@ namespace Game.Services
             }
 
             // 2. 타일이 비어있는지 확인
-            if (gridController.IsPositionOccupied(gridPosition))
-            {
-                Log($"❌ Position {gridPosition} is already occupied");
-                return false;
-            }
+            //if (gridController.IsPositionOccupied(gridPosition))
+            //{
+            //    Log($"❌ Position {gridPosition} is already occupied");
+            //    return false;
+            //}
 
             // 3. 타일이 블록되지 않았는지 확인
             if (gridController.IsPositionBlocked(gridPosition))
@@ -392,27 +392,27 @@ namespace Game.Services
             }
 
             // 4. 소환 영역 검증 (플레이어: 좌측 1열, 적군: 우측 1열)
-            var gridSize = gridController.GridSize;
-            
-            if (isPlayerUnit)
-            {
-                // 플레이어는 좌측 첫 번째 열(x=0)에만 소환 가능
-                if (gridPosition.y != 0)
-                {
-                    Log($"❌ Player unit can only spawn in leftmost column (x=0), attempted x={gridPosition.x}");
-                    return false;
-                }
-            }
-            else
-            {
-                // 적군은 우측 마지막 열에만 소환 가능
-                int rightmostColumn = gridSize.x - 1;
-                if (gridPosition.x != rightmostColumn)
-                {
-                    Log($"❌ Enemy unit can only spawn in rightmost column (x={rightmostColumn}), attempted x={gridPosition.x}");
-                    return false;
-                }
-            }
+            //var gridSize = gridController.GridSize;
+            //
+            //if (isPlayerUnit)
+            //{
+            //    // 플레이어는 좌측 첫 번째 열(x=0)에만 소환 가능
+            //    if (gridPosition.y != 0)
+            //    {
+            //        Log($"❌ Player unit can only spawn in leftmost column (x=0), attempted x={gridPosition.x}");
+            //        return false;
+            //    }
+            //}
+            //else
+            //{
+            //    // 적군은 우측 마지막 열에만 소환 가능
+            //    int rightmostColumn = gridSize.x - 1;
+            //    if (gridPosition.x != rightmostColumn)
+            //    {
+            //        Log($"❌ Enemy unit can only spawn in rightmost column (x={rightmostColumn}), attempted x={gridPosition.x}");
+            //        return false;
+            //    }
+            //}
 
             Log($"✅ Position validation passed for {(isPlayerUnit ? "Player" : "Enemy")} unit at {gridPosition}");
             return true;
