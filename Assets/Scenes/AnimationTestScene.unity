@@ -616,7 +616,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridSize: {x: 6, y: 6}
   tileSize: 5
-  tilePrefab: {fileID: 9055745435785402388, guid: 0bc57d96d66f89847b83ddc066de2850,
+  tilePrefab: {fileID: 9055745435785402388, guid: 1b3d4e9108b99bb4097ad22d69f7b97e,
     type: 3}
   allowDiagonalMovement: 0
   maxPathfindingIterations: 1000
@@ -1327,9 +1327,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3711c821aff621f4ca8e2046d8a57c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerUnitPrefab: {fileID: 3546852586526391875, guid: 713a6ad9f407f514b8a5551b9fed8eac,
+  playerUnitPrefab: {fileID: 3546852586526391875, guid: 15abd9d8b0b6a404da52317c6f9e06cf,
     type: 3}
-  enemyUnitPrefab: {fileID: 3546852586526391875, guid: 713a6ad9f407f514b8a5551b9fed8eac,
+  enemyUnitPrefab: {fileID: 3546852586526391875, guid: 15abd9d8b0b6a404da52317c6f9e06cf,
     type: 3}
   playerUnitData: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
@@ -1338,6 +1338,7 @@ MonoBehaviour:
   - {x: 2, y: 0}
   - {x: 3, y: 0}
   - {x: 4, y: 1}
+  - {x: 2, y: 4}
   enemyStartPositions:
   - {x: 0, y: 5}
   - {x: 1, y: 4}

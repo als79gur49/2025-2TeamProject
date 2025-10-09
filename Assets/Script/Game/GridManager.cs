@@ -176,13 +176,14 @@ public class GridManager : MonoBehaviour, IGridManager
         tilePrefab = GameObject.CreatePrimitive(PrimitiveType.Plane);
         tilePrefab.name = "DefaultTile";
         tilePrefab.transform.localScale = new Vector3(0.1f, 1f, 0.1f);
-        
-        var renderer = tilePrefab.GetComponent<Renderer>();
+
+        // CreatePrimitive는 Root에 Renderer를 생성하므로 자식으로 구조화 필요 없음
+        var renderer = tilePrefab.GetComponentInChildren<Renderer>();
         if (renderer != null)
         {
             renderer.material.color = Color.green;
         }
-        
+
         tilePrefab.AddComponent<Tile>();
     }
 

@@ -107,15 +107,15 @@ namespace Game.Components
                 tile = tileObject.AddComponent<Tile>();
             }
             tile.Initialize(gridPosition.x, gridPosition.y);
-            
-            // 렌더러 정보 저장
-            var renderer = tileObject.GetComponent<Renderer>();
+
+            // 렌더러 정보 저장 - 자식 오브젝트에서 검색
+            var renderer = tileObject.GetComponentInChildren<Renderer>();
             if (renderer != null)
             {
                 tileRenderers[gridPosition] = renderer;
                 originalColors[gridPosition] = renderer.material.color;
             }
-            
+
             tileObjects[gridPosition] = tileObject;
         }
 

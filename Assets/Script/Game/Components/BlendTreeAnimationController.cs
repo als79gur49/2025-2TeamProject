@@ -34,14 +34,22 @@ namespace Game.Components
         #endregion
 
         [Header("Movement Timing")]
-        [SerializeField] [Range(0.5f, 3.0f)]
-        private float moveDuration = 1.0f;
+        [SerializeField] [Range(0.1f, 5.0f)] [Tooltip("애니메이션 속도 배율 (높을수록 빠름)")]
+        private float speed = 1.0f;
 
-        [SerializeField] [Range(0.1f, 0.5f)]
-        private float moveFrontTransitionDuration = 0.2f;
+        [SerializeField] [Range(0.5f, 3.0f)] [Tooltip("기본 이동 시간 (speed로 나누어짐)")]
+        private float baseMoveDuration = 1.0f;
 
-        [SerializeField] [Range(0.1f, 0.5f)]
-        private float moveBackTransitionDuration = 0.3f;
+        [SerializeField] [Range(0.1f, 0.5f)] [Tooltip("기본 가속 시간 (speed로 나누어짐)")]
+        private float baseMoveFrontTransitionDuration = 0.2f;
+
+        [SerializeField] [Range(0.1f, 0.5f)] [Tooltip("기본 감속 시간 (speed로 나누어짐)")]
+        private float baseMoveBackTransitionDuration = 0.3f;
+
+        // 실제 계산된 값 (speed 적용)
+        private float moveDuration => baseMoveDuration / speed;
+        private float moveFrontTransitionDuration => baseMoveFrontTransitionDuration / speed;
+        private float moveBackTransitionDuration => baseMoveBackTransitionDuration / speed;
 
         [Header("Attack Timing")]
         [SerializeField] [Range(0.3f, 2.0f)]
@@ -101,16 +109,19 @@ namespace Game.Components
 
         private void OnValidate()
         {
-            // Movement 값 검증
-            moveDuration = Mathf.Clamp(moveDuration, 0.5f, 3.0f);
-            moveFrontTransitionDuration = Mathf.Clamp(moveFrontTransitionDuration, 0.1f, 0.5f);
-            moveBackTransitionDuration = Mathf.Clamp(moveBackTransitionDuration, 0.1f, 0.5f);
+            // Speed 값 검증
+            speed = Mathf.Clamp(speed, 0.1f, 5.0f);
 
-            float minMoveDuration = moveFrontTransitionDuration + moveBackTransitionDuration + 0.1f;
-            if (moveDuration < minMoveDuration)
+            // Movement 기본 값 검증
+            baseMoveDuration = Mathf.Clamp(baseMoveDuration, 0.5f, 3.0f);
+            baseMoveFrontTransitionDuration = Mathf.Clamp(baseMoveFrontTransitionDuration, 0.1f, 0.5f);
+            baseMoveBackTransitionDuration = Mathf.Clamp(baseMoveBackTransitionDuration, 0.1f, 0.5f);
+
+            float minBaseMoveDuration = baseMoveFrontTransitionDuration + baseMoveBackTransitionDuration + 0.1f;
+            if (baseMoveDuration < minBaseMoveDuration)
             {
-                moveDuration = minMoveDuration;
-                Debug.LogWarning($"[BlendTreeAnimationController] moveDuration adjusted to {moveDuration:F2}s to fit transition durations");
+                baseMoveDuration = minBaseMoveDuration;
+                Debug.LogWarning($"[BlendTreeAnimationController] baseMoveDuration adjusted to {baseMoveDuration:F2}s to fit transition durations");
             }
 
             // Attack 값 검증
@@ -127,6 +138,11 @@ namespace Game.Components
         }
 
         #endregion
+
+        public void SetAnimationSpeed(float speed)
+        {
+            this.speed = speed;
+        }
 
         #region Public Methods
 

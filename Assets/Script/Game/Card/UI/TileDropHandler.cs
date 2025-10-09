@@ -47,9 +47,12 @@ namespace Game.Card.UI
 
         private void Awake()
         {
-            // 컴포넌트 참조 설정
+            // 컴포넌트 참조 설정 - 자식 오브젝트에서 Renderer 찾기
             if (tileRenderer == null)
-                tileRenderer = GetComponent<Renderer>();
+                tileRenderer = GetComponentInChildren<Renderer>();
+
+            if (tileRenderer == null)
+                Debug.LogWarning($"[TileDropHandler] Renderer not found in children of {gameObject.name}");
 
             audioSource = GetComponent<AudioSource>();
             if (audioSource == null)

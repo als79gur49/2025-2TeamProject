@@ -496,6 +496,11 @@ namespace Game.Components
                 animator.SetFloat(ANIMATION_SPEED, animationSpeedMultiplier);
             }
 
+            if(blendTreeController != null)
+            {
+                blendTreeController.SetAnimationSpeed(animationSpeedMultiplier);
+            }
+
             if (logAnimationEvents)
             {
                 Debug.Log($"[UnitAnimationController] {gameObject.name}: Applied GameSettings - " +

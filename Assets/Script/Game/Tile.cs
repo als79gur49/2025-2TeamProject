@@ -9,23 +9,28 @@ public class Tile : MonoBehaviour
     private bool isOccupied = false;
     private Renderer tileRenderer;
     private Color originalColor;
-    
+
     public int X => x;
     public int Y => y;
     public bool IsOccupied => isOccupied;
     public Unit OccupyingUnit => occupyingUnit;
-    
+
     public Vector2Int GetGridPosition()
     {
         return new Vector2Int(x, y);
     }
-    
+
     private void Awake()
     {
-        tileRenderer = GetComponent<Renderer>();
+        // 자식 오브젝트에서 Renderer 컴포넌트 찾기
+        tileRenderer = GetComponentInChildren<Renderer>();
         if (tileRenderer != null)
         {
             originalColor = tileRenderer.material.color;
+        }
+        else
+        {
+            Debug.LogWarning($"[Tile] Renderer not found in children of {gameObject.name}");
         }
     }
     
