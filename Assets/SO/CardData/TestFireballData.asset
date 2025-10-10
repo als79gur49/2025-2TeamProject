@@ -19,31 +19,17 @@ MonoBehaviour:
   rarity: 0
   manaCost: 1
   targetType: 2
-  targetRange: 4
+  targetRange: -1
   keywords: []
   effectDataList:
   - type: 0
-    value: 144
+    value: 33
     priority: 0
     affectedType: 2
     affectedRange: 2
     unitToSummon: {fileID: 0}
     ignoreArmor: 0
     duration: 0
-    effectPrefab: {fileID: 0}
-    effectAnimation: 
-    vfxData: {fileID: 11400000, guid: 732577c733982c345993bb18ce91f0f3, type: 2}
-    initialized: 1
-  - type: 1
-    value: 3
-    priority: 0
-    affectedType: 1
-    affectedRange: 1
-    unitToSummon: {fileID: 0}
-    ignoreArmor: 0
-    duration: 0
-    effectPrefab: {fileID: 0}
-    effectAnimation: 
     vfxData: {fileID: 11400000, guid: 732577c733982c345993bb18ce91f0f3, type: 2}
     initialized: 1
   maxCopiesInDeck: 3

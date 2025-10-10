@@ -1,37 +1,36 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
 /// <summary>
 /// BGM 전용 오디오 서비스 구현
-/// Unity의 AudioSource와 AudioMixer를 활용한 BGM 관리
+/// AudioData ScriptableObject 기반 BGM 관리
 /// </summary>
 public class BGMAudioService : MonoBehaviour, IBGMAudioService
 {
+    private const string MIXER_GROUP_NAME = "BGM";
+
     [SerializeField] private AudioMixer audioMixer;
     [SerializeField] private GameObject bgmPlayer;
-    
-    // Repository 패턴
-    private IAudioClipRepository audioRepository;
-    [SerializeField] private bool useRepository = true;
-    
+
     private AudioSource audioSource;
     private Coroutine fadeCoroutine;
     private bool isInitialized = false;
-    
+    private AudioData currentBGM;
+
     // 인터페이스 프로퍼티 구현
-    public string CurrentBGMName { get; private set; } = string.Empty;
+    public AudioData CurrentBGM => currentBGM;
+    public string CurrentBGMName => currentBGM != null ? currentBGM.name : string.Empty;
     public bool IsPlaying => audioSource != null && audioSource.isPlaying;
     public bool IsInitialized => isInitialized;
-    
+
     // 이벤트 구현
-    public event Action<string> OnBGMCompleted;
-    public event Action<string> OnFadeCompleted;
-    
+    public event Action<AudioData> OnBGMCompleted;
+    public event Action<AudioData> OnFadeCompleted;
+
     #region Unity Lifecycle
-    
+
     /// <summary>
     /// Unity Awake: 컴포넌트 초기화
     /// AudioSource 참조 획득 및 기본 설정
@@ -45,14 +44,14 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             {
                 audioSource = bgmPlayer.AddComponent<AudioSource>();
             }
-            
+
             // BGM 기본 설정
             audioSource.loop = true;
             audioSource.playOnAwake = false;
-            audioSource.outputAudioMixerGroup = audioMixer?.FindMatchingGroups("BGM")?[0];
+            audioSource.outputAudioMixerGroup = audioMixer?.FindMatchingGroups(MIXER_GROUP_NAME)?[0];
         }
     }
-    
+
     /// <summary>
     /// Unity Start: 서비스 자동 초기화
     /// </summary>
@@ -60,26 +59,26 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     {
         Initialize();
     }
-    
+
     /// <summary>
     /// Unity Update: BGM 완료 상태 체크
     /// 루프가 아닌 BGM의 종료를 감지
     /// </summary>
     private void Update()
     {
-        if (isInitialized && !string.IsNullOrEmpty(CurrentBGMName) && 
+        if (isInitialized && currentBGM != null &&
             audioSource != null && !audioSource.isPlaying && !audioSource.loop)
         {
-            var completedBGM = CurrentBGMName;
-            CurrentBGMName = string.Empty;
+            var completedBGM = currentBGM;
+            currentBGM = null;
             OnBGMCompleted?.Invoke(completedBGM);
-            
+
             // 전역 이벤트 알림
             var playInfo = new AudioPlayInfo(completedBGM, audioSource.volume);
             AudioServiceEvents.NotifyAudioPlayCompleted(playInfo);
         }
     }
-    
+
     /// <summary>
     /// Unity OnDestroy: 리소스 정리
     /// </summary>
@@ -87,11 +86,11 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     {
         Cleanup();
     }
-    
+
     #endregion
-    
+
     #region IAudioService 구현
-    
+
     /// <summary>
     /// 서비스 초기화
     /// AudioSource 설정 및 이벤트 등록
@@ -99,7 +98,7 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     public void Initialize()
     {
         if (isInitialized) return;
-        
+
         try
         {
             // AudioSource 유효성 검사
@@ -108,16 +107,16 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
                 Debug.LogError("BGMAudioService: AudioSource가 없습니다.");
                 return;
             }
-            
+
             // AudioMixer 연결 확인
             if (audioMixer == null)
             {
                 Debug.LogWarning("BGMAudioService: AudioMixer가 설정되지 않았습니다.");
             }
-            
+
             isInitialized = true;
             AudioServiceEvents.NotifyServiceInitialized(typeof(BGMAudioService));
-            
+
             Debug.Log("BGMAudioService 초기화 완료");
         }
         catch (Exception ex)
@@ -125,7 +124,7 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             Debug.LogError($"BGMAudioService 초기화 실패: {ex.Message}");
         }
     }
-    
+
     /// <summary>
     /// 서비스 정리
     /// 재생 중인 BGM 정지 및 코루틴 정리
@@ -133,75 +132,55 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     public void Cleanup()
     {
         if (!isInitialized) return;
-        
+
         StopBGM();
-        
+
         if (fadeCoroutine != null)
         {
             StopCoroutine(fadeCoroutine);
             fadeCoroutine = null;
         }
-        
+
         OnBGMCompleted = null;
         OnFadeCompleted = null;
-        
+
         isInitialized = false;
         AudioServiceEvents.NotifyServiceCleaned(typeof(BGMAudioService));
-        
+
         Debug.Log("BGMAudioService 정리 완료");
     }
-    
-    /// <summary>
-    /// 클립 존재 여부 확인
-    /// </summary>
-    public bool HasClip(string clipName)
-    {
-        return GetClip(clipName) != null;
-    }
-    
+
     #endregion
-    
+
     #region IBGMAudioService 구현
-    
+
     /// <summary>
-    /// BGM 재생
-    /// 기존 BGM을 중단하고 새로운 BGM을 재생
+    /// BGM 재생 (AudioData 기반)
+    /// AudioData의 메타데이터(volume, pitch, mixer)를 적용하여 재생
     /// </summary>
-    public bool PlayBGM(string clipName, float startRate = 0.0f, bool loop = true)
+    public bool PlayBGM(AudioData audioData)
     {
-        return PlayBGM(clipName, out _, startRate, loop);
-    }
-    
-    /// <summary>
-    /// BGM 재생 (AudioClip 참조 반환)
-    /// Unity의 AudioSource.time을 사용한 시작 지점 설정
-    /// </summary>
-    public bool PlayBGM(string clipName, out AudioClip audioClip, float startRate = 0.0f, bool loop = true)
-    {
-        audioClip = null;
-        
-        if (!isInitialized)
+        if (!isInitialized || audioData == null)
         {
-            Debug.LogError("BGMAudioService가 초기화되지 않았습니다.");
+            Debug.LogError("BGMAudioService가 초기화되지 않았거나 AudioData가 null입니다.");
             return false;
         }
-        
-        // 클립 유효성 검증
-        audioClip = GetClip(clipName);
-        if (audioClip == null)
+
+        // Cooldown check
+        if (!audioData.CanPlay())
         {
-            Debug.LogError($"BGM 클립을 찾을 수 없습니다: {clipName}");
-            AudioServiceEvents.NotifyAudioPlayError(clipName, "클립을 찾을 수 없음");
+            Debug.Log($"BGM이 쿨다운 중입니다: {audioData.name}");
             return false;
         }
-        
-        // 시작 지점 유효성 검증
-        if (startRate < 0.0f || startRate > 1.0f)
+
+        // Get random clip from AudioData
+        AudioClip clip = audioData.GetRandomClip();
+        if (clip == null)
         {
-            Debug.LogError($"잘못된 startRate 값: {startRate} (0.0~1.0 범위)");
+            Debug.LogError($"AudioData에 유효한 클립이 없습니다: {audioData.name}");
             return false;
         }
-        
+
         try
         {
             // 기존 페이드 중단
@@ -210,30 +189,39 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
                 StopCoroutine(fadeCoroutine);
                 fadeCoroutine = null;
             }
-            
-            // BGM 설정 및 재생
-            audioSource.clip = audioClip;
-            audioSource.loop = loop;
-            audioSource.time = startRate * audioClip.length;
+
+            // Apply settings from AudioData
+            audioSource.clip = clip;
+            audioSource.volume = audioData.GetRandomVolume();
+            audioSource.pitch = audioData.GetRandomPitch();
+            audioSource.loop = audioData.Loop;
+            audioSource.priority = audioData.Priority;
+
+            // Apply mixer group if specified
+            if (audioData.MixerGroup != null)
+            {
+                audioSource.outputAudioMixerGroup = audioData.MixerGroup;
+            }
+
             audioSource.Play();
-            
-            CurrentBGMName = clipName;
-            
+
+            currentBGM = audioData;
+
             // 이벤트 알림
-            var playInfo = new AudioPlayInfo(clipName, audioSource.volume, 1.0f, loop);
+            var playInfo = new AudioPlayInfo(audioData, audioSource.volume, audioSource.pitch, audioData.Loop);
             AudioServiceEvents.NotifyAudioPlayStarted(playInfo);
-            
-            Debug.Log($"BGM 재생 시작: {clipName} (시작지점: {startRate:F2})");
+
+            Debug.Log($"BGM 재생 (AudioData): {audioData.name} (볼륨: {audioSource.volume:F2}, 피치: {audioSource.pitch:F2})");
             return true;
         }
         catch (Exception ex)
         {
-            Debug.LogError($"BGM 재생 실패: {ex.Message}");
-            AudioServiceEvents.NotifyAudioPlayError(clipName, ex.Message);
+            Debug.LogError($"BGM 재생 실패 (AudioData): {ex.Message}");
+            AudioServiceEvents.NotifyAudioPlayError(audioData, ex.Message);
             return false;
         }
     }
-    
+
     /// <summary>
     /// BGM 정지
     /// Unity AudioSource.Stop() 사용
@@ -245,9 +233,9 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             audioSource.Stop();
             Debug.Log($"BGM 정지: {CurrentBGMName}");
         }
-        CurrentBGMName = string.Empty;
+        currentBGM = null;
     }
-    
+
     /// <summary>
     /// BGM 일시정지
     /// Unity AudioSource.Pause() 사용
@@ -260,7 +248,7 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             Debug.Log($"BGM 일시정지: {CurrentBGMName}");
         }
     }
-    
+
     /// <summary>
     /// BGM 재개
     /// Unity AudioSource.UnPause() 사용
@@ -273,22 +261,29 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             Debug.Log($"BGM 재개: {CurrentBGMName}");
         }
     }
-    
+
     /// <summary>
-    /// BGM 페이드 인
-    /// Unity Coroutine을 사용한 부드러운 볼륨 증가
+    /// BGM 페이드 인 (AudioData 기반)
+    /// AudioData의 FadeInTime을 사용하거나 지정된 fadeTime 사용
     /// </summary>
-    public void FadeInBGM(string clipName, float fadeTime = 1.0f, float startRate = 0.0f)
+    public void FadeInBGM(AudioData audioData, float fadeTime)
     {
-        if (!PlayBGM(clipName, startRate))
+        if (!PlayBGM(audioData))
             return;
-            
+
+        // Use specified fadeTime or AudioData's FadeInTime
+        float actualFadeTime = fadeTime > 0 ? fadeTime : audioData.FadeInTime;
+        if (actualFadeTime <= 0)
+            actualFadeTime = 1.0f; // Default fade time
+
         if (fadeCoroutine != null)
             StopCoroutine(fadeCoroutine);
-            
-        fadeCoroutine = StartCoroutine(FadeCoroutine(0.0f, 1.0f, fadeTime, false));
+
+        fadeCoroutine = StartCoroutine(FadeCoroutine(0.0f, audioData.GetRandomVolume(), actualFadeTime, false));
+
+        Debug.Log($"BGM 페이드 인 (AudioData): {audioData.name} ({actualFadeTime:F2}초)");
     }
-    
+
     /// <summary>
     /// BGM 페이드 아웃
     /// Unity Coroutine을 사용한 부드러운 볼륨 감소
@@ -297,77 +292,43 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     {
         if (audioSource == null || !audioSource.isPlaying)
             return;
-            
+
         if (fadeCoroutine != null)
             StopCoroutine(fadeCoroutine);
-            
+
         fadeCoroutine = StartCoroutine(FadeCoroutine(audioSource.volume, 0.0f, fadeTime, stopAfterFade));
     }
-    
+
     /// <summary>
-    /// BGM 크로스페이드
-    /// 현재 BGM을 페이드 아웃하면서 새 BGM을 페이드 인
+    /// BGM 크로스페이드 (AudioData 기반)
+    /// 현재 BGM을 페이드 아웃하면서 새 AudioData BGM을 페이드 인
     /// </summary>
-    public void CrossFadeBGM(string newClipName, float crossFadeTime = 2.0f)
+    public void CrossFadeBGM(AudioData newAudioData, float crossFadeTime)
     {
-        if (!HasClip(newClipName))
+        if (newAudioData == null)
         {
-            Debug.LogError($"크로스페이드할 BGM 클립을 찾을 수 없습니다: {newClipName}");
+            Debug.LogError("크로스페이드할 AudioData가 null입니다.");
             return;
         }
-        
+
+        if (newAudioData.GetRandomClip() == null)
+        {
+            Debug.LogError($"AudioData에 유효한 클립이 없습니다: {newAudioData.name}");
+            return;
+        }
+
         if (fadeCoroutine != null)
             StopCoroutine(fadeCoroutine);
-            
-        fadeCoroutine = StartCoroutine(CrossFadeCoroutine(newClipName, crossFadeTime));
+
+        fadeCoroutine = StartCoroutine(CrossFadeCoroutineAudioData(newAudioData, crossFadeTime));
+
+        Debug.Log($"BGM 크로스페이드 시작 (AudioData): {CurrentBGMName} → {newAudioData.name}");
     }
-    
+
     #endregion
-    
+
     #region Private Methods
-    
-    /// <summary>
-    /// 클립 이름으로 AudioClip 찾기 (Repository 사용)
-    /// </summary>
-    private AudioClip GetClip(string clipName)
-    {
-        // Repository 사용
-        if (useRepository && audioRepository != null)
-        {
-            var clip = audioRepository.GetClip(clipName);
-            if (clip != null)
-            {
-                return clip;
-            }
-            
-            Debug.LogWarning($"Repository에서 BGM 클립을 찾을 수 없습니다: {clipName}");
-        }
-        
-        return null;
-    }
-    
-    /// <summary>
-    /// AudioClipRepository 주입 (의존성 주입)
-    /// </summary>
-    public void SetAudioRepository(IAudioClipRepository repository)
-    {
-        audioRepository = repository;
-        Debug.Log($"BGMAudioService: AudioRepository 설정됨 ({(repository != null ? "활성" : "비활성")})");
-    }
-    
-    /// <summary>
-    /// Repository를 통해 BGM 클립 데이터 가져오기
-    /// </summary>
-    private AudioClipData GetClipData(string clipName)
-    {
-        if (useRepository && audioRepository != null)
-        {
-            return audioRepository.GetClipData(clipName);
-        }
-        
-        return default(AudioClipData);
-    }
-    
+
     /// <summary>
     /// 페이드 코루틴
     /// Unity의 Time.deltaTime을 사용한 부드러운 볼륨 변경
@@ -375,10 +336,10 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     private IEnumerator FadeCoroutine(float startVolume, float targetVolume, float fadeTime, bool stopAfterFade)
     {
         if (audioSource == null) yield break;
-        
+
         float elapsedTime = 0f;
         audioSource.volume = startVolume;
-        
+
         while (elapsedTime < fadeTime)
         {
             elapsedTime += Time.deltaTime;
@@ -386,39 +347,41 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             audioSource.volume = Mathf.Lerp(startVolume, targetVolume, normalizedTime);
             yield return null;
         }
-        
+
         audioSource.volume = targetVolume;
-        
+
         if (stopAfterFade && targetVolume <= 0.01f)
         {
             StopBGM();
         }
-        
-        OnFadeCompleted?.Invoke(CurrentBGMName);
+
+        OnFadeCompleted?.Invoke(currentBGM);
         fadeCoroutine = null;
     }
-    
+
     /// <summary>
-    /// 크로스페이드 코루틴
-    /// 두 개의 AudioSource를 사용하지 않고 단일 AudioSource로 크로스페이드 구현
+    /// 크로스페이드 코루틴 (AudioData 기반)
+    /// AudioData의 설정을 적용하여 크로스페이드 구현
     /// </summary>
-    private IEnumerator CrossFadeCoroutine(string newClipName, float crossFadeTime)
+    private IEnumerator CrossFadeCoroutineAudioData(AudioData newAudioData, float crossFadeTime)
     {
-        string oldClipName = CurrentBGMName;
+        AudioData oldBGM = currentBGM;
         float halfTime = crossFadeTime * 0.5f;
-        
+
         // 1단계: 현재 BGM 페이드 아웃
         yield return StartCoroutine(FadeCoroutine(audioSource.volume, 0.0f, halfTime, false));
-        
-        // 2단계: 새 BGM으로 교체 후 페이드 인
-        if (PlayBGM(newClipName, 0.0f))
+
+        // 2단계: 새 AudioData BGM으로 교체 후 페이드 인
+        if (PlayBGM(newAudioData))
         {
-            yield return StartCoroutine(FadeCoroutine(0.0f, 1.0f, halfTime, false));
+            float targetVolume = newAudioData.GetRandomVolume();
+            yield return StartCoroutine(FadeCoroutine(0.0f, targetVolume, halfTime, false));
         }
-        
-        Debug.Log($"크로스페이드 완료: {oldClipName} → {newClipName}");
+
+        string oldName = oldBGM != null ? oldBGM.name : "None";
+        Debug.Log($"크로스페이드 완료 (AudioData): {oldName} → {newAudioData.name}");
         fadeCoroutine = null;
     }
-    
+
     #endregion
 }

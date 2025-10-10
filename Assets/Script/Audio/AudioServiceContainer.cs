@@ -12,11 +12,14 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
 {
     [Header("AudioMixer 설정")]
     [SerializeField] private AudioMixer audioMixer;
-    
+
     [Header("오디오 플레이어")]
     [SerializeField] private GameObject bgmPlayer;
     [SerializeField] private GameObject effectPlayer;
-    
+
+    [Header("이벤트 채널 (Event Channel Integration)")]
+    [SerializeField] private SoundEventChannelSO soundEventChannel;
+
     [Header("서비스 자동 생성")]
     [SerializeField] private bool autoCreateServices = true;
     [SerializeField] private bool initializeOnStart = true;
@@ -79,7 +82,23 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     #endregion
     
     #region Unity Lifecycle
-    
+
+    /// <summary>
+    /// Unity OnEnable: Subscribe to event channel
+    /// </summary>
+    private void OnEnable()
+    {
+        if (soundEventChannel != null)
+        {
+            soundEventChannel.OnSoundRequested += HandleSoundRequest;
+            Debug.Log("AudioServiceContainer: Subscribed to SoundEventChannel");
+        }
+        else
+        {
+            Debug.LogWarning("AudioServiceContainer: No SoundEventChannel assigned. Event-based audio will not work!");
+        }
+    }
+
     /// <summary>
     /// Unity Awake: Singleton 초기화 및 DontDestroyOnLoad 설정
     /// </summary>
@@ -100,12 +119,6 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         if (serviceFactory == null)
         {
             serviceFactory = new AudioServiceFactory();
-        }
-        // Repository 자동 설정 (존재하는 경우)
-        var existingRepository = FindObjectOfType<AudioClipRepository>();
-        if (existingRepository != null)
-        {
-            ((AudioServiceFactory)serviceFactory).SetAudioRepository(existingRepository);
         }
         
         // AudioMixer 유효성 검사
@@ -128,6 +141,18 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         }
     }
     
+    /// <summary>
+    /// Unity OnDisable: Unsubscribe from event channel
+    /// </summary>
+    private void OnDisable()
+    {
+        if (soundEventChannel != null)
+        {
+            soundEventChannel.OnSoundRequested -= HandleSoundRequest;
+            Debug.Log("AudioServiceContainer: Unsubscribed from SoundEventChannel");
+        }
+    }
+
     /// <summary>
     /// Unity OnDestroy: 정리 작업
     /// </summary>
@@ -457,7 +482,69 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     }
     
     #endregion
-    
+
+    #region Event Channel Integration
+
+    /// <summary>
+    /// Handle sound requests from the event channel
+    /// Routes sounds to appropriate service based on AudioData.AudioType property
+    /// </summary>
+    private void HandleSoundRequest(AudioData soundData, Vector3 position)
+    {
+        if (soundData == null)
+        {
+            Debug.LogWarning("AudioServiceContainer: Received null AudioData from event channel");
+            return;
+        }
+
+        // Check if services are initialized
+        if (!IsFullyInitialized)
+        {
+            Debug.LogWarning($"AudioServiceContainer: Cannot play '{soundData.name}' - services not initialized");
+            return;
+        }
+
+        // Route based on explicit AudioType (not Loop property)
+        // This provides clear separation: AudioType determines routing, Loop determines playback behavior
+        switch (soundData.AudioType)
+        {
+            case AudioType.BGM:
+                // Route to BGM service (background music)
+                var bgmSvc = GetService<IBGMAudioService>();
+                if (bgmSvc != null)
+                {
+                    bgmSvc.PlayBGM(soundData);
+                    Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as BGM (AudioType.BGM) via event channel");
+                }
+                else
+                {
+                    Debug.LogWarning($"AudioServiceContainer: BGM service not available for '{soundData.name}'");
+                }
+                break;
+
+            case AudioType.Effect:
+                // Route to Effect service (sound effects)
+                var effectSvc = GetService<IEffectAudioService>();
+                if (effectSvc != null)
+                {
+                    // Play as 2D sound (no spatial audio needed)
+                    effectSvc.PlayEffect(soundData);
+                    Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as Effect (AudioType.Effect) via event channel");
+                }
+                else
+                {
+                    Debug.LogWarning($"AudioServiceContainer: Effect service not available for '{soundData.name}'");
+                }
+                break;
+
+            default:
+                Debug.LogWarning($"AudioServiceContainer: Unknown AudioType '{soundData.AudioType}' for '{soundData.name}'");
+                break;
+        }
+    }
+
+    #endregion
+
     #region Public Utility Methods
     
     /// <summary>
@@ -503,32 +590,6 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         }
     }
     
-    /// <summary>
-    /// AudioClipRepository 설정 (런타임 변경용)
-    /// </summary>
-    public void SetAudioRepository(IAudioClipRepository repository)
-    {
-        if (serviceFactory is AudioServiceFactory factory)
-        {
-            factory.SetAudioRepository(repository);
-            
-            // 기존 서비스들에도 Repository 설정
-            var bgmSvc = GetService<IBGMAudioService>();
-            var effectSvc = GetService<IEffectAudioService>();
-            
-            if (bgmSvc is BGMAudioService bgmAudioService)
-            {
-                bgmAudioService.SetAudioRepository(repository);
-            }
-            
-            if (effectSvc is EffectAudioService effectAudioService)
-            {
-                effectAudioService.SetAudioRepository(repository);
-            }
-            
-            Debug.Log("AudioServiceContainer: Repository 설정 완료");
-        }
-    }
     
     /// <summary>
     /// AudioMixer 설정 (런타임 변경용)
@@ -587,24 +648,12 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
 
 /// <summary>
 /// 오디오 서비스 팩토리 구현
-/// Repository 패턴 지원 및 테스트용 Mock 객체 생성 지원
+/// 테스트용 Mock 객체 생성 지원
 /// </summary>
-public class AudioServiceFactory : IAudioServiceFactory, IAudioRepositorySupport
+public class AudioServiceFactory : IAudioServiceFactory
 {
-    // Repository 지원
-    private IAudioClipRepository audioRepository;
-    
     /// <summary>
-    /// AudioClipRepository 설정
-    /// </summary>
-    public void SetAudioRepository(IAudioClipRepository repository)
-    {
-        audioRepository = repository;
-        Debug.Log($"AudioServiceFactory: Repository 설정됨 ({(repository != null ? "활성" : "비활성")})");
-    }
-    
-    /// <summary>
-    /// BGM 서비스 생성 (Repository 자동 주입 지원)
+    /// BGM 서비스 생성
     /// </summary>
     public IBGMAudioService CreateBGMService(AudioMixer audioMixer, GameObject bgmPlayer)
     {
@@ -613,26 +662,20 @@ public class AudioServiceFactory : IAudioServiceFactory, IAudioRepositorySupport
             Debug.LogError("BGM 플레이어 GameObject가 필요합니다.");
             return null;
         }
-        
-        var bgmService = bgmPlayer.GetComponent<BGMAudioService>() ?? 
+
+        var bgmService = bgmPlayer.GetComponent<BGMAudioService>() ??
                         bgmPlayer.AddComponent<BGMAudioService>();
-        
+
         // AudioMixer 설정 (Reflection 사용)
         var audioMixerField = typeof(BGMAudioService).GetField("audioMixer",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         audioMixerField?.SetValue(bgmService, audioMixer);
-        
-        // Repository 자동 주입
-        if (audioRepository != null)
-        {
-            bgmService.SetAudioRepository(audioRepository);
-        }
-        
+
         return bgmService;
     }
-    
+
     /// <summary>
-    /// 효과음 서비스 생성 (Repository 자동 주입 지원)
+    /// 효과음 서비스 생성
     /// </summary>
     public IEffectAudioService CreateEffectService(AudioMixer audioMixer, GameObject effectPlayer)
     {
@@ -641,21 +684,15 @@ public class AudioServiceFactory : IAudioServiceFactory, IAudioRepositorySupport
             Debug.LogError("효과음 플레이어 GameObject가 필요합니다.");
             return null;
         }
-        
-        var effectService = effectPlayer.GetComponent<EffectAudioService>() ?? 
+
+        var effectService = effectPlayer.GetComponent<EffectAudioService>() ??
                            effectPlayer.AddComponent<EffectAudioService>();
-        
+
         // AudioMixer 설정
         var audioMixerField = typeof(EffectAudioService).GetField("audioMixer",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         audioMixerField?.SetValue(effectService, audioMixer);
-        
-        // Repository 자동 주입
-        if (audioRepository != null)
-        {
-            effectService.SetAudioRepository(audioRepository);
-        }
-        
+
         return effectService;
     }
     

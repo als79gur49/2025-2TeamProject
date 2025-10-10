@@ -52,7 +52,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     
     // 서비스 참조
     private IVolumeController volumeController;
-    private UIAudioIntegrator audioIntegrator;
     
     // 초기값 저장 (리셋용)
     private VolumeSettings initialSettings;
@@ -115,12 +114,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
                 return;
             }
             
-            // UIAudioIntegrator 찾기
-            audioIntegrator = UIAudioIntegrator.Instance;
-            if (audioIntegrator == null)
-            {
-                audioIntegrator = FindObjectOfType<UIAudioIntegrator>();
-            }
             
             Debug.Log("SettingsPanel: 서비스 초기화 완료");
         }
@@ -342,10 +335,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// </summary>
     private void OnButtonSoundsChanged(bool enabled)
     {
-        if (audioIntegrator != null)
-        {
-            audioIntegrator.SetButtonSoundsEnabled(enabled);
-        }
     }
     
     /// <summary>
@@ -353,10 +342,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// </summary>
     private void OnPanelSoundsChanged(bool enabled)
     {
-        if (audioIntegrator != null)
-        {
-            audioIntegrator.SetPanelSoundsEnabled(enabled);
-        }
     }
     
     /// <summary>
@@ -364,10 +349,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// </summary>
     private void OnHoverSoundsChanged(bool enabled)
     {
-        if (audioIntegrator != null)
-        {
-            audioIntegrator.SetHoverSoundsEnabled(enabled);
-        }
     }
     
     #endregion
@@ -467,12 +448,7 @@ public class SettingsPanel : UIPanel, IOpenablePanel
         
         // 설정 저장
         volumeController.SaveVolumeSettings();
-        
-        // 적용 완료 피드백 (옵션)
-        if (audioIntegrator != null)
-        {
-            audioIntegrator.PlayCustomUISound("SettingsApplied");
-        }
+       
     }
     
     

@@ -21,11 +21,4 @@ public interface IAudioService
     /// 서비스 정리 및 리소스 해제
     /// </summary>
     void Cleanup();
-    
-    /// <summary>
-    /// 지정된 클립명이 존재하는지 확인
-    /// </summary>
-    /// <param name="clipName">확인할 클립 이름</param>
-    /// <returns>클립 존재 여부</returns>
-    bool HasClip(string clipName);
 }

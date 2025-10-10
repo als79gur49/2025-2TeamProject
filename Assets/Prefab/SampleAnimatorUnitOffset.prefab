@@ -400,6 +400,10 @@ GameObject:
   - component: {fileID: 3546852586526391875}
   - component: {fileID: 129906128215803953}
   - component: {fileID: 6993895847856622394}
+  - component: {fileID: 3581421906043404214}
+  - component: {fileID: -8892937695582244465}
+  - component: {fileID: -1534838742447952655}
+  - component: {fileID: 7410512118251473500}
   m_Layer: 0
   m_Name: SampleAnimatorUnitOffset
   m_TagString: Untagged
@@ -529,6 +533,99 @@ MonoBehaviour:
     m_RotationOrder: 4
   positionErrorThreshold: 0.1
   snapDistanceThreshold: 0.05
+--- !u!114 &3581421906043404214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673968368137477462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2dd1fdefeccab6498d9aef7c1ff5da6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseAttackPower: 10
+  attackRange: 1
+  attackSpeed: 1
+  attackType: 0
+  rangeType: 0
+  criticalChance: 0.1
+  criticalMultiplier: 2
+  armorPenetration: 0
+  canCounterAttack: 0
+  counterAttackChance: 0.2
+  hasSpecialAttack: 0
+  specialAttackCooldown: 3
+  specialAttackDamageMultiplier: 2
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
+--- !u!114 &-8892937695582244465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673968368137477462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 480078343e9a28e43a8c6455b1880ee2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  startingHealth: -1
+  canHealAboveMax: 0
+  canRevive: 0
+  baseArmor: 0
+  maxDamageReduction: 0.8
+  enableRegeneration: 0
+  regenerationAmount: 1
+  regenerationInterval: 1
+--- !u!114 &-1534838742447952655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673968368137477462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 751531d89c079e345be961beb14855ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movementRange: 3
+  movementType: 0
+  movementSpeed: 1
+  movementEfficiency: 1
+  movementAbilities: 0
+  jumpRange: 2
+  teleportRange: 5
+  teleportCooldown: 3
+  impassableTerrains: 04000000
+  slowTerrains: 0100000002000000
+  constraints:
+    canMoveWhileDamaged: 1
+    canMoveWhileInCombat: 1
+    requiresLineOfSight: 0
+    minimumMovementRange: 0
+    maximumMovementRange: 2147483647
+--- !u!114 &7410512118251473500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673968368137477462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f04dc20f694b37644bd05ee35d647db7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  team: 0
+  teamConfig: {fileID: 0}
+  useCustomSettings: 0
+  customTeamName: 
+  customTeamColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &4923207253799587756
 GameObject:
   m_ObjectHideFlags: 0

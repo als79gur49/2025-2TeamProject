@@ -87,16 +87,3 @@ public interface IAudioServiceFactory
     /// <returns>서비스 컨테이너</returns>
     IAudioServiceContainer CreateServiceContainer();
 }
-
-/// <summary>
-/// Repository 지원 Factory 확장 인터페이스
-/// AudioServiceFactory의 Repository 기능을 위한 선택적 인터페이스
-/// </summary>
-public interface IAudioRepositorySupport
-{
-    /// <summary>
-    /// AudioClipRepository 설정
-    /// </summary>
-    /// <param name="repository">설정할 Repository</param>
-    void SetAudioRepository(IAudioClipRepository repository);
-}

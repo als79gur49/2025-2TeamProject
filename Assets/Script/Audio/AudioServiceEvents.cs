@@ -7,47 +7,59 @@ using UnityEngine;
 
 /// <summary>
 /// 오디오 재생 정보 구조체
+/// AudioData 기반으로 마이그레이션됨
 /// </summary>
 [Serializable]
 public struct AudioPlayInfo
 {
-    public string clipName;
+    public AudioData audioData;
     public float volume;
     public float pitch;
     public bool loop;
     public Vector3 position;
     public float startTime;
-    
-    public AudioPlayInfo(string clipName, float volume = 1.0f, float pitch = 1.0f, 
+
+    public AudioPlayInfo(AudioData audioData, float volume = 1.0f, float pitch = 1.0f,
                         bool loop = false, Vector3 position = default)
     {
-        this.clipName = clipName;
+        this.audioData = audioData;
         this.volume = volume;
         this.pitch = pitch;
         this.loop = loop;
         this.position = position;
         this.startTime = Time.time;
     }
+
+    /// <summary>
+    /// 클립 이름 반환 (하위 호환성용)
+    /// </summary>
+    public string ClipName => audioData != null ? audioData.name : "None";
 }
 
 /// <summary>
 /// 오디오 페이드 정보 구조체
+/// AudioData 기반으로 마이그레이션됨
 /// </summary>
 [Serializable]
 public struct AudioFadeInfo
 {
-    public string clipName;
+    public AudioData audioData;
     public float fadeTime;
     public float targetVolume;
     public bool stopAfterFade;
-    
-    public AudioFadeInfo(string clipName, float fadeTime, float targetVolume = 1.0f, bool stopAfterFade = false)
+
+    public AudioFadeInfo(AudioData audioData, float fadeTime, float targetVolume = 1.0f, bool stopAfterFade = false)
     {
-        this.clipName = clipName;
+        this.audioData = audioData;
         this.fadeTime = fadeTime;
         this.targetVolume = targetVolume;
         this.stopAfterFade = stopAfterFade;
     }
+
+    /// <summary>
+    /// 클립 이름 반환 (하위 호환성용)
+    /// </summary>
+    public string ClipName => audioData != null ? audioData.name : "None";
 }
 
 /// <summary>
@@ -140,9 +152,9 @@ public static class AudioServiceEvents
     public static event Action<AudioPlayInfo> OnAudioPlayCompleted;
     
     /// <summary>
-    /// 오디오 재생 에러 이벤트
+    /// 오디오 재생 에러 이벤트 (AudioData 기반)
     /// </summary>
-    public static event Action<string, string> OnAudioPlayError;
+    public static event Action<AudioData, string> OnAudioPlayError;
     
     /// <summary>
     /// 볼륨 변경 이벤트
@@ -156,7 +168,7 @@ public static class AudioServiceEvents
     internal static void NotifyServiceCleaned(Type serviceType) => OnServiceCleaned?.Invoke(serviceType);
     internal static void NotifyAudioPlayStarted(AudioPlayInfo playInfo) => OnAudioPlayStarted?.Invoke(playInfo);
     internal static void NotifyAudioPlayCompleted(AudioPlayInfo playInfo) => OnAudioPlayCompleted?.Invoke(playInfo);
-    internal static void NotifyAudioPlayError(string clipName, string error) => OnAudioPlayError?.Invoke(clipName, error);
+    internal static void NotifyAudioPlayError(AudioData audioData, string error) => OnAudioPlayError?.Invoke(audioData, error);
     internal static void NotifyGlobalVolumeChanged(VolumeType type, float oldValue, float newValue) => OnGlobalVolumeChanged?.Invoke(type, oldValue, newValue);
     
     /// <summary>

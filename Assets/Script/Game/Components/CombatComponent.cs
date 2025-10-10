@@ -32,6 +32,10 @@ namespace Game.Components
         [SerializeField] private int specialAttackCooldown = 3;
         [SerializeField] private int specialAttackDamageMultiplier = 2;
 
+        [Header("Audio Configuration")]
+        [SerializeField] private SoundEventChannelSO soundEventChannel;  // Event Channel
+        [SerializeField] private AudioData attackSound;              // AudioData
+
         // 런타임 상태
         private bool isInCombat = false;
         private float lastAttackTime = -999f;
@@ -474,6 +478,12 @@ namespace Game.Components
 
             var result = CombatResult.Hit(finalDamage, target, attackType, isCritical,
                 isSpecialAttack ? "Special attack hit!" : (isCritical ? "Critical hit!" : "Attack hit!"));
+
+            // 사운드 출력
+            if (soundEventChannel != null && attackSound != null)
+            {
+                soundEventChannel.RaiseSoundEvent(attackSound);
+            }
 
             OnAttackPerformed?.Invoke(target, result);
 
