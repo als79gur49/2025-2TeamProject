@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Core;
 using Game.Interfaces;
+using Game.AI;
 
 namespace Game.Services
 {
@@ -14,6 +15,9 @@ namespace Game.Services
         [SerializeField] private CardHandManager cardHandManager;
         [SerializeField] private CardSpawnService cardSpawnService;
         [SerializeField] private SpawnValidator spawnValidator;
+
+        [Header("AI 설정")]
+        [SerializeField] private EnemyAIController enemyAIController;
 
         [Header("초기화 설정")]
         [SerializeField] private bool enableEventLogging = true;
@@ -110,6 +114,22 @@ namespace Game.Services
                 spawnValidator = gameObject.AddComponent<SpawnValidator>();
                 Log("✔️ Created SpawnValidator component");
             }
+
+            // EnemyAIController 생성 또는 찾기
+            if (enemyAIController == null)
+            {
+                enemyAIController = FindObjectOfType<EnemyAIController>();
+                if (enemyAIController == null)
+                {
+                    var aiObject = new GameObject("EnemyAIController");
+                    enemyAIController = aiObject.AddComponent<EnemyAIController>();
+                    Log("🤖 Created EnemyAIController component");
+                }
+                else
+                {
+                    Log("🤖 Found existing EnemyAIController component");
+                }
+            }
         }
 
         /// <summary>
@@ -147,6 +167,20 @@ namespace Game.Services
             {
                 cardHandManager.Init(turnService);
                 Log("💉 CardHandManager dependencies injected via Init()");
+            }
+
+            // EnemyAIController 초기화 (v2.0 - 확장된 의존성)
+            if (enemyAIController != null)
+            {
+                enemyAIController.Initialize(
+                    resourceManager,
+                    cardSpawnService,
+                    gridController,
+                    spawnValidator,
+                    gridState,      // v2.0: 추가 - 그리드 상태 조회
+                    unitService     // v2.0: 추가 - 유닛 정보 조회
+                );
+                Log("💉 EnemyAIController v2.0 dependencies injected via Initialize()");
             }
         }
 
@@ -207,6 +241,12 @@ namespace Game.Services
             if (spawnValidator == null)
             {
                 LogError("❌ SpawnValidator is null");
+                allHealthy = false;
+            }
+
+            if (enemyAIController == null)
+            {
+                LogError("❌ EnemyAIController is null");
                 allHealthy = false;
             }
 
@@ -307,8 +347,15 @@ namespace Game.Services
                 cardHandManager.DrawRandomCard();
                 Log("🃏 Random card drawn for player");
             }
-            
-            // 3. 기타 턴 시작 시 초기화 작업
+
+            // 3. 적 AI 카드 드로우
+            if (enemyAIController != null)
+            {
+                enemyAIController.DrawCard(1);
+                Log("🃏 Enemy AI drew a card");
+            }
+
+            // 4. 기타 턴 시작 시 초기화 작업
             Log("✅ Turn start phase completed");
         }
 
@@ -339,10 +386,17 @@ namespace Game.Services
         private void HandleEnemySummonPhase()
         {
             Log("👹 Enemy summon phase - 적이 가지고 있는 카드를 배치");
-            
-            // AI 소환 로직 구현
-            // TODO: AI 시스템에서 적군의 카드 소환 처리
-            
+
+            // AI 소환 로직 실행
+            if (enemyAIController != null)
+            {
+                enemyAIController.ExecuteSummonPhase();
+            }
+            else
+            {
+                LogError("❌ EnemyAIController not found!");
+            }
+
             Log("✅ Enemy summon phase completed");
         }
 
@@ -448,7 +502,8 @@ namespace Game.Services
                    $"- Healthy: {areServicesHealthy}\n" +
                    $"- CardHandManager: {(cardHandManager != null ? "✅" : "❌")}\n" +
                    $"- CardSpawnService: {(cardSpawnService != null ? "✅" : "❌")}\n" +
-                   $"- SpawnValidator: {(spawnValidator != null ? "✅" : "❌")}\n";
+                   $"- SpawnValidator: {(spawnValidator != null ? "✅" : "❌")}\n" +
+                   $"- EnemyAIController: {(enemyAIController != null ? "✅" : "❌")}\n";
         }
 
         /// <summary>
