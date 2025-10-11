@@ -37,6 +37,7 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     /// <summary>
     /// 루프 효과음 정보 클래스
     /// Unity GameObject와 AudioSource 생명주기 관리
+    /// Owner 기반 추적 지원
     /// </summary>
     [Serializable]
     private class LoopedEffect
@@ -45,13 +46,15 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
         public AudioData audioData;
         public AudioSource audioSource;
         public GameObject gameObject;
+        public object Owner; // Owner 기반 사운드 제어를 위한 필드
 
-        public LoopedEffect(int id, AudioData data, AudioSource source, GameObject obj)
+        public LoopedEffect(int id, AudioData data, AudioSource source, GameObject obj, object owner = null)
         {
             loopId = id;
             audioData = data;
             audioSource = source;
             gameObject = obj;
+            Owner = owner;
         }
 
         /// <summary>
@@ -306,7 +309,10 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     /// 루프 효과음 재생 (AudioData 기반)
     /// AudioData의 설정을 적용하여 루프 재생
     /// </summary>
-    public int PlayEffectLoop(AudioData audioData)
+    /// <param name="audioData">재생할 AudioData</param>
+    /// <param name="owner">루프를 시작한 소유자 객체 (선택사항, Owner 기반 제어용)</param>
+    /// <returns>루프 ID (정지용)</returns>
+    public int PlayEffectLoop(AudioData audioData, object owner = null)
     {
         if (!isInitialized || audioData == null)
         {
@@ -352,10 +358,11 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
         loopAudioSource.Play();
 
         int loopId = nextPlayId++;
-        var loopedEffect = new LoopedEffect(loopId, audioData, loopAudioSource, loopGO);
+        var loopedEffect = new LoopedEffect(loopId, audioData, loopAudioSource, loopGO, owner);
         loopedEffects.Add(loopedEffect);
 
-        Debug.Log($"루프 효과음 시작 (AudioData): {audioData.name} (ID: {loopId}, 볼륨: {loopAudioSource.volume:F2}, 피치: {loopAudioSource.pitch:F2})");
+        string ownerInfo = owner != null ? $", Owner: {owner}" : "";
+        Debug.Log($"루프 효과음 시작 (AudioData): {audioData.name} (ID: {loopId}, 볼륨: {loopAudioSource.volume:F2}, 피치: {loopAudioSource.pitch:F2}{ownerInfo})");
         return loopId;
     }
 
@@ -378,6 +385,65 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
         }
 
         Debug.LogWarning($"루프 효과음을 찾을 수 없습니다: ID {loopId}");
+    }
+
+    /// <summary>
+    /// [통합 메서드] 소유자 기반으로 루프 효과음을 정지시킵니다.
+    /// audioDataToStop이 null이면 해당 소유자의 모든 루프를,
+    /// 특정 AudioData가 주어지면 해당 사운드만 정지시킵니다.
+    /// </summary>
+    /// <param name="owner">루프 사운드를 시작한 소유자 객체</param>
+    /// <param name="audioDataToStop">정지할 대상 AudioData (null일 경우 모두 정지)</param>
+    public void StopLoopsByOwner(object owner, AudioData audioDataToStop = null)
+    {
+        if (owner == null)
+        {
+            Debug.LogWarning("Owner가 null이므로 루프 효과음을 중지할 수 없습니다.");
+            return;
+        }
+
+        int stoppedCount = 0;
+
+        // 리스트를 역순으로 순회
+        for (int i = loopedEffects.Count - 1; i >= 0; i--)
+        {
+            var loopedEffect = loopedEffects[i];
+
+            // 1. 소유자가 일치하는지 확인
+            if (loopedEffect.Owner == owner)
+            {
+                // 2. audioDataToStop이 null(모두 중지)이거나,
+                //    loopedEffect의 audioData와 일치(특정 사운드 중지)하는 경우
+                if (audioDataToStop == null || loopedEffect.audioData == audioDataToStop)
+                {
+                    CleanupLoopedEffect(loopedEffect);
+                    loopedEffects.RemoveAt(i);
+                    stoppedCount++;
+                }
+            }
+        }
+
+        string target = audioDataToStop == null ? "모든" : $"'{audioDataToStop.name}'";
+        Debug.Log($"소유자({owner})의 {target} 루프 효과음 정지 완료 (정지된 수: {stoppedCount})");
+    }
+
+    /// <summary>
+    /// [오버로드] 소유자의 모든 루프 효과음을 정지시킵니다.
+    /// </summary>
+    /// <param name="owner">루프 사운드를 시작한 소유자 객체</param>
+    public void StopAllLoopsByOwner(object owner)
+    {
+        StopLoopsByOwner(owner, null);
+    }
+
+    /// <summary>
+    /// [오버로드] 소유자의 특정 AudioData에 해당하는 루프 효과음만 정지시킵니다.
+    /// </summary>
+    /// <param name="owner">루프 사운드를 시작한 소유자 객체</param>
+    /// <param name="audioData">정지할 대상 AudioData</param>
+    public void StopSpecificLoopByOwner(object owner, AudioData audioData)
+    {
+        StopLoopsByOwner(owner, audioData);
     }
 
     /// <summary>

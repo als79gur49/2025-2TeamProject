@@ -32,6 +32,11 @@ namespace Game.VFX
         [Header("Safety Settings")]
         [SerializeField] private float maxLifetime = 10f;
 
+        [Header("Audio Settings")]
+        [SerializeField] private SoundEventChannelSO soundEventChannel;
+        [SerializeField] private AudioData startSound;     // 루프 사운드 (생성 시 시작)
+        [SerializeField] private AudioData triggerSound;   // 트리거 사운드 (FireTrigger 시 재생)
+
         [Header("Debug")]
         [SerializeField] private bool logTriggerEvents = true;
 
@@ -109,6 +114,14 @@ namespace Game.VFX
                          $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s ({durationMode}), " +
                          $"PlaybackSpeed={playbackSpeed:F2}, " +
                          $"TilePositions={this.predeterminedTilePositions.Count}");
+            }
+
+            // 루프 사운드 시작 (선택적) - AudioData.Loop 속성이 자동으로 재생 방식 결정
+            if (soundEventChannel != null && startSound != null)
+            {
+                soundEventChannel.RaiseSoundEvent(startSound, this);
+                if (logTriggerEvents)
+                    Debug.Log($"[VFXEventTrigger] Started sound: {startSound.name} (Loop={startSound.Loop})");
             }
         }
 
@@ -250,6 +263,14 @@ namespace Game.VFX
             {
                 Debug.LogError($"[VFXEventTrigger] Callback error: {ex.Message}\n{ex.StackTrace}");
             }
+
+            // 트리거 사운드 재생 (선택적)
+            if (soundEventChannel != null && triggerSound != null)
+            {
+                soundEventChannel.RaiseSoundEvent(triggerSound, this);
+                if (logTriggerEvents)
+                    Debug.Log($"[VFXEventTrigger] Played trigger sound: {triggerSound.name}");
+            }
         }
 
         /// <summary>강제 트리거 (타임아웃)</summary>
@@ -381,6 +402,14 @@ namespace Game.VFX
 
         private void OnDestroy()
         {
+            // 루프 사운드 정지 (선택적)
+            if (soundEventChannel != null && startSound != null)
+            {
+                soundEventChannel.RaiseStopLoopEvent(this, startSound);
+                if (logTriggerEvents)
+                    Debug.Log($"[VFXEventTrigger] Stopped loop sound: {startSound.name}");
+            }
+
             destroyed = true;
 
             // 트리거 미발생 시 강제 실행

@@ -91,7 +91,8 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         if (soundEventChannel != null)
         {
             soundEventChannel.OnSoundRequested += HandleSoundRequest;
-            Debug.Log("AudioServiceContainer: Subscribed to SoundEventChannel");
+            soundEventChannel.OnStopLoopRequested += HandleStopLoopRequest;
+            Debug.Log("AudioServiceContainer: Subscribed to SoundEventChannel (Unified Sound + Legacy Loop + StopLoop events)");
         }
         else
         {
@@ -149,7 +150,8 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         if (soundEventChannel != null)
         {
             soundEventChannel.OnSoundRequested -= HandleSoundRequest;
-            Debug.Log("AudioServiceContainer: Unsubscribed from SoundEventChannel");
+            soundEventChannel.OnStopLoopRequested -= HandleStopLoopRequest;
+            Debug.Log("AudioServiceContainer: Unsubscribed from SoundEventChannel (Sound + LoopSound + StopLoop events)");
         }
     }
 
@@ -487,9 +489,9 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
 
     /// <summary>
     /// Handle sound requests from the event channel
-    /// Routes sounds to appropriate service based on AudioData.AudioType property
+    /// Routes sounds to appropriate service based on AudioData.AudioType and Loop properties
     /// </summary>
-    private void HandleSoundRequest(AudioData soundData, Vector3 position)
+    private void HandleSoundRequest(AudioData soundData, object owner = null)
     {
         if (soundData == null)
         {
@@ -504,8 +506,7 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
             return;
         }
 
-        // Route based on explicit AudioType (not Loop property)
-        // This provides clear separation: AudioType determines routing, Loop determines playback behavior
+        // Route based on AudioType, then check Loop property for playback behavior
         switch (soundData.AudioType)
         {
             case AudioType.BGM:
@@ -527,9 +528,18 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
                 var effectSvc = GetService<IEffectAudioService>();
                 if (effectSvc != null)
                 {
-                    // Play as 2D sound (no spatial audio needed)
-                    effectSvc.PlayEffect(soundData);
-                    Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as Effect (AudioType.Effect) via event channel");
+                    // Check Loop property to determine playback behavior
+                    if (soundData.Loop)
+                    {
+                        int loopId = effectSvc.PlayEffectLoop(soundData, owner);
+                        Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as loop (Loop=true) via event channel (LoopID: {loopId})");
+                    }
+                    else
+                    {
+                        // One-shot playback
+                        effectSvc.PlayEffect(soundData);
+                        Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as one-shot (Loop=false) via event channel");
+                    }
                 }
                 else
                 {
@@ -540,6 +550,54 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
             default:
                 Debug.LogWarning($"AudioServiceContainer: Unknown AudioType '{soundData.AudioType}' for '{soundData.name}'");
                 break;
+        }
+    }
+
+    /// <summary>
+    /// [DEPRECATED - 레거시 지원] Handle loop sound playback requests from the event channel
+    /// 하위 호환성을 위해 유지되며, 내부적으로 HandleSoundRequest를 호출합니다.
+    /// 새 코드는 RaiseSoundEvent(audioData, owner)를 사용하세요.
+    /// </summary>
+    private void HandleLoopSoundRequest(AudioData audioData, object owner)
+    {
+        // Redirect to unified handler
+        HandleSoundRequest(audioData, owner);
+    }
+
+    /// <summary>
+    /// [통합 핸들러] Handle loop sound stop requests from the event channel
+    /// Stops owner-based loop sounds via unified API
+    /// </summary>
+    /// <param name="owner">The owner of the loop sounds</param>
+    /// <param name="audioData">The specific AudioData to stop (null = stop all loops for this owner)</param>
+    private void HandleStopLoopRequest(object owner, AudioData audioData)
+    {
+        if (owner == null)
+        {
+            Debug.LogWarning("AudioServiceContainer: Received null owner in StopLoop event");
+            return;
+        }
+
+        // Check if services are initialized
+        if (!IsFullyInitialized)
+        {
+            Debug.LogWarning($"AudioServiceContainer: Cannot stop loops - services not initialized");
+            return;
+        }
+
+        // Route to Effect service (루프 사운드는 Effect service에서 관리)
+        var effectSvc = GetService<IEffectAudioService>();
+        if (effectSvc != null)
+        {
+            // 통합 메서드 호출: audioData가 null이면 모든 루프 중지, 있으면 특정 루프만 중지
+            effectSvc.StopLoopsByOwner(owner, audioData);
+
+            string target = audioData == null ? "모든 루프" : $"'{audioData.name}' 루프";
+            Debug.Log($"AudioServiceContainer: Stopped {target} for owner '{owner}' via event channel");
+        }
+        else
+        {
+            Debug.LogWarning($"AudioServiceContainer: Effect service not available for stopping loops");
         }
     }
 

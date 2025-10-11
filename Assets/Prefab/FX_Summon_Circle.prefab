@@ -4792,6 +4792,9 @@ MonoBehaviour:
   triggerType: 1
   triggerValue: 0.5
   maxLifetime: 5
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSound: {fileID: 11400000, guid: 3d382cd9f6103304cacda46ab9c85447, type: 2}
+  triggerSound: {fileID: 0}
   logTriggerEvents: 1
 --- !u!1 &1319865409307574
 GameObject:

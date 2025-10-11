@@ -482,7 +482,7 @@ namespace Game.Components
             // 사운드 출력
             if (soundEventChannel != null && attackSound != null)
             {
-                soundEventChannel.RaiseSoundEvent(attackSound);
+                soundEventChannel.RaiseSoundEvent(attackSound, this);
             }
 
             OnAttackPerformed?.Invoke(target, result);

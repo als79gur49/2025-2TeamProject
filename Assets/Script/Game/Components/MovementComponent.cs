@@ -9,6 +9,67 @@ namespace Game.Components
 {
     /// <summary>
     /// 이동 시스템 컴포넌트 구현
+    ///
+    /// ========================================
+    /// ✅ 완전한 이벤트 기반 루프 사운드 제어 (권장)
+    /// ========================================
+    ///
+    /// 이동 시스템에서 Owner 기반 루프 사운드를 완전히 이벤트 기반으로 제어하는 방법:
+    ///
+    /// 1. 필드 선언:
+    ///    [SerializeField] private SoundEventChannelSO soundEventChannel;
+    ///    [SerializeField] private AudioData movementLoopSound;
+    ///
+    /// 2. ✅ 이동 시작 시 루프 재생 (이벤트 채널 사용):
+    ///    soundEventChannel.RaiseLoopSoundEvent(movementLoopSound, this);
+    ///
+    /// 3. ✅ 이동 중지 시 특정 사운드만 중지 (이벤트 채널 사용):
+    ///    soundEventChannel.RaiseStopLoopEvent(this, movementLoopSound);
+    ///    // 또는 명시적 오버로드: soundEventChannel.RaiseStopSpecificLoopEvent(this, movementLoopSound);
+    ///
+    /// 4. ✅ 유닛 파괴 시 모든 루프 사운드 중지 (이벤트 채널 사용):
+    ///    private void OnDestroy() {
+    ///        soundEventChannel.RaiseStopLoopEvent(this); // audioData = null
+    ///        // 또는 명시적 오버로드: soundEventChannel.RaiseStopAllLoopsEvent(this);
+    ///    }
+    ///
+    /// ========================================
+    /// 🎯 핵심 장점 (완전한 이벤트 기반)
+    /// ========================================
+    ///
+    /// ✅ 완전한 분리 (Zero Coupling):
+    ///    - AudioManager, IEffectAudioService에 대한 참조 불필요
+    ///    - SoundEventChannelSO만 알면 모든 오디오 제어 가능
+    ///    - 테스트 시 이벤트 채널만 모킹하면 됨
+    ///
+    /// ✅ 대칭적 API:
+    ///    - 시작: RaiseLoopSoundEvent(audioData, owner)
+    ///    - 종료: RaiseStopLoopEvent(owner, audioData)
+    ///    - 일관성 있는 패턴으로 코드 가독성 향상
+    ///
+    /// ✅ Owner 기반 자동 정리:
+    ///    - Owner가 파괴되면 해당 Owner의 모든 사운드 한 번에 정리
+    ///    - 특정 AudioData만 선택적으로 중지 가능
+    ///    - 메모리 누수 방지 및 리소스 관리 자동화
+    ///
+    /// ✅ Open-Closed Principle:
+    ///    - 새로운 리스너(ScreenShake, Analytics 등) 추가 시 기존 코드 변경 불필요
+    ///    - 이벤트 채널에 구독만 추가하면 됨
+    ///
+    /// ========================================
+    /// ⚠️ 레거시 패턴 (사용 비권장)
+    /// ========================================
+    ///
+    /// ❌ 직접 서비스 호출 (이벤트 기반 원칙 위반):
+    ///    effectAudioService.PlayEffectLoop(movementLoopSound, this);
+    ///    effectAudioService.StopLoopsByOwner(this, movementLoopSound);
+    ///
+    ///    문제점:
+    ///    - IEffectAudioService에 직접 의존 (Tight Coupling)
+    ///    - 테스트 시 서비스 전체를 모킹해야 함
+    ///    - 이벤트 기반 아키텍처의 장점 상실
+    ///
+    /// ========================================
     /// </summary>
     [System.Serializable]
     public class MovementComponent : MonoBehaviour, IAdvancedMovementSystem

@@ -16,12 +16,10 @@ public class EventChannelSoundPlayer : MonoBehaviour
     [SerializeField] private AudioData soundToPlay;
 
     [Header("Test Controls (Editor Only)")]
-    [SerializeField] private bool play2DSound = false;
-    [SerializeField] private bool play3DSound = false;
-    [SerializeField] private Vector3 testPosition = Vector3.zero;
+    [SerializeField] private bool playSound = false;
 
     /// <summary>
-    /// Play a 2D sound (no spatial audio)
+    /// Play a sound - AudioData.Loop property automatically determines playback behavior
     /// </summary>
     public void PlaySound()
     {
@@ -37,37 +35,10 @@ public class EventChannelSoundPlayer : MonoBehaviour
             return;
         }
 
-        // Broadcast event - no direct dependency on AudioServiceContainer!
-        soundEventChannel.RaiseSoundEvent(soundToPlay);
-    }
-
-    /// <summary>
-    /// Play a sound with optional position parameter (currently unused, for future extensibility)
-    /// </summary>
-    public void PlaySoundAtPosition(Vector3 position)
-    {
-        if (soundEventChannel == null)
-        {
-            Debug.LogError("EventChannelSoundPlayer: No SoundEventChannel assigned!");
-            return;
-        }
-
-        if (soundToPlay == null)
-        {
-            Debug.LogError("EventChannelSoundPlayer: No AudioData assigned!");
-            return;
-        }
-
-        // Broadcast event with position parameter (currently unused)
-        soundEventChannel.RaiseSoundEvent(soundToPlay, position);
-    }
-
-    /// <summary>
-    /// Play a sound at this GameObject's position
-    /// </summary>
-    public void PlaySoundHere()
-    {
-        PlaySoundAtPosition(transform.position);
+        // Broadcast event - AudioData.Loop property determines behavior
+        // For loop sounds, pass 'this' as owner to enable proper cleanup
+        object owner = soundToPlay.Loop ? this : null;
+        soundEventChannel.RaiseSoundEvent(soundToPlay, owner);
     }
 
     /// <summary>
@@ -78,18 +49,8 @@ public class EventChannelSoundPlayer : MonoBehaviour
         if (soundEventChannel == null || customSound == null)
             return;
 
-        soundEventChannel.RaiseSoundEvent(customSound);
-    }
-
-    /// <summary>
-    /// Play a custom sound with optional position parameter (currently unused, for future extensibility)
-    /// </summary>
-    public void PlayCustomSoundAt(AudioData customSound, Vector3 position)
-    {
-        if (soundEventChannel == null || customSound == null)
-            return;
-
-        soundEventChannel.RaiseSoundEvent(customSound, position);
+        object owner = customSound.Loop ? this : null;
+        soundEventChannel.RaiseSoundEvent(customSound, owner);
     }
 
     #if UNITY_EDITOR
@@ -98,21 +59,12 @@ public class EventChannelSoundPlayer : MonoBehaviour
     /// </summary>
     private void OnValidate()
     {
-        if (play2DSound)
+        if (playSound)
         {
-            play2DSound = false;
+            playSound = false;
             if (Application.isPlaying)
             {
                 PlaySound();
-            }
-        }
-
-        if (play3DSound)
-        {
-            play3DSound = false;
-            if (Application.isPlaying)
-            {
-                PlaySoundAtPosition(testPosition);
             }
         }
     }

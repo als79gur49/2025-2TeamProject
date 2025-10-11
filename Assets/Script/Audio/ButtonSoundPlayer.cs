@@ -80,7 +80,7 @@ public class ButtonSoundPlayer : MonoBehaviour
         // 우선순위 1: Event Channel + AudioData (BEST - 완전 분리)
         if (soundChannel != null && audioData != null)
         {
-            soundChannel.RaiseSoundEvent(audioData);
+            soundChannel.RaiseSoundEvent(audioData, this);
             Debug.Log($"[ButtonSoundPlayer] Event Channel로 사운드 재생: {audioData.name}");
             return;
         }

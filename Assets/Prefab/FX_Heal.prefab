@@ -14718,4 +14718,7 @@ MonoBehaviour:
   triggerType: 1
   triggerValue: 0.1
   maxLifetime: 3
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSound: {fileID: 11400000, guid: 63fc34e56e472ce438ad50fd5ec56029, type: 2}
+  triggerSound: {fileID: 0}
   logTriggerEvents: 1

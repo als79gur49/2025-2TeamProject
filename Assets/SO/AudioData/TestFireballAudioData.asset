@@ -10,13 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1ae6478cdb245478cc097e4e0a3921, type: 3}
-  m_Name: TestAttackAudioData
+  m_Name: TestFireballAudioData
   m_EditorClassIdentifier: 
   audioType: 1
   clips:
-  - {fileID: 8300000, guid: be26d52545ad1e744860e1257065f6ba, type: 3}
-  - {fileID: 8300000, guid: 62b33bb509b0aa5418f760eb25771fa0, type: 3}
-  - {fileID: 8300000, guid: efad5a27c94e3934b8293de443fd406e, type: 3}
+  - {fileID: 8300000, guid: 6059721f4ac25684da281a834d13c55c, type: 3}
+  - {fileID: 8300000, guid: 37869145e8b1bcd47ae8a5940b95e27f, type: 3}
   volumeMin: 1
   volumeMax: 1
   pitchMin: 1
