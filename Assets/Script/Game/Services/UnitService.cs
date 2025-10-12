@@ -88,18 +88,19 @@ namespace Game.Services
         {
             var units = GetActiveUnits(isPlayerUnits);
 
+            //(x, y) 우측 y, 상단 x
             if (isPlayerUnits)
             {
-                // 플레이어 유닛: Y 내림차순 (상단 -> 하단), X 내림차순 (우측 -> 좌측)
-                return units.OrderByDescending(unit => unit.Y)
-                           .ThenByDescending(unit => unit.X)
+                // 플레이어 유닛: X 내림차순 (상단 -> 하단), y 내림차순 (우측 -> 좌측)
+                return units.OrderByDescending(unit => unit.X)
+                           .ThenByDescending(unit => unit.Y)
                            .ToList();
             }
             else
             {
-                // 적군 유닛: Y 내림차순 (상단 -> 하단), X 오름차순 (좌측 -> 우측) - 대칭
-                return units.OrderByDescending(unit => unit.Y)
-                           .ThenBy(unit => unit.X)
+                // 적군 유닛: x 내림차순 (상단 -> 하단), y 오름차순 (좌측 -> 우측) - 대칭
+                return units.OrderByDescending(unit => unit.X)
+                           .ThenBy(unit => unit.Y)
                            .ToList();
             }
         }

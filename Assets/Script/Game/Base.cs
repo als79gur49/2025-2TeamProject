@@ -74,8 +74,9 @@ namespace Game
 
         /// <summary>
         /// Base 초기화 - 시작 위치와 팀 설정
-        /// GridState.PlaceBase()에서 호출
+        /// [Deprecated] BaseManager에서 3-parameter 버전 사용 권장
         /// </summary>
+        [System.Obsolete("Use Initialize(Vector2Int, Vector2Int, TeamType) instead", false)]
         public void Initialize(Vector2Int startPos, TeamType team)
         {
             startPosition = startPos;

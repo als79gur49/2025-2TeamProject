@@ -1,4 +1,5 @@
 using UnityEngine;
+using Game;
 using Game.Core;
 using Game.Interfaces;
 
@@ -26,13 +27,13 @@ namespace Game.Services
         private GameObject basePrefab;
 
         [SerializeField]
-        [Tooltip("Base size in grid tiles (default: 1x3)")]
-        private Vector2Int baseSize = new Vector2Int(1, 3);
+        [Tooltip("Base size in grid tiles (default: 3x1)")]
+        private Vector2Int baseSize = new Vector2Int(3, 1);
 
         [Header("Placement Configuration")]
         [SerializeField]
-        [Tooltip("Y offset for base positioning (centered vertically)")]
-        private int baseCenterYOffset = 0; // 0 = use grid center
+        [Tooltip("Y offset for base positioning (distance from top/bottom edges)")]
+        private int baseCenterYOffset = 0; // 0 = place at edges
 
         [Header("Debug Settings")]
         [SerializeField] private bool enableLogging = true;
@@ -247,27 +248,29 @@ namespace Game.Services
         #region Position Calculation
 
         /// <summary>
-        /// Calculates Player Base position (left side of grid)
+        /// Calculates Player Base position (bottom side of grid)
         /// </summary>
         private Vector2Int CalculatePlayerBasePosition()
         {
             Vector2Int gridSize = gridManager.GridSize;
-            int centerY = baseCenterYOffset != 0 ? baseCenterYOffset : gridSize.y / 2;
+            int centerX = gridSize.x / 2;
+            int yPosition = baseCenterYOffset;
 
-            // Player base at leftmost column, centered vertically
-            return new Vector2Int(0, centerY - baseSize.y / 2);
+            // Player base at bottom side with offset, centered horizontally
+            return new Vector2Int(centerX - baseSize.x / 2, yPosition);
         }
 
         /// <summary>
-        /// Calculates Enemy Base position (right side of grid)
+        /// Calculates Enemy Base position (top side of grid)
         /// </summary>
         private Vector2Int CalculateEnemyBasePosition()
         {
             Vector2Int gridSize = gridManager.GridSize;
-            int centerY = baseCenterYOffset != 0 ? baseCenterYOffset : gridSize.y / 2;
+            int centerX = gridSize.x / 2;
+            int yPosition = gridSize.y - baseSize.y - baseCenterYOffset;
 
-            // Enemy base at rightmost column, centered vertically
-            return new Vector2Int(gridSize.x - baseSize.x, centerY - baseSize.y / 2);
+            // Enemy base at top side with offset, centered horizontally
+            return new Vector2Int(centerX - baseSize.x / 2, yPosition);
         }
 
         #endregion

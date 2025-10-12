@@ -46,7 +46,7 @@ namespace Game.Interfaces
     /// </summary>
     public interface IGridState : IReadOnlyGridState
     {
-        // 상태 변경 연산
+        // 유닛 상태 변경 연산
         /// <summary>
         /// 그리드 데이터 레이어만 업데이트 (Transform 변경 없음)
         /// </summary>
@@ -59,6 +59,35 @@ namespace Game.Interfaces
         bool SetUnitPosition(GameObject unit, Vector2Int newPosition);
 
         bool RemoveUnit(GameObject unit);
+
+        // Base 상태 관리 연산
+        /// <summary>
+        /// Base를 그리드에 배치 (순수 상태 관리)
+        /// 주의: Base.Initialize()는 호출 전에 완료되어 있어야 함
+        /// </summary>
+        bool PlaceBase(GameObject baseObject, Vector2Int startPosition, Vector2Int baseSize, TeamType team);
+
+        /// <summary>
+        /// Base를 그리드에서 제거
+        /// </summary>
+        bool RemoveBase(GameObject baseObject);
+
+        /// <summary>
+        /// 특정 위치의 Base 반환
+        /// </summary>
+        GameObject GetBaseAtPosition(Vector2Int position);
+
+        /// <summary>
+        /// Base가 점유한 모든 타일 위치 반환
+        /// </summary>
+        List<Vector2Int> GetBaseOccupiedPositions(GameObject baseObject);
+
+        /// <summary>
+        /// 모든 Base 객체 반환
+        /// </summary>
+        System.Collections.Generic.IEnumerable<GameObject> GetAllBases();
+
+        // 타일 상태 관리
         void SetTileBlocked(Vector2Int position, bool blocked);
         void ResizeGrid(Vector2Int newSize);
         void ClearAllState();
@@ -353,16 +382,6 @@ namespace Game.Interfaces
         void SetBlocked(bool blocked);
         void SetHighlight(Color color);
         void ClearHighlight();
-    }
-
-    /// <summary>
-    /// 통일된 그리드 유닛 인터페이스
-    /// </summary>
-    public interface IGridUnit
-    {
-        GameObject GameObject { get; }
-        Vector2Int GridPosition { get; set; }
-        bool CanOccupyTile(Vector2Int position);
     }
 
     /// <summary>

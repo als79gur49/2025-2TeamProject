@@ -403,6 +403,10 @@ namespace Game.Components
 
         /// <summary>
         /// Base 배치 - 시작 위치와 크기 기반으로 여러 타일 점유
+        ///
+        /// 책임: 순수 그리드 상태 관리만 담당
+        /// - Base 초기화는 BaseManager의 책임 (SRP 준수)
+        /// - PlaceBase() 호출 전에 Base.Initialize()가 이미 완료되어 있어야 함
         /// </summary>
         public bool PlaceBase(GameObject baseObject, Vector2Int startPosition, Vector2Int baseSize, TeamType team)
         {
@@ -412,7 +416,7 @@ namespace Game.Components
                 return false;
             }
 
-            // Base 컴포넌트 확인
+            // Base 컴포넌트 확인 (초기화 여부는 호출자 책임)
             Base baseComponent = baseObject.GetComponent<Base>();
             if (baseComponent == null)
             {
@@ -444,10 +448,10 @@ namespace Game.Components
                 }
             }
 
-            // Base 초기화
-            baseComponent.Initialize(startPosition, team);
+            // ✅ Base 초기화 제거 - BaseManager의 책임으로 이전
+            // 호출자(BaseManager)가 이미 baseComponent.Initialize()를 완료했다고 가정
 
-            // 모든 타일에 Base 배치
+            // 모든 타일에 Base 배치 (순수 상태 관리)
             foreach (var position in positions)
             {
                 positionToBase[position] = baseObject;

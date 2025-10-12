@@ -20,7 +20,7 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private Game.VFX.SpellEffectExecutor spellEffectExecutor; // VFX 서비스 추가
     [SerializeField] private TeamConfigurationManager teamConfigurationManager; // 팀별 설정 관리 서비스 추가
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
-
+    
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
     [SerializeField] private bool logInitializationSteps = true;

@@ -168,6 +168,10 @@ namespace Game.Card.Effects
             // currentTile 설정
             unit.SetCurrentTile(tile);
 
+            // 팀에 따라 유닛의 Z축 스케일 조정
+            Vector3 scale = unitObject.transform.localScale;
+            scale.z *= isPlayerUnit ? 1f : -1f;
+            unitObject.transform.localScale = scale;
 
             // TeamConfigurationManager를 통한 Material 적용
             var teamConfigManager = Core.ServiceLocator.Get<ITeamConfigurationManager>();

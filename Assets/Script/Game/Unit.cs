@@ -33,6 +33,7 @@ public class Unit : MonoBehaviour
     private IMovementSystem movementComponent;
     private ITeamComponent teamComponent;
     private IAnimationController animationController;
+    private IUnitAI unitAI;
     
     // Legacy system support
     private int legacyMaxHealth;
@@ -306,6 +307,7 @@ public class Unit : MonoBehaviour
         movementComponent = GetComponent<IMovementSystem>();
         teamComponent = GetComponent<ITeamComponent>();
         animationController = GetComponent<IAnimationController>();
+        unitAI = GetComponent<IUnitAI>();
 
         // Initialize component system if available
         if (useComponentSystem)
@@ -315,6 +317,7 @@ public class Unit : MonoBehaviour
             InitializeMovementComponent();
             InitializeTeamComponent();
             InitializeAnimationController();
+            InitializeAIComponent();
 
             // Update runtime status
             UpdateComponentSystemStatus();
@@ -323,11 +326,12 @@ public class Unit : MonoBehaviour
     
     private void UpdateComponentSystemStatus()
     {
-        componentSystemReady = useComponentSystem && 
-                              healthComponent != null && 
-                              combatComponent != null && 
-                              movementComponent != null && 
-                              teamComponent != null;
+        componentSystemReady = useComponentSystem &&
+                              healthComponent != null &&
+                              combatComponent != null &&
+                              movementComponent != null &&
+                              teamComponent != null &&
+                              unitAI != null;
     }
     
     private void InitializeHealthComponent()
@@ -410,6 +414,17 @@ public class Unit : MonoBehaviour
             Debug.Log($"[Unit] Auto-added UnitAnimationController to {gameObject.name}");
         }
     }
+
+    private void InitializeAIComponent()
+    {
+        if (unitAI == null && useComponentSystem && autoAddMissingComponents)
+        {
+            // Auto-add BasicUnitAI if not present
+            var comp = gameObject.AddComponent<BasicUnitAI>();
+            unitAI = comp;
+            Debug.Log($"[Unit] Auto-added BasicUnitAI to {gameObject.name}");
+        }
+    }
     
     public void SetCurrentTile(Tile tile)
     {
@@ -445,166 +460,65 @@ public class Unit : MonoBehaviour
     
     public void Act()
     {
-        Unit enemy = SearchForNearbyEnemies();
-        
-        if (enemy != null)
+        // AI 컴포넌트가 있으면 AI에게 위임
+        if (useComponentSystem && unitAI != null)
         {
-            Debug.Log("Act:Attack");
-            AttackEnemy(enemy);
-        }
-        else
-        {
-            Debug.Log("Act:MoveTo");
-            MoveForward();
+            var decision = unitAI.DecideAction();
+            ExecuteDecision(decision);
         }
     }
-    
-    private Unit SearchForNearbyEnemies()
+
+    /// <summary>
+    /// AI 결정 실행 - IUnitAI의 ActionDecision을 실제 행동으로 변환
+    /// </summary>
+    private void ExecuteDecision(ActionDecision decision)
     {
-        if (currentTile == null || gridManager == null) return null;
-        
-        int[] dx = {0, 0 };
-        int[] dy = {-1, 1 };
-        
-        for (int i = 0; i < dx.Length; i++)
+        switch (decision.Type)
         {
-            int newX = currentTile.X + dx[i];
-            int newY = currentTile.Y + dy[i];
-            
-            // Phase 3: Clean interface-based grid access
-            var adjacentPos = new Vector2Int(newX, newY);
-            var adjacentUnit = gridManager.GetUnitAtPosition(adjacentPos);
-            if (adjacentUnit != null)
-            {
-                var unit = adjacentUnit.GetComponent<Unit>();
-                if (unit != null && unit.IsPlayerUnit != this.IsPlayerUnit && unit.IsAlive)
+            case ActionType.Attack:
+                if (decision.TargetObject != null)
                 {
-                    return unit;
+                    Debug.Log($"[Unit] AI Decision: Attack {decision.TargetObject.name}");
+
+                    // GameObject 기반 공격 (Unit과 Base 모두 공격 가능)
+                    if (useComponentSystem && combatComponent != null)
+                    {
+                        var result = combatComponent.Attack(decision.TargetObject);
+                        if (result.Success && result.IsHit)
+                        {
+                            Debug.Log($"{gameObject.name} attacks {decision.TargetObject.name} for {result.DamageDealt} damage!");
+                        }
+                        else
+                        {
+                            Debug.Log($"{gameObject.name} attack on {decision.TargetObject.name} failed!");
+                        }
+                    }
                 }
-            }
-        }
-        
-        return null;
-    }
-    
-    private void AttackEnemy(Unit enemy)
-    {
-        if (enemy == null || !enemy.IsAlive) return;
-        
-        if (useComponentSystem && combatComponent != null)
-        {
-            // Use advanced combat system
-            var result = combatComponent.Attack(enemy.gameObject);
-            if (result.Success && result.IsHit)
-            {
-                Debug.Log($"{gameObject.name} attacks {enemy.gameObject.name} for {result.DamageDealt} damage!");
-            }
-            else
-            {
-                Debug.Log($"{gameObject.name} attack on {enemy.gameObject.name} failed!");
-            }
-        }
-        else
-        {
-            // Legacy attack system
-            Debug.Log($"{gameObject.name} attacks {enemy.gameObject.name} for {attackPower} damage!");
-            enemy.TakeDamage(attackPower);
+                break;
+
+            case ActionType.Move:
+                Debug.Log($"[Unit] AI Decision: Move to {decision.MovePosition}");
+
+                if (useComponentSystem && movementComponent != null)
+                {
+                    var result = movementComponent.MoveTo(decision.MovePosition);
+                    if (result.Success)
+                    {
+                        Debug.Log($"{gameObject.name} moved to ({decision.MovePosition.x}, {decision.MovePosition.y})");
+                    }
+                    else
+                    {
+                        Debug.Log($"{gameObject.name} movement failed - {result.Message}");
+                    }
+                }
+                break;
+
+            case ActionType.Idle:
+                Debug.Log($"[Unit] AI Decision: Idle (no valid actions)");
+                break;
         }
     }
-    
-    private void MoveForward()
-    {
-        if (currentTile == null || gridManager == null) return;
-
-        if (useComponentSystem && movementComponent != null)
-        {
-            // Use advanced movement system with intelligent path finding
-            int direction = IsPlayerUnit ? 1 : -1;
-
-            // Get all valid move positions
-            var validPositions = movementComponent.GetValidMovePositions();
-
-            // Find the furthest position in the forward direction
-            Vector2Int? bestPosition = null;
-            int maxDistance = 0;
-
-            foreach (var pos in validPositions)
-            {
-                int distance = (pos.y - currentTile.Y) * direction;
-                if (distance > maxDistance)
-                {
-                    maxDistance = distance;
-                    bestPosition = pos;
-                }
-            }
-
-            if (bestPosition.HasValue)
-            {
-                var result = movementComponent.MoveTo(bestPosition.Value);
-                if (result.Success)
-                {
-                    Debug.Log($"{gameObject.name} moved {maxDistance} tiles to ({bestPosition.Value.x}, {bestPosition.Value.y})");
-                }
-                else
-                {
-                    Debug.Log($"{gameObject.name} movement failed - {result.Message}");
-                }
-            }
-            else
-            {
-                Debug.Log($"{gameObject.name} cannot move forward - no valid positions available");
-            }
-        }
-        else
-        {
-           // // Phase 3: Clean interface-based movement
-           // int targetX = currentTile.X;
-           // int targetY = currentTile.Y + (isPlayerUnit ? movementRange : -movementRange);
-           // var targetPos = new Vector2Int(targetX, targetY);
-           //
-           // if (gridManager.CanMoveUnit(gameObject, targetPos))
-           // {
-           //     var result = gridManager.MoveUnit(gameObject, targetPos);
-           //     if (result)
-           //     {
-           //         Debug.Log($"{gameObject.name} moved to ({targetX}, {targetY})");
-           //     }
-           //     else
-           //     {
-           //         Debug.Log($"{gameObject.name} movement failed");
-           //     }
-           // }
-           // else
-           // {
-           //     Debug.Log($"{gameObject.name} cannot move forward - path blocked or out of bounds");
-           // }
-        }
-    }
-    
-    public void TakeDamage(int damage)
-    {
-        if (useComponentSystem && healthComponent != null)
-        {
-            // Delegate to HealthComponent
-            healthComponent.TakeDamage(damage);
-        }
-        else
-        {
-            // Legacy system
-            if (!IsAlive) return;
-            
-            health -= damage;
-            health = Mathf.Max(0, health);
-            
-            Debug.Log($"{gameObject.name} took {damage} damage. Current health: {health}/{legacyMaxHealth}");
-            
-            if (health <= 0)
-            {
-                Die();
-            }
-        }
-    }
-    
+       
     private void Die()
     {
         Debug.Log($"[Unit] {gameObject.name} has been destroyed!");
@@ -695,25 +609,6 @@ public class Unit : MonoBehaviour
         currentTile = null;
     }
     
-    public void Heal(int healAmount)
-    {
-        if (useComponentSystem && healthComponent != null)
-        {
-            // Delegate to HealthComponent
-            healthComponent.Heal(healAmount);
-        }
-        else
-        {
-            // Legacy system
-            if (!IsAlive) return;
-            
-            health += healAmount;
-            health = Mathf.Min(legacyMaxHealth, health);
-            
-            Debug.Log($"{gameObject.name} healed {healAmount}. Current health: {health}/{legacyMaxHealth}");
-        }
-    }
-    
     // Helper methods for component system management
     public void EnableComponentSystem(bool enable)
     {
@@ -721,64 +616,6 @@ public class Unit : MonoBehaviour
         if (enable)
         {
             InitializeComponents();
-        }
-    }
-    
-    public bool IsUsingComponentSystem()
-    {
-        return useComponentSystem && healthComponent != null && combatComponent != null && movementComponent != null;
-    }
-    
-    // Enhanced functionality through components
-    public void OnTurnEnd()
-    {
-        if (useComponentSystem && movementComponent != null)
-        {
-            movementComponent.EndTurn();
-        }
-    }
-    
-    // Component access methods for advanced features
-    public IHealthComponent GetHealthComponent() => healthComponent;
-    public ICombatSystem GetCombatComponent() => combatComponent;
-    public IMovementSystem GetMovementComponent() => movementComponent;
-    public ITeamComponent GetTeamComponent() => teamComponent;
-    
-    
-    public bool CanMoveTo(int x, int y)
-    {
-        // Check if this unit can move to the specified position
-        if (useComponentSystem && movementComponent != null)
-        {
-            return movementComponent.CanMoveTo(new Vector2Int(x, y));
-        }
-        else if (gridManager != null)
-        {
-            // Phase 3: Clean interface-based check
-            return gridManager.CanMoveUnit(gameObject, new Vector2Int(x, y));
-        }
-        
-        return false;
-    }
-    
-    /// <summary>
-    /// Legacy position setter for backward compatibility
-    /// </summary>
-    public void SetPosition(int x, int y)
-    {
-        if (gridManager != null)
-        {
-            var targetPos = new Vector2Int(x, y);
-            gridManager.MoveUnit(gameObject, targetPos);
-        }
-        else if (currentTile != null)
-        {
-            // Fallback: just update current tile reference if available
-            Debug.LogWarning($"[Unit] SetPosition called without GridManager - position update may not be complete");
-        }
-        else
-        {
-            Debug.LogWarning($"[Unit] SetPosition called without GridManager and currentTile 프레임: {Time.frameCount}");
         }
     }
     
@@ -806,6 +643,7 @@ public class Unit : MonoBehaviour
         Debug.Log($"Combat Component: {combatComponent != null} ({combatComponent?.GetType().Name})");
         Debug.Log($"Movement Component: {movementComponent != null} ({movementComponent?.GetType().Name})");
         Debug.Log($"Team Component: {teamComponent != null} ({teamComponent?.GetType().Name})");
+        Debug.Log($"AI Component: {unitAI != null} ({unitAI?.GetType().Name})");
         Debug.Log($"Current Stats - Health: {Health}/{MaxHealth}, Attack: {AttackPower}, Movement: {MovementRange}");
         Debug.Log($"Team: {(teamComponent?.Team.ToString() ?? "Legacy")} | Player Unit: {IsPlayerUnit}");
         Debug.Log($"Current Tile: {(currentTile != null ? $"{currentTile.name} ({currentTile.X}, {currentTile.Y})" : "NULL")}");

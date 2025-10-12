@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: $(uuidgen | tr -d '\n' | md5sum | cut -c1-32)
+guid: 0065f21dbfe54cb1b5ef53ca912be9c5
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
