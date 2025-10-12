@@ -490,7 +490,8 @@ public class Unit : MonoBehaviour
                         }
                         else
                         {
-                            Debug.Log($"{gameObject.name} attack on {decision.TargetObject.name} failed!");
+                            Debug.Log($"{gameObject.name} attack on {decision.TargetObject.name} failed! " +
+                                $"cause: {result.Message}");
                         }
                     }
                 }

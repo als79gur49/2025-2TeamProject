@@ -23,8 +23,13 @@ namespace Game.Interfaces
         
         // 유닛 조회
         GameObject GetUnitAtPosition(Vector2Int position);
+        /// <summary>공격 가능한 타겟 반환 (Unit 우선, 없으면 Base)</summary>
+        GameObject GetAttackableTargetAtPosition(Vector2Int position);
         Vector2Int GetUnitPosition(GameObject unit);
         bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        /// <summary>공격 대상(Unit/Base)의 위치 반환</summary>
+        Vector2Int GetPositionToAttackTarget(GameObject target);
+        bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position);
         
         // 좌표 변환
         Vector3 GridToWorldPosition(Vector2Int gridPosition);
@@ -109,8 +114,13 @@ namespace Game.Interfaces
         
         // ✅ 유닛 위치 관리
         GameObject GetUnitAtPosition(Vector2Int gridPosition);
+        /// <summary>공격 가능한 타겟 반환 (Unit 우선, 없으면 Base)</summary>
+        GameObject GetAttackableTargetAtPosition(Vector2Int gridPosition);
         Vector2Int GetUnitPosition(GameObject unit);
         bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        /// <summary>공격 대상(Unit/Base)의 위치 반환</summary>
+        Vector2Int GetPositionToAttackTarget(GameObject target);
+        bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position);
         // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
         bool RemoveUnit(GameObject unit);
         
@@ -171,8 +181,13 @@ namespace Game.Interfaces
 
         // 유닛 위치 관리
         GameObject GetUnitAtPosition(Vector2Int gridPosition);
+        /// <summary>공격 가능한 타겟 반환 (Unit 우선, 없으면 Base)</summary>
+        GameObject GetAttackableTargetAtPosition(Vector2Int gridPosition);
         Vector2Int GetUnitPosition(GameObject unit);
         bool TryGetUnitPosition(GameObject unit, out Vector2Int position);
+        /// <summary>공격 대상(Unit/Base)의 위치 반환</summary>
+        Vector2Int GetPositionToAttackTarget(GameObject target);
+        bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position);
 
         // 좌표 변환
         Vector3 GridToWorldPosition(Vector2Int gridPosition);

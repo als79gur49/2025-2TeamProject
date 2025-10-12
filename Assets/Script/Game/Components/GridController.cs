@@ -103,6 +103,15 @@ namespace Game.Components
             return gridState?.GetUnitAtPosition(gridPosition);
         }
 
+        /// <summary>
+        /// 공격 가능한 타겟 반환 (Unit 우선, 없으면 Base)
+        /// AI 및 전투 시스템에서 공격 대상을 찾을 때 사용
+        /// </summary>
+        public GameObject GetAttackableTargetAtPosition(Vector2Int gridPosition)
+        {
+            return gridState?.GetAttackableTargetAtPosition(gridPosition);
+        }
+
         public Vector2Int GetUnitPosition(GameObject unit)
         {
             return gridState?.GetUnitPosition(unit) ?? new Vector2Int(-1, -1);
@@ -115,6 +124,21 @@ namespace Game.Components
                 return gridState.TryGetUnitPosition(unit, out position);
             }
 
+            position = new Vector2Int(-1, -1);
+            return false;
+        }
+
+        public Vector2Int GetPositionToAttackTarget(GameObject target)
+        {
+            return gridState?.GetPositionToAttackTarget(target) ?? new Vector2Int(-1, -1);
+        }
+
+        public bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position)
+        {
+            if (gridState != null)
+            {
+                return gridState.TryGetPositionToAttackTarget(target, out position);
+            }
             position = new Vector2Int(-1, -1);
             return false;
         }

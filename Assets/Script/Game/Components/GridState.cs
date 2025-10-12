@@ -88,6 +88,20 @@ namespace Game.Components
         }
 
         /// <summary>
+        /// 공격 가능한 타겟 반환 (Unit 우선, 없으면 Base)
+        /// AI 타겟팅 시스템에서 사용 - Unit이 우선순위를 가지며, Unit이 없을 경우 Base를 반환
+        /// </summary>
+        public GameObject GetAttackableTargetAtPosition(Vector2Int position)
+        {
+            // Priority 1: Check for Unit (전술적으로 유닛이 우선)
+            var unit = positionUnits.GetValueOrDefault(position);
+            if (unit != null) return unit;
+
+            // Priority 2: Check for Base (유닛이 없을 경우 기지 공격)
+            return positionToBase.GetValueOrDefault(position);
+        }
+
+        /// <summary>
         /// 유닛의 위치 반환
         /// </summary>
         public Vector2Int GetUnitPosition(GameObject unit)
@@ -101,6 +115,37 @@ namespace Game.Components
         public bool TryGetUnitPosition(GameObject unit, out Vector2Int position)
         {
             return unitPositions.TryGetValue(unit, out position);
+        }
+
+        /// <summary>
+        /// 공격 가능한 타겟(Unit/Base)의 위치 반환
+        /// Unit은 단일 위치, Base는 첫 번째 점유 위치 반환
+        /// </summary>
+        public Vector2Int GetPositionToAttackTarget(GameObject target)
+        {
+            if (target == null) return new Vector2Int(-1, -1);
+
+            // Try Unit first
+            if (unitPositions.TryGetValue(target, out Vector2Int unitPos))
+                return unitPos;
+
+            // Try Base - return first occupied position
+            if (basePositions.TryGetValue(target, out List<Vector2Int> positions))
+            {
+                if (positions != null && positions.Count > 0)
+                    return positions[0];
+            }
+
+            return new Vector2Int(-1, -1);
+        }
+
+        /// <summary>
+        /// 안전한 타겟 위치 조회 (TryGetUnitPosition 패턴과 일관성)
+        /// </summary>
+        public bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position)
+        {
+            position = GetPositionToAttackTarget(target);
+            return position.x >= 0 && position.y >= 0;
         }
 
         /// <summary>

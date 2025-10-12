@@ -1,9 +1,10 @@
+using Game.Core;
+using Game.Data;
+using Game.Interfaces;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Game.Interfaces;
-using Game.Data;
-using Game.Core;
+using static UnityEditor.PlayerSettings;
 
 namespace Game.Components
 {
@@ -119,10 +120,10 @@ namespace Game.Components
             if (!this.IsValidTarget(target)) return false;
             if (!this.CanAttackByTeam(target)) return false;
 
-            var targetPosition = gridManager?.GetUnitPosition(target);
-            if (!targetPosition.HasValue) return false;
+            if (!gridManager.TryGetPositionToAttackTarget(target, out Vector2Int targetPosition))
+                return false;
 
-            return CanAttackPosition(targetPosition.Value);
+            return CanAttackPosition(targetPosition);
         }
 
         public bool CanAttackPosition(Vector2Int position)
@@ -158,6 +159,7 @@ namespace Game.Components
             // BlendTree 애니메이션 재생 (데미지는 OnAnimationAttackHit에서 적용)
             if (animationController != null)
             {
+                Debug.Log($"[CombatComponent] Attack animation started");
                 animationController.PlayAttackAnimation(target);
 
                 // 임시 결과 반환 (실제 결과는 OnAnimationAttackHit 이벤트로 전달)
@@ -227,10 +229,11 @@ namespace Game.Components
 
             foreach (var pos in positions)
             {
-                var unit = gridManager?.GetUnitAtPosition(pos);
-                if (unit != null && this.IsValidTarget(unit) && this.CanAttackByTeam(unit))
+                // GetAttackableTargetAtPosition: Unit 우선, 없으면 Base 반환
+                var target = gridManager?.GetAttackableTargetAtPosition(pos);
+                if (target != null && this.IsValidTarget(target) && this.CanAttackByTeam(target))
                 {
-                    targets.Add(unit);
+                    targets.Add(target);
                 }
             }
 
@@ -240,11 +243,11 @@ namespace Game.Components
         public bool IsTargetInRange(GameObject target, Vector2Int fromPosition)
         {
             if (target == null) return false;
-            var targetPosition = gridManager?.GetUnitPosition(target);
-            if (!targetPosition.HasValue) return false;
+            if (!gridManager.TryGetPositionToAttackTarget(target, out Vector2Int targetPosition))
+                return false;
 
             var attackablePositions = GetAttackRange(fromPosition);
-            return attackablePositions.Contains(targetPosition.Value);
+            return attackablePositions.Contains(targetPosition);
         }
 
         public void SetBaseAttackPower(int newAttackPower)
