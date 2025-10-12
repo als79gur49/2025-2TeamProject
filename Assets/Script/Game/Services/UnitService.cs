@@ -81,16 +81,27 @@ namespace Game.Services
         }
         
         /// <summary>
-        /// 그리드 위치(우상단에서 좌하단)에 따라 정렬된 유닛 리스트를 가져옵니다.
+        /// 그리드 위치에 따라 정렬된 유닛 리스트를 가져옵니다.
+        /// 플레이어: 상단→하단, 우측→좌측 / 적군: 상단→하단, 좌측→우측 (대칭)
         /// </summary>
         public List<Unit> GetUnitsInGridOrder(bool isPlayerUnits)
         {
             var units = GetActiveUnits(isPlayerUnits);
-            
-            // 그리드 순서: Y 내림차순 (상단 -> 하단), X 내림차순 (우측 -> 좌측)
-            return units.OrderByDescending(unit => unit.Y)
-                       .ThenByDescending(unit => unit.X)
-                       .ToList();
+
+            if (isPlayerUnits)
+            {
+                // 플레이어 유닛: Y 내림차순 (상단 -> 하단), X 내림차순 (우측 -> 좌측)
+                return units.OrderByDescending(unit => unit.Y)
+                           .ThenByDescending(unit => unit.X)
+                           .ToList();
+            }
+            else
+            {
+                // 적군 유닛: Y 내림차순 (상단 -> 하단), X 오름차순 (좌측 -> 우측) - 대칭
+                return units.OrderByDescending(unit => unit.Y)
+                           .ThenBy(unit => unit.X)
+                           .ToList();
+            }
         }
         
         private void CleanupDeadUnits()

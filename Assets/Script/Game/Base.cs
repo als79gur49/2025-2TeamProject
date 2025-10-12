@@ -27,6 +27,10 @@ namespace Game
         private Vector2Int startPosition;  // 좌하단 시작 위치
         private readonly List<Tile> occupiedTiles = new List<Tile>();
 
+        // ✅ 이벤트
+        /// <summary>Base 파괴 시 발생하는 이벤트 (BaseManager가 구독)</summary>
+        public event System.Action<GameObject> OnDeath;
+
         // ✅ 속성
         public TeamType Team => teamComponent?.Team ?? TeamType.None;
         public Vector2Int BaseSize => baseSize;
@@ -75,6 +79,23 @@ namespace Game
         public void Initialize(Vector2Int startPos, TeamType team)
         {
             startPosition = startPos;
+
+            if (teamComponent != null)
+            {
+                teamComponent.Team = team;
+            }
+
+            Debug.Log($"[Base] Initialized at {startPos} for team {team}, size {baseSize}");
+        }
+
+        /// <summary>
+        /// Base 초기화 - 시작 위치, 크기, 팀 설정
+        /// BaseManager에서 호출
+        /// </summary>
+        public void Initialize(Vector2Int startPos, Vector2Int size, TeamType team)
+        {
+            startPosition = startPos;
+            baseSize = size;
 
             if (teamComponent != null)
             {
@@ -137,8 +158,8 @@ namespace Game
         {
             Debug.Log($"[Base] Team {Team} base destroyed at {startPosition}!");
 
-            // TODO: GameManager에 게임 오버 알림
-            // GameManager.Instance?.OnBaseDestroyed(Team);
+            // BaseManager에 사망 알림
+            OnDeath?.Invoke(gameObject);
 
             // 점유 타일 정리
             foreach (var tile in occupiedTiles)

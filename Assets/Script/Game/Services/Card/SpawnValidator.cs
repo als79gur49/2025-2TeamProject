@@ -187,6 +187,73 @@ namespace Game.Services
         }
 
         /// <summary>
+        /// 범용 카드 사용 가능 여부 검증 (유닛/주문 통합)
+        /// ValidateSpawnCost, ValidatePhaseForSpawn, ValidateTargetRange, ValidatePlacementTarget 활용
+        /// </summary>
+        /// <param name="cardData">사용할 카드 데이터</param>
+        /// <param name="targetPosition">대상 위치</param>
+        /// <param name="isPlayerUnit">플레이어 카드인지 여부</param>
+        /// <returns>사용 가능 여부</returns>
+        public bool CanUseCard(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit)
+        {
+            if (!isInitialized)
+            {
+                LogError("SpawnValidator not initialized");
+                return false;
+            }
+
+            if (cardData == null)
+            {
+                LogError("Cannot validate card use for null CardData");
+                return false;
+            }
+
+            Log($"Validating card use: {cardData.CardName} at {targetPosition} (Player: {isPlayerUnit})");
+
+            // 1. 소환 비용 검증
+            bool hasEnoughResources = ValidateSpawnCost(cardData, isPlayerUnit);
+            if (!hasEnoughResources)
+            {
+                Log($"Cost validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            // 2. 페이즈 검증
+            bool isValidPhase = ValidatePhaseForSpawn(isPlayerUnit);
+            if (!isValidPhase)
+            {
+                Log($"Phase validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            // 3. 그리드 위치 유효성 검증
+            if (gridController != null && !gridController.IsValidPosition(targetPosition))
+            {
+                Log($"Invalid target position: {targetPosition}");
+                return false;
+            }
+
+            // 4. 배치 대상 검증 (카드의 Target 타입에 따른 검증)
+            bool isValidPlacement = ValidatePlacementTarget(cardData, targetPosition);
+            if (!isValidPlacement)
+            {
+                Log($"Placement target validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            // 5. 목표 거리 검증 (TargetRange)
+            bool isValidRange = ValidateTargetRange(cardData, targetPosition, isPlayerUnit);
+            if (!isValidRange)
+            {
+                Log($"Target range validation failed for {cardData.CardName}");
+                return false;
+            }
+
+            Log($"Card validation passed for {cardData.CardName} at {targetPosition}");
+            return true;
+        }
+
+        /// <summary>
         /// Phase 2.5: 카드 배치 대상 유효성 검증 (주문 대상 지정에서 배치 대상 검증으로 변경)
         /// </summary>
         private bool ValidatePlacementTarget(CardData cardData, Vector2Int targetPosition)
@@ -467,85 +534,6 @@ namespace Game.Services
         private void LogError(string message)
         {
             Debug.LogError($"[SpawnValidator] {message}");
-        }
-
-        #endregion
-
-        #region 공개 API
-
-        /// <summary>
-        /// Phase 2.11: CardData의 TargetType과 TargetRange를 활용한 배치 유효성 검증
-        /// 외부에서 직접 호출할 수 있는 공개 메서드
-        /// </summary>
-        /// <param name="cardData">검증할 카드 데이터</param>
-        /// <param name="originPosition">시전자/소환자 위치</param>
-        /// <param name="targetPosition">목표 위치</param>
-        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
-        /// <returns>배치 가능 여부</returns>
-        public bool ValidateCardPlacement(CardData cardData, Vector2Int originPosition, Vector2Int targetPosition, bool isPlayerCard)
-        {
-            if (!isInitialized)
-            {
-                LogError("SpawnValidator not initialized for card placement validation");
-                return false;
-            }
-
-            if (cardData == null)
-            {
-                LogError("Cannot validate placement for null CardData");
-                return false;
-            }
-
-            Log($"🎯 Validating card placement: {cardData.CardName} from {originPosition} to {targetPosition} (Player: {isPlayerCard})");
-
-            return ValidateTargetWithCardData(cardData, originPosition, targetPosition, isPlayerCard);
-        }
-
-        /// <summary>
-        /// Phase 3.15: 새로운 TargetRange 시스템 테스트를 위한 검증 메서드 (GridController 연동)
-        /// GridController의 디버깅 기능을 활용하여 일관성 있는 테스트 수행
-        /// </summary>
-        /// <param name="cardData">테스트할 카드</param>
-        /// <param name="testPositions">테스트할 위치들</param>
-        /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
-        /// <returns>각 위치별 검증 결과</returns>
-        public System.Collections.Generic.Dictionary<Vector2Int, bool> TestTargetRangeValidation(
-            CardData cardData,
-            System.Collections.Generic.List<Vector2Int> testPositions,
-            bool isPlayerCard)
-        {
-            var results = new System.Collections.Generic.Dictionary<Vector2Int, bool>();
-
-            if (!isInitialized || cardData == null || gridController == null)
-            {
-                return results;
-            }
-
-            // Phase 3.15: GridController의 디버깅 기능 사용
-            gridController.DebugTargetRangeValidation(cardData, testPositions, isPlayerCard);
-
-            Log($"🧪 Testing TargetRange validation for {cardData.CardName} via GridController");
-
-            foreach (var testPos in testPositions)
-            {
-                bool isValid = ValidateTargetWithCardData(cardData, GetPlayerBasePosition(), testPos, isPlayerCard);
-                results[testPos] = isValid;
-            }
-
-            return results;
-        }
-
-        /// <summary>
-        /// 검증자 상태 정보 반환 (디버깅용)
-        /// </summary>
-        public string GetStatus()
-        {
-            return $"SpawnValidator Status:\n" +
-                   $"- Initialized: {isInitialized}\n" +
-                   $"- Strict Validation: {strictValidation}\n" +
-                   $"- GridController Available: {(gridController != null ? "✅" : "❌")}\n" +
-                   $"- TurnService Available: {(turnService != null ? "✅" : "❌")}\n" +
-                   $"- ResourceManager Available: {(resourceManager != null ? "✅" : "❌")}\n";
         }
 
         #endregion

@@ -121,19 +121,19 @@ namespace Game.AI
         {
             if (!isInitialized)
             {
-                LogError("❌ [EnemyAI] Not initialized!");
+                LogError("[EnemyAI] Not initialized!");
                 return;
             }
 
             if (enemyHand.Count == 0)
             {
-                Log("📭 No cards in hand to play");
+                Log("No cards in hand to play");
                 return;
             }
 
             // 1. 현재 사용 가능한 마나 확인
             int currentMana = resourceManager.EnemyMana;
-            Log($"💰 Starting summon phase with {currentMana} mana");
+            Log($"Starting summon phase with {currentMana} mana");
 
             // 2. 손패의 모든 카드에 대해 최고 가치와 위치를 계산
             var cardValueInfos = new List<CardValueInfo>();
@@ -143,13 +143,13 @@ namespace Game.AI
                 if (valueInfo.Value > 0)
                 {
                     cardValueInfos.Add(valueInfo);
-                    Log($"💎 Card '{card.CardName}': Value={valueInfo.Value}, BestPos={valueInfo.Position}");
+                    Log($"Card '{card.CardName}': Value={valueInfo.Value}, BestPos={valueInfo.Position}");
                 }
             }
 
             if (cardValueInfos.Count == 0)
             {
-                Log("⚠️ No valid card placements found");
+                Log("No valid card placements found");
                 return;
             }
 
@@ -158,11 +158,11 @@ namespace Game.AI
 
             if (selectedCardInfos.Count == 0)
             {
-                Log("🚫 No cards selected to play this turn");
+                Log("No cards selected to play this turn");
                 return;
             }
 
-            Log($"🎯 Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
+            Log($"Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
 
             // 4. 선택된 카드들을 최고 위치에 실행
             int successCount = 0;
@@ -173,15 +173,15 @@ namespace Game.AI
                 {
                     enemyHand.Remove(info.Card);
                     successCount++;
-                    Log($"✅ Executed '{info.Card.CardName}' at {info.Position}");
+                    Log($"Executed '{info.Card.CardName}' at {info.Position} value{info.Value}");
                 }
                 else
                 {
-                    LogError($"❌ Failed to execute '{info.Card.CardName}' at {info.Position}");
+                    LogError($"Failed to execute '{info.Card.CardName}' at {info.Position}");
                 }
             }
 
-            Log($"🎯 Summon phase complete: {successCount}/{selectedCardInfos.Count} cards played successfully");
+            Log($"Summon phase complete: {successCount}/{selectedCardInfos.Count} cards played successfully");
         }
 
         #endregion
@@ -243,15 +243,7 @@ namespace Game.AI
             if (card == null || spawnValidator == null)
                 return false;
 
-            // Summon 카드는 SpawnValidator 사용
-            if (card.HasEffectType(EffectType.Summon))
-            {
-                return spawnValidator.CanSpawnUnit(card, position, isPlayerUnit: false);
-            }
-
-            // Spell 카드는 TargetType과 TargetRange 확인
-            // TODO: 추가 검증 로직 구현 (현재는 임시로 모든 Spell 위치 허용)
-            return true;
+            return spawnValidator.CanUseCard(card, position, isPlayerUnit: false);
         }
 
         /// <summary>

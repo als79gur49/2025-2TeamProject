@@ -18,6 +18,8 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private CardServiceManager cardServiceManager; // 신규 참조 추가
     [SerializeField] private ResourceManager resourceManager; // Phase 2: 자원 관리 서비스 추가
     [SerializeField] private Game.VFX.SpellEffectExecutor spellEffectExecutor; // VFX 서비스 추가
+    [SerializeField] private TeamConfigurationManager teamConfigurationManager; // 팀별 설정 관리 서비스 추가
+    [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
 
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -110,6 +112,12 @@ public class GameInitializer : MonoBehaviour
 
         // VFX Services 등록 - SpellEffectExecutor를 통한 VFX 시스템 등록
         RegisterVFXServices();
+
+        // Team Configuration Services 등록 - TeamConfigurationManager를 통한 팀별 설정 시스템 등록
+        RegisterTeamConfigurationServices();
+
+        // Base Management Services 등록 - BaseManager를 통한 Base 라이프사이클 관리
+        RegisterBaseServices();
     }
 
     /// <summary>
@@ -222,6 +230,61 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
+    /// 팀별 설정 서비스 등록 - TeamConfigurationManager를 통한 팀별 Material 등 설정 관리
+    /// </summary>
+    private void RegisterTeamConfigurationServices()
+    {
+        Log("Registering team configuration services via TeamConfigurationManager...");
+
+        // TeamConfigurationManager 등록
+        if (teamConfigurationManager != null)
+        {
+            teamConfigurationManager.Initialize();
+            ServiceLocator.Register<ITeamConfigurationManager>(teamConfigurationManager);
+            Log("✅ TeamConfigurationManager initialized and registered");
+        }
+        else
+        {
+            LogError("❌ TeamConfigurationManager not found - Team configuration services not registered");
+        }
+
+        Log("Team configuration services registration completed");
+    }
+
+    /// <summary>
+    /// Base 관리 서비스 등록 - BaseManager를 통한 Base 라이프사이클 관리
+    /// </summary>
+    private void RegisterBaseServices()
+    {
+        Log("Registering Base management services via BaseManager...");
+
+        // BaseManager 등록
+        if (baseManager != null)
+        {
+            // BaseManager 의존성 주입
+            IGridManager gridManagerInterface = gridManager;
+            ITeamConfigurationManager teamConfigManagerInterface = teamConfigurationManager;
+
+            if (gridManagerInterface != null && teamConfigManagerInterface != null)
+            {
+                baseManager.InjectDependencies(gridManagerInterface, teamConfigManagerInterface);
+                ServiceLocator.Register<IBaseManager>(baseManager);
+                Log("✅ BaseManager initialized and registered");
+            }
+            else
+            {
+                LogError($"❌ BaseManager dependencies missing - GridManager: {gridManagerInterface != null}, TeamConfigManager: {teamConfigManagerInterface != null}");
+            }
+        }
+        else
+        {
+            LogError("❌ BaseManager not found - Base management services not registered");
+        }
+
+        Log("Base management services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -291,6 +354,12 @@ public class GameInitializer : MonoBehaviour
         if (!ServiceLocator.IsRegistered<Game.VFX.ISpellEffectExecutor>())
         {
             LogError("❌ Critical service missing: ISpellEffectExecutor");
+        }
+
+        // Team Configuration 서비스 확인
+        if (!ServiceLocator.IsRegistered<ITeamConfigurationManager>())
+        {
+            LogError("❌ Critical service missing: ITeamConfigurationManager");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

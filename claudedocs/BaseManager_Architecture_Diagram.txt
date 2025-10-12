@@ -1,0 +1,199 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         BASE MANAGER ARCHITECTURE                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          INITIALIZATION FLOW                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+GameInitializer
+    │
+    ├──► RegisterGridServices()
+    │       └──► GridManager + GridState registered
+    │
+    ├──► RegisterTeamConfigurationServices()
+    │       └──► TeamConfigurationManager registered
+    │
+    └──► RegisterBaseServices()
+            │
+            ├──► baseManager.InjectDependencies(gridManager, teamConfigManager)
+            └──► ServiceLocator.Register<IBaseManager>(baseManager)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          BASE CREATION FLOW                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+GameServiceManager.Start()
+    │
+    └──► BaseManager.InitializeBases()
+            │
+            ├──► CreateBase(TeamType.Player, leftPos)
+            │      │
+            │      ├──► Instantiate(basePrefab)
+            │      ├──► base.Initialize(pos, size, team)
+            │      ├──► GridState.PlaceBase(baseObj, pos, size, team)
+            │      ├──► ApplyTeamVisuals(base, team)
+            │      └──► base.OnDeath += HandlePlayerBaseDeath
+            │
+            └──► CreateBase(TeamType.Enemy, rightPos)
+                   │
+                   ├──► Instantiate(basePrefab)
+                   ├──► base.Initialize(pos, size, team)
+                   ├──► GridState.PlaceBase(baseObj, pos, size, team)
+                   ├──► ApplyTeamVisuals(base, team)
+                   └──► base.OnDeath += HandleEnemyBaseDeath
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       BASE DESTRUCTION EVENT FLOW                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Enemy Card/Unit attacks Player Base
+    │
+    ▼
+HealthComponent.TakeDamage()
+    │
+    ▼
+Health reaches 0
+    │
+    ▼
+HealthComponent.OnDeath event fires
+    │
+    ▼
+Base.OnBaseDestroyed() [private]
+    │
+    ├──► Base.OnDeath?.Invoke(gameObject) [public event]
+    └──► Cleanup tiles and Destroy(gameObject, 1f)
+            │
+            ▼
+BaseManager.HandlePlayerBaseDeath()
+    │
+    ├──► Log: "Player Base destroyed"
+    └──► OnPlayerBaseDestroyed?.Invoke()
+            │
+            ▼
+GameServiceManager.HandlePlayerBaseDestroyed()
+    │
+    ├──► Log: "💀 Player Base destroyed - Game Loss"
+    ├──► OnPlayerBaseDestroyed?.Invoke() [public event]
+    └──► gameService.EndGame()
+            │
+            ▼
+GameService.EndGame()
+    │
+    ├──► IsGameActive = false
+    └──► OnGameEnded?.Invoke()
+            │
+            ▼
+UI shows "Game Over - Defeat"
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DEPENDENCY DIAGRAM                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌──────────────────────┐
+                    │  GameInitializer     │
+                    │  (Orchestrator)      │
+                    └──────────┬───────────┘
+                               │ registers
+                               │
+                    ┌──────────▼───────────┐
+                    │    BaseManager       │◄───────┐
+                    │ (Base Lifecycle Mgr) │        │
+                    └──┬────────────────┬──┘        │
+                       │                │           │
+                       │ depends on     │           │ event
+                       │                │           │
+            ┌──────────▼──────┐  ┌──────▼──────────┐│
+            │  IGridManager   │  │ ITeamConfig     ││
+            │  (Grid System)  │  │   Manager       ││
+            └─────────────────┘  └─────────────────┘│
+                                                     │
+                    ┌────────────────────────────────┘
+                    │
+         ┌──────────▼──────────────┐
+         │  GameServiceManager     │
+         │  (Event Aggregator)     │
+         └──────────┬───────────────┘
+                    │ calls EndGame()
+                    │
+         ┌──────────▼──────────────┐
+         │     GameService         │
+         │  (Game State Manager)   │
+         └─────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         BASE POSITIONING                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Grid (10x10 example):
+
+    0   1   2   3   4   5   6   7   8   9
+  ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐
+9 │   │   │   │   │   │   │   │   │   │ E │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+8 │   │   │   │   │   │   │   │   │   │ N │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+7 │   │   │   │   │   │   │   │   │   │ E │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+6 │   │   │   │   │   │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+5 │ P │   │   │   │   │   │   │   │   │   │  centerY = 5
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+4 │ L │   │   │   │   │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+3 │ A │   │   │   │   │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+2 │ Y │   │   │   │   │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+1 │ E │   │   │   │   │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
+0 │ R │   │   │   │   │   │   │   │   │   │
+  └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘
+
+Player Base (1x3):
+  - Position: (0, 3)  // centerY - baseSize.y/2 = 5 - 3/2 = 3
+  - Occupies: (0,3), (0,4), (0,5)
+
+Enemy Base (1x3):
+  - Position: (9, 3)  // gridWidth-1, centerY - baseSize.y/2
+  - Occupies: (9,3), (9,4), (9,5)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      SERVICE RESPONSIBILITY MAP                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────┐
+│      BaseManager        │  ✓ Base instantiation
+│  (Base Lifecycle)       │  ✓ Base placement coordination
+└─────────────────────────┘  ✓ Base destruction monitoring
+                             ✓ Victory/Defeat event emission
+
+┌─────────────────────────┐
+│        Base.cs          │  ✓ Health management
+│   (Base Entity)         │  ✓ Team identification
+└─────────────────────────┘  ✓ Tile occupancy tracking
+                             ✓ OnDeath event emission
+
+┌─────────────────────────┐
+│      GridState          │  ✓ Tile occupancy tracking
+│   (Grid Data Layer)     │  ✓ Base-to-tile mapping
+└─────────────────────────┘  ✓ Position validation
+                             ✓ Multi-tile placement
+
+┌─────────────────────────┐
+│   GameServiceManager    │  ✓ Service coordination
+│  (Event Aggregator)     │  ✓ Event routing
+└─────────────────────────┘  ✓ Game end triggering
+                             ✓ Public event publishing
+
+┌─────────────────────────┐
+│     GameService         │  ✓ Game state management
+│  (State Coordinator)    │  ✓ Game lifecycle control
+└─────────────────────────┘  ✓ IsGameActive flag
+                             ✓ OnGameEnded event
+

@@ -16,6 +16,7 @@ namespace Game.Services
         [SerializeField] private UnitService unitService;
         [SerializeField] private UIService uiService;
         [SerializeField] private GameService gameService;
+        [SerializeField] private BaseManager baseManager;
         
         [Header("Configuration")]
         [SerializeField] private bool autoInitialize = true;
@@ -56,10 +57,16 @@ namespace Game.Services
         
         /// <summary>Event fired when user requests to restart game</summary>
         public event Action OnRestartRequested;
-        
+
+        /// <summary>Event fired when Player Base is destroyed (Game Loss)</summary>
+        public event Action OnPlayerBaseDestroyed;
+
+        /// <summary>Event fired when Enemy Base is destroyed (Game Victory)</summary>
+        public event Action OnEnemyBaseDestroyed;
+
         /// <summary>Event fired when all services are initialized successfully</summary>
         public event Action OnServicesInitialized;
-        
+
         /// <summary>Event fired when a service error occurs</summary>
         public event Action<string> OnServiceError;
         
@@ -92,6 +99,13 @@ namespace Game.Services
         }
         private void Start()
         {
+            // Initialize Bases before starting game
+            if (baseManager != null)
+            {
+                baseManager.InitializeBases();
+                LogEvent("🏰 Bases initialized");
+            }
+
             gameService.StartGame();
         }
         private void OnDestroy()
@@ -239,10 +253,17 @@ namespace Game.Services
             gameService.OnGameStarted += HandleGameStarted;
             gameService.OnGameEnded += HandleGameEnded;
             
-            // UIService events  
+            // UIService events
             uiService.OnEndTurnRequested += HandleEndPhaseRequested;
             uiService.OnRestartRequested += HandleRestartRequested;
-            
+
+            // BaseManager events
+            if (baseManager != null)
+            {
+                baseManager.OnPlayerBaseDestroyed += HandlePlayerBaseDestroyed;
+                baseManager.OnEnemyBaseDestroyed += HandleEnemyBaseDestroyed;
+            }
+
             areEventsConnected = true;
             LogEvent("🔗 All service events connected");
         }
@@ -361,11 +382,35 @@ namespace Game.Services
             LogEvent("🎮 Game started");
             OnGameStarted?.Invoke();
         }
-        
+
         private void HandleGameEnded()
         {
             LogEvent("🏁 Game ended");
             OnGameEnded?.Invoke();
+        }
+
+        private void HandlePlayerBaseDestroyed()
+        {
+            LogEvent("💀 Player Base destroyed - Game Loss");
+            OnPlayerBaseDestroyed?.Invoke();
+
+            // Trigger game end
+            if (gameService != null)
+            {
+                gameService.EndGame();
+            }
+        }
+
+        private void HandleEnemyBaseDestroyed()
+        {
+            LogEvent("🎉 Enemy Base destroyed - Game Victory");
+            OnEnemyBaseDestroyed?.Invoke();
+
+            // Trigger game end
+            if (gameService != null)
+            {
+                gameService.EndGame();
+            }
         }
         
         private void HandleEndPhaseRequested()
@@ -455,7 +500,14 @@ namespace Game.Services
                     uiService.OnEndTurnRequested -= HandleEndPhaseRequested;
                     uiService.OnRestartRequested -= HandleRestartRequested;
                 }
-                
+
+                // BaseManager events
+                if (baseManager != null)
+                {
+                    baseManager.OnPlayerBaseDestroyed -= HandlePlayerBaseDestroyed;
+                    baseManager.OnEnemyBaseDestroyed -= HandleEnemyBaseDestroyed;
+                }
+
                 areEventsConnected = false;
                 LogEvent("🔗 All service events disconnected");
             }

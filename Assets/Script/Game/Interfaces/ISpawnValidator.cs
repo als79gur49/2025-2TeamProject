@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Data;
 using Game.Services;
+using System.Diagnostics;
 
 namespace Game.Interfaces
 {
@@ -29,7 +30,6 @@ namespace Game.Interfaces
         /// <returns>사용 가능 여부</returns>
         bool CanUseSpell(CardData cardData, Vector2Int targetPosition);
 
-        /// <summary>검증자 상태 정보 반환</summary>
-        string GetStatus();
+        bool CanUseCard(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit);
     }
 }
