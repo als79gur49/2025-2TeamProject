@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Interfaces
@@ -48,6 +49,12 @@ namespace Game.Interfaces
         void PlayAttackAnimation(GameObject target);
 
         /// <summary>
+        /// BlendTree 기반 공격 애니메이션 재생 (다중 타겟)
+        /// </summary>
+        /// <param name="targets">공격 대상 GameObject 리스트</param>
+        void PlayAttackAnimation(List<GameObject> targets);
+
+        /// <summary>
         /// 현재 재생 중인 애니메이션 중단
         /// </summary>
         void StopCurrentAnimation();
@@ -75,16 +82,16 @@ namespace Game.Interfaces
         event Action<Vector2Int> OnMoveEnd;
 
         /// <summary>
-        /// 공격 시작 이벤트 (target)
+        /// 공격 시작 이벤트 (targets)
         /// BlendTreeAnimationController.OnBlendTreeAttackStart에서 전달
         /// </summary>
-        event Action<GameObject> OnAttackStart;
+        event Action<List<GameObject>> OnAttackStart;
 
         /// <summary>
-        /// 공격 종료 이벤트 (target)
+        /// 공격 종료 이벤트 (targets)
         /// BlendTreeAnimationController.OnBlendTreeAttackEnd에서 전달
         /// </summary>
-        event Action<GameObject> OnAttackEnd;
+        event Action<List<GameObject>> OnAttackEnd;
 
         /// <summary>
         /// 애니메이션 중단 이벤트
@@ -94,9 +101,10 @@ namespace Game.Interfaces
 
         /// <summary>
         /// 공격 타격 순간 이벤트 (공격 진행도 60% 지점)
+        /// List 기반으로 단일/다중 타겟 모두 지원
         /// CombatComponent가 이 이벤트를 구독하여 데미지 적용
         /// </summary>
-        event Action<GameObject> OnAttackHit;
+        event Action<List<GameObject>> OnAttackHit;
 
         // ========================================
         // VFX/SFX Events

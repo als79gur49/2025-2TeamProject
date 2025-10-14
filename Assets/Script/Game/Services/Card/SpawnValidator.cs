@@ -234,7 +234,7 @@ namespace Game.Services
             }
 
             // 4. 배치 대상 검증 (카드의 Target 타입에 따른 검증)
-            bool isValidPlacement = ValidatePlacementTarget(cardData, targetPosition);
+            bool isValidPlacement = ValidatePlacementTarget(cardData, targetPosition, isPlayerUnit);
             if (!isValidPlacement)
             {
                 Log($"Placement target validation failed for {cardData.CardName}");
@@ -254,9 +254,13 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// Phase 2.5: 카드 배치 대상 유효성 검증 (주문 대상 지정에서 배치 대상 검증으로 변경)
+        /// Phase 2.5 + Fix: 카드 배치 대상 유효성 검증 (카드 사용자 관점 고려)
+        /// isPlayerUnit을 고려하여 "적/아군"을 상대적으로 판단합니다.
         /// </summary>
-        private bool ValidatePlacementTarget(CardData cardData, Vector2Int targetPosition)
+        /// <param name="cardData">카드 데이터</param>
+        /// <param name="targetPosition">타겟 위치</param>
+        /// <param name="isPlayerUnit">플레이어가 사용하는 카드인지 여부</param>
+        private bool ValidatePlacementTarget(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit)
         {
             // 배치 대상 타입에 따른 검증
             switch (cardData.Target)
@@ -270,12 +274,30 @@ namespace Game.Services
                            !(gridController?.IsPositionOccupied(targetPosition) ?? false);
 
                 case CardData.TargetType.Enemy:
-                    // 적군 유닛이 있는 위치에만 배치 가능 (예: 파이어볼)
-                    return gridController?.HasEnemyUnit(targetPosition) ?? true;
+                    // 카드 사용자 관점에서 적군 유닛이 있는 위치에만 배치 가능
+                    if (isPlayerUnit)
+                    {
+                        // 플레이어가 사용 → Enemy 팀이 적
+                        return gridController?.HasEnemyUnit(targetPosition) ?? true;
+                    }
+                    else
+                    {
+                        // 적군 AI가 사용 → Player 팀이 적
+                        return gridController?.HasPlayerUnit(targetPosition) ?? true;
+                    }
 
                 case CardData.TargetType.Ally:
-                    // 아군 유닛이 있는 위치에만 배치 가능 (예: 힐링, 버프)
-                    return gridController?.HasPlayerUnit(targetPosition) ?? true;
+                    // 카드 사용자 관점에서 아군 유닛이 있는 위치에만 배치 가능
+                    if (isPlayerUnit)
+                    {
+                        // 플레이어가 사용 → Player 팀이 아군
+                        return gridController?.HasPlayerUnit(targetPosition) ?? true;
+                    }
+                    else
+                    {
+                        // 적군 AI가 사용 → Enemy 팀이 아군
+                        return gridController?.HasEnemyUnit(targetPosition) ?? true;
+                    }
 
                 case CardData.TargetType.Any:
                     // 아군/적군 상관없이 유닛이 있는 위치에 배치 가능
@@ -347,7 +369,7 @@ namespace Game.Services
             }
 
             // 추가적인 SpawnValidator 전용 검증
-            if (!ValidatePlacementTarget(cardData, targetPosition))
+            if (!ValidatePlacementTarget(cardData, targetPosition, isPlayerCard))
             {
                 Log($"Placement target validation failed for {cardData.CardName}");
                 return false;

@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Linq;
 using Game.Interfaces;
 using Game.Core;
+using System.Collections.Generic;
 
 namespace Game.Components
 {
@@ -54,17 +55,20 @@ namespace Game.Components
 
         public ActionDecision DecideAction()
         {
-            // 1. 타겟 검색 (Unit과 Base 모두 포함)
-            var target = FindBestTarget();
+            // 1. Find best tile target (Unit or Base)
+            var targetTile = FindBestTarget();
 
-            // 2. 타겟이 있으면 공격
-            if (target != null)
+            // 2. If tile found, attack it
+            if (targetTile != null)
             {
-                Log($"Decision: Attack target {(target as Component)?.gameObject.name}");
-                return ActionDecision.Attack(target);
+                var targetName = targetTile.OccupyingUnit != null
+                    ? targetTile.OccupyingUnit.gameObject.name
+                    : targetTile.OccupyingBase?.gameObject.name ?? "Unknown";
+                Log($"Decision: Attack tile at ({targetTile.X}, {targetTile.Y}) with target: {targetName}");
+                return ActionDecision.Attack(targetTile);
             }
 
-            // 3. 타겟이 없으면 전진
+            // 3. No target, move forward
             var movePosition = GetForwardMovePosition();
             if (movePosition.HasValue)
             {
@@ -72,12 +76,12 @@ namespace Game.Components
                 return ActionDecision.Move(movePosition.Value);
             }
 
-            // 4. 이동할 곳도 없으면 대기
+            // 4. Idle
             Log("Decision: Idle (no valid actions)");
             return ActionDecision.Idle();
         }
 
-        public IHealthComponent FindBestTarget()
+        public Tile FindBestTarget()
         {
             if (combatComponent == null || gridManager == null)
             {
@@ -85,35 +89,59 @@ namespace Game.Components
                 return null;
             }
 
-            // CombatComponent의 GetTargetsInRange() 활용
+            // 1. Get attack range positions
             var myPosition = gridManager.GetUnitPosition(gameObject);
-            var targetsInRange = combatComponent.GetTargetsInRange(myPosition);
+            var attackRangePositions = combatComponent.GetAttackRange(myPosition);
 
-            if (targetsInRange.Count == 0)
+            if (attackRangePositions.Count == 0)
             {
-                Log("No targets in range");
+                Log("No positions in attack range");
                 return null;
             }
 
-            Log($"Found {targetsInRange.Count} potential targets in range");
+            Log($"Checking {attackRangePositions.Count} positions in attack range");
 
-            // 각 GameObject에서 IHealthComponent 추출
-            foreach (var targetObj in targetsInRange)
+            // 2. Find tiles with attackable targets
+            List<Tile> attackableTiles = new List<Tile>();
+
+            foreach (var pos in attackRangePositions)
             {
-                var healthComponent = targetObj.GetComponent<IHealthComponent>();
-
-                // IHealthComponent가 있고 살아있으며 적군인지 확인
-                if (healthComponent != null &&
-                    healthComponent.IsAlive &&
-                    IsEnemyTarget(targetObj))
+                // Get Tile at position using GridController
+                var gridController = gridManager.GetGridController();
+                if (gridController == null)
                 {
-                    Log($"Selected target: {targetObj.name} (Type: {targetObj.GetType().Name})");
-                    return healthComponent; // 첫 번째 유효한 타겟 반환
+                    LogWarning("GridController not available");
+                    continue;
+                }
+
+                var tile = gridController.GetTileAtPosition(pos);
+                if (tile == null) continue;
+
+                // Check if tile has Unit or Base
+                bool hasUnit = tile.OccupyingUnit != null && tile.OccupyingUnit.IsAlive;
+                bool hasBase = tile.OccupyingBase != null && tile.OccupyingBase.IsAlive;
+
+                if (!hasUnit && !hasBase) continue;
+
+                // Validate team (check if enemy)
+                var targetObject = hasUnit ? tile.OccupyingUnit.gameObject : tile.OccupyingBase.gameObject;
+                if (targetObject != null && IsEnemyTarget(targetObject))
+                {
+                    attackableTiles.Add(tile);
+                    Log($"Found attackable tile at ({tile.X}, {tile.Y}) with {(hasUnit ? "Unit" : "Base")}");
                 }
             }
 
-            Log("No valid targets found (all filtered out)");
-            return null;
+            if (attackableTiles.Count == 0)
+            {
+                Log("No attackable tiles found");
+                return null;
+            }
+
+            // 3. Return first valid tile (basic strategy)
+            // TODO: Enhanced AI could prioritize low HP, high value targets
+            Log($"Selected attack tile: ({attackableTiles[0].X}, {attackableTiles[0].Y})");
+            return attackableTiles[0];
         }
 
         public void SetStrategy(AIStrategy newStrategy)

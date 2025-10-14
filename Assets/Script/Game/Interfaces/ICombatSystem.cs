@@ -26,7 +26,16 @@ namespace Game.Interfaces
         bool CanAttackPosition(Vector2Int position);
         CombatResult Attack(GameObject target);
         CombatResult AttackPosition(Vector2Int position);
-        
+
+        /// <summary>
+        /// 타일 기반 범위 공격 (멀티타일 엔티티 중복 피해 방지)
+        /// </summary>
+        /// <param name="targetTiles">공격할 타일 목록</param>
+        /// <param name="isSpecialAttack">특수 공격 여부</param>
+        /// <param name="forceCritical">강제 크리티컬 여부</param>
+        /// <returns>피해를 받은 고유 타겟 수</returns>
+        int AttackTiles(List<Tile> targetTiles, bool isSpecialAttack = false, bool forceCritical = false);
+
         // ✅ 공격 범위 확인
         List<Vector2Int> GetAttackRange(Vector2Int fromPosition);
         List<GameObject> GetTargetsInRange(Vector2Int fromPosition);
@@ -45,7 +54,7 @@ namespace Game.Interfaces
         
         // ✅ 이벤트
         event Action<GameObject, CombatResult> OnAttackPerformed;
-        event Action<GameObject> OnAttackStarted;
+        event Action<List<GameObject>> OnAttackStarted;
         event Action<GameObject> OnAttackMissed;
         event Action OnCombatStateChanged;
         event Action<int> OnAttackPowerChanged;

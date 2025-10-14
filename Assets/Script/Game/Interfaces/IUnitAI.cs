@@ -17,9 +17,9 @@ namespace Game.Interfaces
 
         /// <summary>
         /// 공격 가능한 최적의 타겟 찾기
-        /// Unit과 Base 모두 공격 가능 (IHealthComponent 반환)
+        /// Tile-based targeting: 공격 가능한 타일 반환 (Unit 또는 Base가 있는 타일)
         /// </summary>
-        IHealthComponent FindBestTarget();
+        Tile FindBestTarget();
 
         /// <summary>AI 전략 설정 (향후 확장용)</summary>
         void SetStrategy(AIStrategy strategy);
@@ -27,22 +27,37 @@ namespace Game.Interfaces
 
     /// <summary>
     /// AI가 결정한 행동 정보
+    /// Tile-based targeting 지원 (GameObject 기반에서 Tile 기반으로 전환)
     /// </summary>
     public struct ActionDecision
     {
         public ActionType Type;              // 행동 타입
-        public IHealthComponent TargetHealth; // 공격 대상 (IHealthComponent)
-        public GameObject TargetObject;      // 타겟의 GameObject
+        public IHealthComponent TargetHealth; // 공격 대상 (IHealthComponent) - Legacy
+        public GameObject TargetObject;      // 타겟의 GameObject - Legacy/Fallback
+        public Tile TargetTile;              // 공격 대상 타일 (Tile-based targeting)
         public Vector2Int MovePosition;      // 이동 목표 위치
 
-        /// <summary>공격 행동 생성</summary>
+        /// <summary>타일 기반 공격 행동 생성 (Recommended)</summary>
+        public static ActionDecision Attack(Tile targetTile)
+        {
+            return new ActionDecision
+            {
+                Type = ActionType.Attack,
+                TargetTile = targetTile,
+                TargetObject = null,
+                TargetHealth = null
+            };
+        }
+
+        /// <summary>공격 행동 생성 (Legacy - backward compatibility)</summary>
         public static ActionDecision Attack(IHealthComponent target)
         {
             return new ActionDecision
             {
                 Type = ActionType.Attack,
                 TargetHealth = target,
-                TargetObject = (target as Component)?.gameObject
+                TargetObject = (target as Component)?.gameObject,
+                TargetTile = null
             };
         }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Game.Interfaces;
 using Game.Components;
 using Game.Data;
@@ -476,11 +477,35 @@ public class Unit : MonoBehaviour
         switch (decision.Type)
         {
             case ActionType.Attack:
-                if (decision.TargetObject != null)
+                // Prioritize Tile-based attack (new system)
+                if (decision.TargetTile != null)
                 {
-                    Debug.Log($"[Unit] AI Decision: Attack {decision.TargetObject.name}");
+                    var targetName = decision.TargetTile.OccupyingUnit != null
+                        ? decision.TargetTile.OccupyingUnit.gameObject.name
+                        : decision.TargetTile.OccupyingBase?.gameObject.name ?? "Unknown";
+                    Debug.Log($"[Unit] AI Decision: Attack tile at ({decision.TargetTile.X}, {decision.TargetTile.Y}) with target: {targetName}");
 
-                    // GameObject 기반 공격 (Unit과 Base 모두 공격 가능)
+                    if (useComponentSystem && combatComponent != null)
+                    {
+                        // Use tile-based attack (handles multi-tile entities correctly)
+                        var tiles = new List<Tile> { decision.TargetTile };
+                        int hitCount = combatComponent.AttackTiles(tiles);
+
+                        if (hitCount > 0)
+                        {
+                            Debug.Log($"{gameObject.name} attacked tile ({decision.TargetTile.X}, {decision.TargetTile.Y}), hit {hitCount} target(s)");
+                        }
+                        else
+                        {
+                            Debug.Log($"{gameObject.name} attack on tile ({decision.TargetTile.X}, {decision.TargetTile.Y}) failed (no valid targets)");
+                        }
+                    }
+                }
+                // Fallback: GameObject-based attack (backward compatibility)
+                else if (decision.TargetObject != null)
+                {
+                    Debug.Log($"[Unit] AI Decision: Attack GameObject {decision.TargetObject.name} (Legacy mode)");
+
                     if (useComponentSystem && combatComponent != null)
                     {
                         var result = combatComponent.Attack(decision.TargetObject);

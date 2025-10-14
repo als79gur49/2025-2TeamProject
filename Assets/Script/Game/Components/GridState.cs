@@ -93,12 +93,28 @@ namespace Game.Components
         /// </summary>
         public GameObject GetAttackableTargetAtPosition(Vector2Int position)
         {
+            Debug.Log($"[GridState] GetAttackableTargetAtPosition called for position {position}");
+
             // Priority 1: Check for Unit (전술적으로 유닛이 우선)
             var unit = positionUnits.GetValueOrDefault(position);
-            if (unit != null) return unit;
+            if (unit != null)
+            {
+                Debug.Log($"[GridState] Found Unit {unit.name} (ID: {unit.GetInstanceID()}) at {position}");
+                return unit;
+            }
 
             // Priority 2: Check for Base (유닛이 없을 경우 기지 공격)
-            return positionToBase.GetValueOrDefault(position);
+            var baseObj = positionToBase.GetValueOrDefault(position);
+            if (baseObj != null)
+            {
+                Debug.Log($"[GridState] Found Base {baseObj.name} (ID: {baseObj.GetInstanceID()}) at {position}");
+            }
+            else
+            {
+                Debug.Log($"[GridState] No attackable target at {position}");
+            }
+
+            return baseObj;
         }
 
         /// <summary>
@@ -123,17 +139,37 @@ namespace Game.Components
         /// </summary>
         public Vector2Int GetPositionToAttackTarget(GameObject target)
         {
-            if (target == null) return new Vector2Int(-1, -1);
+            Debug.Log($"[GridState] GetPositionToAttackTarget called for {target?.name} (ID: {target?.GetInstanceID()})");
+
+            if (target == null)
+            {
+                Debug.LogWarning("[GridState] GetPositionToAttackTarget: target is null");
+                return new Vector2Int(-1, -1);
+            }
 
             // Try Unit first
             if (unitPositions.TryGetValue(target, out Vector2Int unitPos))
+            {
+                Debug.Log($"[GridState] Found {target.name} in unitPositions at {unitPos}");
                 return unitPos;
+            }
 
             // Try Base - return first occupied position
             if (basePositions.TryGetValue(target, out List<Vector2Int> positions))
             {
                 if (positions != null && positions.Count > 0)
+                {
+                    Debug.Log($"[GridState] Found Base {target.name} in basePositions with {positions.Count} tiles, returning {positions[0]}");
                     return positions[0];
+                }
+            }
+
+            // 실패 시 상세 정보 출력
+            Debug.LogError($"[GridState] Failed to find position for {target.name} (ID: {target.GetInstanceID()})");
+            Debug.LogError($"[GridState] basePositions contains {basePositions.Count} bases:");
+            foreach (var kvp in basePositions)
+            {
+                Debug.LogError($"  - Base: {kvp.Key?.name} (ID: {kvp.Key?.GetInstanceID()}) at {kvp.Value.Count} positions");
             }
 
             return new Vector2Int(-1, -1);
@@ -507,6 +543,8 @@ namespace Game.Components
             basePositions[baseObject] = positions;
 
             Debug.Log($"[GridState] Base placed at {startPosition} with size {baseSize}, occupying {positions.Count} tiles");
+            Debug.Log($"[GridState] Registered Base {baseObject.name} (ID: {baseObject.GetInstanceID()}) in basePositions");
+            Debug.Log($"[GridState] Total bases in basePositions: {basePositions.Count}");
             return true;
         }
 

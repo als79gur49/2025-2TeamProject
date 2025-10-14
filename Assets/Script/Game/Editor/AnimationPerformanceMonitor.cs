@@ -300,7 +300,7 @@ namespace Game.Editor
             }
         }
 
-        private static void OnAttackStart(GameObject target)
+        private static void OnAttackStart(List<GameObject> targets)
         {
             if (!isMonitoring) return;
 
@@ -308,7 +308,7 @@ namespace Game.Editor
             activeAnimations[key] = Time.realtimeSinceStartup;
         }
 
-        private static void OnAttackEnd(GameObject target)
+        private static void OnAttackEnd(List<GameObject> targets)
         {
             if (!isMonitoring) return;
 
