@@ -19,13 +19,17 @@ namespace Game.Services
         // 💉 Injected Dependencies - No more ServiceLocator
         private ITurnService turnService;
         private IUnitService unitService;
-        
+        private IGlobalStateManager _stateManager;
+
         // 📡 Events
         public event System.Action OnEndTurnRequested;
         public event System.Action OnRestartRequested;
-        
+
         // 🔧 Dependency injection state
         private bool dependenciesInjected = false;
+
+        // 🔒 Global state tracking for visual feedback
+        private bool _isGameFlowLocked = false;
         
         private void Awake()
         {
@@ -74,6 +78,11 @@ namespace Game.Services
                 Debug.LogError("[UIService] ITurnService is null after injection");
             if (unitService == null)
                 Debug.LogError("[UIService] IUnitService is null after injection");
+
+            // Get GlobalStateManager from ServiceLocator
+            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (_stateManager == null)
+                Debug.LogWarning("[UIService] IGlobalStateManager not found - VFX visual feedback disabled");
         }
         
         /// <summary>
@@ -88,7 +97,7 @@ namespace Game.Services
                 turnService.OnPhaseChanged += HandlePhaseChanged;
                 turnService.OnPhaseCountChanged += HandlePhaseCountChanged;
             }
-            
+
             // Phase 4: Subscribe to UnitService phase execution events
             if (unitService != null)
             {
@@ -96,6 +105,12 @@ namespace Game.Services
                 unitService.OnPhaseCompleted += HandlePhaseCompleted;
                 unitService.OnPhaseCancelled += HandlePhaseCancelled;
                 unitService.OnUnitProcessed += HandleUnitProcessed;
+            }
+
+            // Subscribe to GlobalStateManager for VFX blocking visual feedback
+            if (_stateManager != null)
+            {
+                _stateManager.OnBusyStateChanged += HandleGlobalBusyStateChanged;
             }
         }
         
@@ -191,7 +206,20 @@ namespace Game.Services
             UpdateDisplay();
             Debug.Log($"[UIService] Phase count changed to: {phaseCount}");
         }
-        
+
+        /// <summary>
+        /// Handles GlobalStateManager busy state changes for visual feedback
+        /// </summary>
+        private void HandleGlobalBusyStateChanged(BusyType type, bool isBusy)
+        {
+            if (type == BusyType.GameFlowLock)
+            {
+                _isGameFlowLocked = isBusy;
+                UpdateDisplay(); // Immediately update UI to reflect lock state
+                Debug.Log($"[UIService] GameFlowLock state changed: {isBusy} - UI updated");
+            }
+        }
+
         private void OnEndTurnButtonClicked()
         {
             OnEndTurnRequested?.Invoke();
@@ -294,7 +322,7 @@ namespace Game.Services
                 turnService.OnPhaseChanged -= HandlePhaseChanged;
                 turnService.OnPhaseCountChanged -= HandlePhaseCountChanged;
             }
-            
+
             // Phase 4: Unsubscribe from UnitService phase execution events
             if (unitService != null)
             {
@@ -302,6 +330,12 @@ namespace Game.Services
                 unitService.OnPhaseCompleted -= HandlePhaseCompleted;
                 unitService.OnPhaseCancelled -= HandlePhaseCancelled;
                 unitService.OnUnitProcessed -= HandleUnitProcessed;
+            }
+
+            // Unsubscribe from GlobalStateManager
+            if (_stateManager != null)
+            {
+                _stateManager.OnBusyStateChanged -= HandleGlobalBusyStateChanged;
             }
         }
         
@@ -350,26 +384,34 @@ namespace Game.Services
         private void UpdateEndTurnButton()
         {
             if (endTurnButton == null || turnService == null) return;
-            
+
             Text buttonText = endTurnButton.GetComponentInChildren<Text>();
             Image buttonImage = endTurnButton.GetComponent<Image>();
-            
+
             string buttonLabel = GetPhaseButtonText(turnService.CurrentPhase);
             Color buttonColor = GetPhaseButtonColor(turnService.CurrentPhase);
-            
+
             buttonText.text = buttonLabel;
             buttonImage.color = buttonColor;
-            
+
             // Phase 4: Disable button during phase execution to prevent user interference
             bool isPhaseExecuting = unitService != null && unitService.IsPhaseExecuting;
-            endTurnButton.interactable = !isPhaseExecuting;
-            
+
+            // Check if GameFlowLock is active (VFX playing)
+            bool isBlocked = isPhaseExecuting || _isGameFlowLocked;
+            endTurnButton.interactable = !isBlocked;
+
             // Visual feedback for disabled state
-            if (isPhaseExecuting)
+            if (isBlocked)
             {
                 buttonImage.color = new Color(buttonColor.r, buttonColor.g, buttonColor.b, 0.5f);
                 if (buttonText != null)
-                    buttonText.text = "Processing...";
+                {
+                    if (_isGameFlowLocked)
+                        buttonText.text = "VFX Playing...";
+                    else if (isPhaseExecuting)
+                        buttonText.text = "Processing...";
+                }
             }
         }
         

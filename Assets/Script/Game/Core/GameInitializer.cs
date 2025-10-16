@@ -13,6 +13,7 @@ using Game;
 public class GameInitializer : MonoBehaviour
 {
     [Header("서비스 참조")]
+    [SerializeField] private GlobalStateManager globalStateManager; // 전역 상태 관리 서비스 (최우선 초기화)
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GameServiceManager gameServiceManager;
     [SerializeField] private CardServiceManager cardServiceManager; // 신규 참조 추가
@@ -86,6 +87,9 @@ public class GameInitializer : MonoBehaviour
     {
         Log("Registering core services...");
 
+        // ✅ 최우선: GlobalStateManager 등록 - 모든 서비스보다 먼저 초기화
+        RegisterGlobalStateManager();
+
         // GridManager를 통한 중앙집중형 Grid 서비스 등록
         if (gridManager != null)
         {
@@ -118,6 +122,37 @@ public class GameInitializer : MonoBehaviour
 
         // Base Management Services 등록 - BaseManager를 통한 Base 라이프사이클 관리
         RegisterBaseServices();
+    }
+
+    /// <summary>
+    /// GlobalStateManager 등록 - 전역 상태 관리 시스템 (최우선 초기화)
+    /// </summary>
+    private void RegisterGlobalStateManager()
+    {
+        Log("Registering GlobalStateManager (highest priority)...");
+
+        if (globalStateManager != null)
+        {
+            // GlobalStateManager의 Awake()가 이미 ServiceLocator에 등록했는지 확인
+            var registered = ServiceLocator.Get<IGlobalStateManager>();
+
+            if (registered != null)
+            {
+                Log("✅ IGlobalStateManager already registered in Awake()");
+            }
+            else
+            {
+                // 만약 등록되지 않았다면 수동 등록
+                ServiceLocator.Register<IGlobalStateManager>(globalStateManager);
+                Log("✅ IGlobalStateManager manually registered");
+            }
+        }
+        else
+        {
+            LogError("❌ GlobalStateManager not found - Global state management not available");
+        }
+
+        Log("GlobalStateManager registration completed");
     }
 
     /// <summary>
@@ -332,13 +367,19 @@ public class GameInitializer : MonoBehaviour
             Log($"  - {service.Key.Name}: {service.Value.GetType().Name}");
         }
 
+        // GlobalStateManager 서비스 확인 (최우선)
+        if (!ServiceLocator.IsRegistered<IGlobalStateManager>())
+        {
+            LogError("❌ Critical service missing: IGlobalStateManager");
+        }
+
         // Grid 서비스 확인
         if (!ServiceLocator.IsRegistered<IGridManager>())
         {
             LogError("❌ Critical service missing: IGridManager");
         }
 
-        // Game 서비스 확인   
+        // Game 서비스 확인
         if (!ServiceLocator.IsRegistered<IGameServiceManager>())
         {
             LogError("❌ Critical service missing: IGameServiceManager");

@@ -41,6 +41,10 @@ namespace Game.Services
 
         // 서비스 참조
         private ITurnService turnService;
+        private IGlobalStateManager _stateManager;
+
+        // 🔒 Global state tracking for card interaction blocking
+        private bool _isGameFlowLocked = false;
 
         /// <summary>핸드 매니저가 초기화되었는지 여부</summary>
         public bool IsInitialized => isInitialized;
@@ -56,6 +60,16 @@ namespace Game.Services
         private void Awake()
         {
             // CardServiceManager에 의해 초기화되므로 여기서는 초기화하지 않음
+        }
+
+        private void OnDestroy()
+        {
+            // Unsubscribe from GlobalStateManager events
+            if (_stateManager != null)
+            {
+                _stateManager.OnBusyStateChanged -= HandleGlobalBusyStateChanged;
+                Log("🔓 Unsubscribed from GlobalStateManager events");
+            }
         }
 
         #endregion
@@ -108,6 +122,17 @@ namespace Game.Services
             {
                 Debug.LogError("[CardHandManager] TurnService is null");
             }
+
+            // Get GlobalStateManager from ServiceLocator
+            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (_stateManager == null)
+            {
+                Debug.LogWarning("[CardHandManager] IGlobalStateManager not found - VFX blocking disabled");
+            }
+            else
+            {
+                Log("✅ GlobalStateManager dependency injected successfully");
+            }
         }
 
         /// <summary>
@@ -137,6 +162,14 @@ namespace Game.Services
         {
             // TurnService 이벤트 구독 (CardServiceManager에서 처리하지만 여기서도 추가 처리 가능)
             // Phase 3에서는 UI 상태 관리에 집중
+
+            // Subscribe to GlobalStateManager for VFX blocking
+            if (_stateManager != null)
+            {
+                _stateManager.OnBusyStateChanged += HandleGlobalBusyStateChanged;
+                Log("✅ Subscribed to GlobalStateManager events");
+            }
+
             Log("✅ Event system setup completed");
         }
 
@@ -185,6 +218,46 @@ namespace Game.Services
 
         #endregion
 
+        #region GlobalStateManager Integration
+
+        /// <summary>
+        /// Handles GlobalStateManager busy state changes for card interaction blocking
+        /// </summary>
+        private void HandleGlobalBusyStateChanged(BusyType type, bool isBusy)
+        {
+            if (type == BusyType.GameFlowLock)
+            {
+                _isGameFlowLocked = isBusy;
+                UpdateCardInteractivity(); // Immediately update card interactivity
+                Log($"🔒 GameFlowLock state changed: {isBusy} - Card interactivity updated");
+            }
+        }
+
+        /// <summary>
+        /// Updates card interactivity based on current state
+        /// Cards are draggable only if:
+        /// 1. NOT GameFlowLocked (no VFX playing)
+        /// 2. isPlayerSummonMode is true (in AllySummon phase)
+        /// 3. enablePlayerInteraction is true
+        /// </summary>
+        private void UpdateCardInteractivity()
+        {
+            // GameFlowLock always disables cards regardless of other conditions
+            bool shouldBeInteractive = !_isGameFlowLocked && isPlayerSummonMode && enablePlayerInteraction;
+
+            foreach (var cardUI in cardUIComponents)
+            {
+                if (cardUI != null)
+                {
+                    cardUI.SetDraggable(shouldBeInteractive);
+                }
+            }
+
+            Log($"🎮 Card interactivity updated: {shouldBeInteractive} (GameFlowLock: {_isGameFlowLocked}, SummonMode: {isPlayerSummonMode})");
+        }
+
+        #endregion
+
         #region 플레이어 상호작용 (Phase 3 구현 완료)
 
         /// <summary>
@@ -201,14 +274,8 @@ namespace Game.Services
             isPlayerSummonMode = true;
             enablePlayerInteraction = true;
 
-            // 모든 카드 UI를 드래그 가능하게 설정
-            foreach (var cardUI in cardUIComponents)
-            {
-                if (cardUI != null)
-                {
-                    cardUI.SetDraggable(true);
-                }
-            }
+            // Use centralized method that checks GameFlowLock
+            UpdateCardInteractivity();
 
             // HandUI 활성화
             if (handUIParent != null)
@@ -216,7 +283,7 @@ namespace Game.Services
                 handUIParent.gameObject.SetActive(true);
             }
 
-            Log("🟢 Player summon mode enabled - Cards can be dragged");
+            Log("🟢 Player summon mode enabled - Card interactivity managed by UpdateCardInteractivity()");
         }
 
         /// <summary>
@@ -233,16 +300,10 @@ namespace Game.Services
             isPlayerSummonMode = false;
             enablePlayerInteraction = false;
 
-            // 모든 카드 UI를 드래그 불가능하게 설정
-            foreach (var cardUI in cardUIComponents)
-            {
-                if (cardUI != null)
-                {
-                    cardUI.SetDraggable(false);
-                }
-            }
+            // Use centralized method that checks GameFlowLock
+            UpdateCardInteractivity();
 
-            Log("🔴 Player summon mode disabled - Cards cannot be dragged");
+            Log("🔴 Player summon mode disabled - Card interactivity managed by UpdateCardInteractivity()");
         }
 
         #endregion

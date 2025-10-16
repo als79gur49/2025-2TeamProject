@@ -7,12 +7,14 @@ using Game.Card.Effects;
 using Game.Data;
 using Game.Interfaces;
 using Game.Core;
+using Game.Services;
 
 namespace Game.VFX
 {
     /// <summary>
     /// VFX 기반 효과 실행 중재자 (Mediator Pattern + ServiceLocator)
     /// Phase 2 완료: 다중 타겟 원자적 검증 시스템 구현
+    /// Phase 3: GlobalStateManager 통합 - VFX 재생 중 게임 흐름 잠금
     /// GameInitializer에서 Inspector 직렬화를 통해 등록됨
     /// </summary>
     public class SpellEffectExecutor : MonoBehaviour, ISpellEffectExecutor
@@ -22,6 +24,31 @@ namespace Game.VFX
         // ✅ Singleton 패턴 제거 - ServiceLocator 패턴으로 전환
         // GameInitializer의 Inspector에서 직렬화 필드로 참조하여 등록
         // 사용법: ServiceLocator.Get<ISpellEffectExecutor>().ExecuteBatch(...)
+
+        // GlobalStateManager 참조 (VFX 재생 중 게임 흐름 잠금용)
+        private IGlobalStateManager _stateManager;
+
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Start()
+        {
+            // GlobalStateManager 초기화
+            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
+
+            if (_stateManager == null)
+            {
+                Debug.LogWarning("[SpellEffectExecutor] IGlobalStateManager not found - VFX blocking disabled");
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // 혹시 잠금이 활성 상태라면 강제 해제
+            _stateManager?.SetIdle(this, BusyType.GameFlowLock);
+            Debug.Log("[SpellEffectExecutor] OnDestroy - Released any active locks");
+        }
 
         #endregion
 
@@ -68,6 +95,7 @@ namespace Game.VFX
         /// <summary>
         /// Phase 3: 타일 기반 다중 타겟 VFX 실행 Coroutine
         /// 타겟 정보는 context.VFXPositions에서 가져옴
+        /// Phase 4: GlobalStateManager 통합 - VFX 재생 중 GameFlowLock 설정
         /// </summary>
         private IEnumerator ExecuteWithVFX(
             IReadOnlyList<EffectData> effects,
@@ -82,6 +110,9 @@ namespace Game.VFX
             float maxWait = 0f;
             float elapsed = 0f;
             float actualDuration = 10f; // VFX 정리용 기본 대기시간 (자동 계산 시 10초)
+
+            // ✅ Phase 4: VFX 실행 시작 시 GameFlowLock 설정
+            _stateManager?.SetBusy(this, BusyType.GameFlowLock);
 
             // VFX 생성 및 초기화 (try-catch 사용, yield return 없음)
             try
@@ -129,6 +160,11 @@ namespace Game.VFX
                 ExecuteEffectsImmediate(effects, targetPos, context, null);
                 if (vfxInstance != null)
                     Destroy(vfxInstance);
+
+                // ✅ Phase 4: 에러 발생 시에도 GameFlowLock 해제
+                _stateManager?.SetIdle(this, BusyType.GameFlowLock);
+                Debug.Log("[SpellEffectExecutor] VFX execution error - GameFlowLock released");
+
                 yield break;
             }
 
@@ -155,6 +191,10 @@ namespace Game.VFX
                 if (vfxInstance != null)
                     Destroy(vfxInstance);
             }
+
+            // ✅ Phase 4: VFX 실행 완료 시 GameFlowLock 해제 (finally 블록 대신 코루틴 끝에서 처리)
+            _stateManager?.SetIdle(this, BusyType.GameFlowLock);
+            Debug.Log("[SpellEffectExecutor] VFX execution completed - GameFlowLock released");
 
             // ✅ ServiceLocator 패턴으로 변경되어 더 이상 gameObject를 파괴하지 않음
             // GameObject는 GameInitializer에서 관리됨

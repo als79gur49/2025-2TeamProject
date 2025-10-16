@@ -5,6 +5,7 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Data;
 using TMPro;
+using Game.Services;
 
 namespace Game.Card.UI
 {
@@ -337,6 +338,14 @@ namespace Game.Card.UI
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (!isDraggable || cardData == null) return;
+            
+            // Defensive check: Verify GlobalStateManager is not blocking
+            var stateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (stateManager != null && stateManager.IsBusy(BusyType.GameFlowLock))
+            {
+                Debug.LogWarning("[CardUI] Cannot drag card - GameFlowLock is active (VFX playing)");
+                return;
+            }
 
             isDragging = true;
 
