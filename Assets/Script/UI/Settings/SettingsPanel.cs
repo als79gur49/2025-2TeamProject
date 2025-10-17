@@ -62,9 +62,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     {
         base.OnInitialize();
 
-        // 확장 메서드로 Open/Close 버튼 자동 바인딩
-        this.AutoBindOpenCloseButtons();
-
         // 서비스 초기화
         InitializeServices();
 
@@ -85,9 +82,6 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     
     protected override void OnCleanup()
     {
-        // Open/Close 버튼 바인딩 해제 (확장 메서드)
-        this.UnbindOpenCloseButtons();
-
         // 이벤트 정리
         CleanupUIEvents();
 
