@@ -3,6 +3,7 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Components;
 using Game.Services;
+using Game.Coordinators;
 using PlasticPipe.PlasticProtocol.Messages;
 using Game;
 
@@ -22,6 +23,7 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private TeamConfigurationManager teamConfigurationManager; // 팀별 설정 관리 서비스 추가
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
     [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
+    [SerializeField] private GameUICoordinator gameUICoordinator; // 게임-UI 이벤트 중재 서비스 추가
     
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -120,9 +122,6 @@ public class GameInitializer : MonoBehaviour
 
         // Team Configuration Services 등록 - TeamConfigurationManager를 통한 팀별 설정 시스템 등록
         RegisterTeamConfigurationServices();
-
-        // Base Management Services 등록 - BaseManager를 통한 Base 라이프사이클 관리
-        RegisterBaseServices();
 
         // Game Outcome Services 등록 - GameOutcomeManager를 통한 승/패 조건 관리
         RegisterGameOutcomeServices();
@@ -291,40 +290,7 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
-    /// Base 관리 서비스 등록 - BaseManager를 통한 Base 라이프사이클 관리
-    /// </summary>
-    private void RegisterBaseServices()
-    {
-        Log("Registering Base management services via BaseManager...");
-
-        // BaseManager 등록
-        if (baseManager != null)
-        {
-            // BaseManager 의존성 주입
-            IGridManager gridManagerInterface = gridManager;
-            ITeamConfigurationManager teamConfigManagerInterface = teamConfigurationManager;
-
-            if (gridManagerInterface != null && teamConfigManagerInterface != null)
-            {
-                baseManager.InjectDependencies(gridManagerInterface, teamConfigManagerInterface);
-                ServiceLocator.Register<IBaseManager>(baseManager);
-                Log("✅ BaseManager initialized and registered");
-            }
-            else
-            {
-                LogError($"❌ BaseManager dependencies missing - GridManager: {gridManagerInterface != null}, TeamConfigManager: {teamConfigManagerInterface != null}");
-            }
-        }
-        else
-        {
-            LogError("❌ BaseManager not found - Base management services not registered");
-        }
-
-        Log("Base management services registration completed");
-    }
-
-    /// <summary>
-    /// Game Outcome 관리 서비스 등록 - GameOutcomeManager를 통한 승/패 조건 관리
+    /// Game Outcome 관리 서비스 등록 - GameOutcomeManager와 GameUICoordinator를 통한 승/패 조건 관리 및 UI 연동
     /// </summary>
     private void RegisterGameOutcomeServices()
     {
@@ -351,6 +317,17 @@ public class GameInitializer : MonoBehaviour
         else
         {
             LogError("❌ GameOutcomeManager not found - Game outcome management services not registered");
+        }
+
+        // GameUICoordinator 등록 (Mediator Pattern - 게임 이벤트와 UI 연결)
+        if (gameUICoordinator != null)
+        {
+            gameUICoordinator.Init();
+            Log("✅ GameUICoordinator initialized (mediates game events to UI)");
+        }
+        else
+        {
+            LogError("❌ GameUICoordinator not found - Game-to-UI coordination not available");
         }
 
         Log("Game outcome management services registration completed");

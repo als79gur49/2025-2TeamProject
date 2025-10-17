@@ -21,6 +21,10 @@ namespace Game.AI
         [SerializeField] private int initialHandSize = 3; // 초기 손패 크기
         [SerializeField] private bool enableLogging = true;
 
+        // 이벤트
+        public event System.Action OnCardUsed;   // 카드 사용 시 발생
+        public event System.Action OnCardDrawn;  // 카드 드로우 시 발생
+
         // 내부 상태
         private List<CardData> enemyHand = new List<CardData>();
 
@@ -40,6 +44,9 @@ namespace Game.AI
 
         /// <summary>현재 손패 크기 (디버깅용)</summary>
         public int HandSize => enemyHand.Count;
+
+        /// <summary>적군 핸드 카드 목록 (읽기 전용)</summary>
+        public IReadOnlyList<CardData> EnemyHand => enemyHand.AsReadOnly();
 
         #region 초기화
 
@@ -114,6 +121,9 @@ namespace Game.AI
                 CardData drawnCard = enemyDeck[Random.Range(0, enemyDeck.Count)];
                 enemyHand.Add(drawnCard);
                 Log($"🃏 Enemy drew: {drawnCard.CardName} (Hand size: {enemyHand.Count})");
+
+                // 🔔 이벤트 발생
+                OnCardDrawn?.Invoke();
             }
         }
 
@@ -197,6 +207,9 @@ namespace Game.AI
                     enemyHand.Remove(info.Card);
                     successCount++;
                     Log($"Executed '{info.Card.CardName}' at {info.Position}. Waiting for its VFX to complete...");
+
+                    // 🔔 이벤트 발생
+                    OnCardUsed?.Invoke();
                 }
                 else
                 {
