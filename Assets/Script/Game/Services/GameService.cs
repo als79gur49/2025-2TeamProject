@@ -17,13 +17,10 @@ namespace Game.Services
         
         // 🎮 Game State
         public bool IsGameActive { get; private set; }
-        
+
         // 📡 Events
         public event System.Action OnGameStarted;
         public event System.Action OnGameEnded;
-        
-        // 🔧 Dependency injection state
-        private bool dependenciesInjected = false;
         
         #region Unity Lifecycle
         
@@ -34,39 +31,23 @@ namespace Game.Services
         
         #endregion
         
-        #region Dependency Injection
-        
+        #region Initialization
+
         /// <summary>
-        /// Injects required dependencies - Called by GameServiceManager
+        /// Manual initialization with dependency injection - called by GameServiceManager
+        /// Injects dependencies, validates, and subscribes to events
         /// </summary>
-        public void InjectDependencies(ITurnService turnService, IUnitService unitService, IUIService uiService)
+        public void Init(ITurnService turnService, IUnitService unitService, IUIService uiService)
         {
+            // Phase 1: Inject dependencies from parameters
             this.turnService = turnService;
             this.unitService = unitService;
             this.uiService = uiService;
-            
-            dependenciesInjected = true;
-            Debug.Log("[GameService] Dependencies injected successfully");
-        }
-        
-        #endregion
-        
-        #region Initialization
-        
-        /// <summary>
-        /// Initializes the GameService - Dependencies must be injected first
-        /// </summary>
-        public void Initialize()
-        {
-            if (!dependenciesInjected)
-            {
-                Debug.LogError("[GameService] Cannot initialize - Dependencies not injected!");
-                return;
-            }
-            
+
+            // Phase 2: Validate and initialize
             ValidateDependencies();
             SubscribeToEvents();
-            
+
             Debug.Log("[GameService] Initialized successfully");
         }
         
@@ -104,18 +85,18 @@ namespace Game.Services
         /// </summary>
         public void StartGame()
         {
-            if (!dependenciesInjected)
+            if (turnService == null || unitService == null || uiService == null)
             {
-                Debug.LogError("[GameService] Cannot start game - Dependencies not injected!");
+                Debug.LogError("[GameService] Cannot start game - Dependencies not initialized!");
                 return;
             }
-            
+
             Debug.Log("[GameService] Starting game...");
-            
+
             IsGameActive = true;
-            turnService?.StartGame();
-            uiService?.UpdateDisplay();
-            
+            turnService.StartGame();
+            uiService.UpdateDisplay();
+
             OnGameStarted?.Invoke();
         }
         
@@ -173,9 +154,9 @@ namespace Game.Services
         /// </summary>
         private void HandleEndPhaseRequest()
         {
-            if (!IsGameActive || !dependenciesInjected)
+            if (!IsGameActive || turnService == null)
             {
-                Debug.LogWarning($"[GameService] Cannot process end phase - IsGameActive({IsGameActive}) or dependenciesInjected({dependenciesInjected})");
+                Debug.LogWarning($"[GameService] Cannot process end phase - IsGameActive({IsGameActive}) or TurnService not initialized");
                 return;
             }
             
@@ -210,9 +191,9 @@ namespace Game.Services
         }
         
         #endregion
-        
+
         #region Event Cleanup
-        
+
         /// <summary>
         /// Clean up event subscriptions on destroy
         /// </summary>
@@ -224,7 +205,7 @@ namespace Game.Services
                 uiService.OnRestartRequested -= RestartGame;
             }
         }
-        
+
         #endregion
     }
 }

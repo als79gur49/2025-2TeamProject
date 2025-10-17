@@ -8,6 +8,7 @@ namespace Game.Services
     /// <summary>
     /// 소환 및 주문 사용 위치의 유효성을 검증하는 서비스
     /// 비용, 위치, 페이즈 등 모든 검증 규칙을 담당
+    /// GlobalStateManager 통합 - VFX 재생 중 카드 사용 차단
     /// </summary>
     public class SpawnValidator : MonoBehaviour, ISpawnValidator
     {
@@ -20,6 +21,10 @@ namespace Game.Services
         private ITurnService turnService;
         private IResourceManager resourceManager;
 
+        // GlobalStateManager 참조 (VFX 재생 중 카드 사용 차단용)
+        private IGlobalStateManager _globalStateManager;
+        private bool _isGameFlowLocked = false;
+
         // 초기화 상태
         private bool isInitialized = false;
 
@@ -31,6 +36,16 @@ namespace Game.Services
         private void Awake()
         {
             // CardServiceManager에 의해 초기화되므로 여기서는 초기화하지 않음
+        }
+
+        private void OnDestroy()
+        {
+            // GlobalStateManager 이벤트 구독 해제 (메모리 누수 방지)
+            if (_globalStateManager != null)
+            {
+                _globalStateManager.OnBusyStateChanged -= HandleBusyStateChanged;
+                Log("Unsubscribed from GlobalStateManager events");
+            }
         }
 
         #endregion
@@ -57,8 +72,42 @@ namespace Game.Services
             // 외부에서 주입받은 의존성 설정
             InjectDependencies(iGridController, iTurnService, iResourceManager);
 
+            // GlobalStateManager 연동
+            SetupGlobalStateManager();
+
             isInitialized = true;
             Log("✅ SpawnValidator initialization completed");
+        }
+
+        /// <summary>
+        /// GlobalStateManager 연동 및 이벤트 구독
+        /// </summary>
+        private void SetupGlobalStateManager()
+        {
+            _globalStateManager = ServiceLocator.Get<IGlobalStateManager>();
+
+            if (_globalStateManager != null)
+            {
+                // GameFlowLock 상태 변경 이벤트 구독
+                _globalStateManager.OnBusyStateChanged += HandleBusyStateChanged;
+                Log("✅ GlobalStateManager event subscription completed");
+            }
+            else
+            {
+                LogError("❌ GlobalStateManager not found - Card blocking during VFX disabled");
+            }
+        }
+
+        /// <summary>
+        /// GlobalStateManager 상태 변경 이벤트 핸들러
+        /// </summary>
+        private void HandleBusyStateChanged(BusyType type, bool isBusy)
+        {
+            if (type == BusyType.GameFlowLock)
+            {
+                _isGameFlowLocked = isBusy;
+                Log($"GameFlowLock state changed: {isBusy} - Card usage {(isBusy ? "blocked" : "allowed")}");
+            }
         }
 
         /// <summary>
@@ -110,6 +159,13 @@ namespace Game.Services
                 return false;
             }
 
+            // 🔴 GlobalStateManager: GameFlowLock 상태 확인 (VFX 재생 중 차단)
+            if (_isGameFlowLocked)
+            {
+                Log($"❌ Cannot spawn unit - GameFlowLock is active (VFX or animation playing)");
+                return false;
+            }
+
             Log($"🔍 Validating unit spawn: {cardData.CardName} at {gridPosition} (Player: {isPlayerUnit})");
 
             // 플레이어/적군별 소환 영역 검증 (플레이어는 좌측 1열, 적군은 우측 1열)
@@ -148,6 +204,13 @@ namespace Game.Services
             if (cardData == null)
             {
                 LogError("Cannot validate spell use for null CardData");
+                return false;
+            }
+
+            // 🔴 GlobalStateManager: GameFlowLock 상태 확인 (VFX 재생 중 차단)
+            if (_isGameFlowLocked)
+            {
+                Log($"❌ Cannot use spell - GameFlowLock is active (VFX or animation playing)");
                 return false;
             }
 
@@ -205,6 +268,13 @@ namespace Game.Services
             if (cardData == null)
             {
                 LogError("Cannot validate card use for null CardData");
+                return false;
+            }
+
+            // 🔴 GlobalStateManager: GameFlowLock 상태 확인 (VFX 재생 중 차단)
+            if (_isGameFlowLocked)
+            {
+                Log($"❌ Cannot use card - GameFlowLock is active (VFX or animation playing)");
                 return false;
             }
 

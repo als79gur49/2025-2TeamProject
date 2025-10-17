@@ -48,7 +48,6 @@ namespace Game.Services
 
         // Initialization state
         private bool isInitialized = false;
-        private bool dependenciesInjected = false;
 
         #region Events
 
@@ -84,69 +83,26 @@ namespace Game.Services
 
         #endregion
 
-        #region Dependency Injection
-
-        /// <summary>
-        /// Injects required dependencies
-        /// Called by GameInitializer or GameServiceManager
-        /// </summary>
-        public void InjectDependencies(IGridManager gridManager, ITeamConfigurationManager teamConfigManager)
-        {
-            this.gridManager = gridManager;
-            this.teamConfigManager = teamConfigManager;
-
-            dependenciesInjected = true;
-            Log("[BaseManager] Dependencies injected successfully");
-        }
-
-        /// <summary>
-        /// Validates that all dependencies are available
-        /// </summary>
-        private bool ValidateDependencies()
-        {
-            if (!dependenciesInjected)
-            {
-                Debug.LogError("[BaseManager] Dependencies not injected!");
-                return false;
-            }
-
-            if (gridManager == null)
-            {
-                Debug.LogError("[BaseManager] IGridManager is null!");
-                return false;
-            }
-
-            if (basePrefab == null)
-            {
-                Debug.LogError("[BaseManager] Base prefab is not assigned in Inspector!");
-                return false;
-            }
-
-            if (basePrefab.GetComponent<Base>() == null)
-            {
-                Debug.LogError("[BaseManager] Base prefab does not have Base component!");
-                return false;
-            }
-
-            return true;
-        }
-
-        #endregion
-
         #region Initialization
 
         /// <summary>
-        /// Initializes both Player and Enemy bases
-        /// Called from GameService.StartGame()
+        /// Manual initialization with dependency injection - called by GameServiceManager
+        /// Injects dependencies and initializes both Player and Enemy bases
         /// </summary>
-        public void InitializeBases()
+        public void Init(IGridManager gridManager, ITeamConfigurationManager teamConfigManager)
         {
+            // Phase 1: Inject dependencies from parameters
+            this.gridManager = gridManager;
+            this.teamConfigManager = teamConfigManager;
+
+            // Phase 2: Validate dependencies
             if (!ValidateDependencies())
             {
                 Debug.LogError("[BaseManager] Cannot initialize - dependency validation failed");
                 return;
             }
 
+            // Phase 3: Initialize bases
             if (isInitialized)
             {
                 Log("[BaseManager] Already initialized, cleaning up old bases first");
@@ -175,6 +131,32 @@ namespace Game.Services
 
             isInitialized = true;
             Log($"[BaseManager] Bases initialized - Player: {playerBasePos}, Enemy: {enemyBasePos}");
+        }
+
+        /// <summary>
+        /// Validates that all dependencies are available
+        /// </summary>
+        private bool ValidateDependencies()
+        {
+            if (gridManager == null)
+            {
+                Debug.LogError("[BaseManager] IGridManager is null!");
+                return false;
+            }
+
+            if (basePrefab == null)
+            {
+                Debug.LogError("[BaseManager] Base prefab is not assigned in Inspector!");
+                return false;
+            }
+
+            if (basePrefab.GetComponent<Base>() == null)
+            {
+                Debug.LogError("[BaseManager] Base prefab does not have Base component!");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

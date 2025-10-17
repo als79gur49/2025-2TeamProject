@@ -25,9 +25,6 @@ namespace Game.Services
         public event System.Action OnEndTurnRequested;
         public event System.Action OnRestartRequested;
 
-        // 🔧 Dependency injection state
-        private bool dependenciesInjected = false;
-
         // 🔒 Global state tracking for visual feedback
         private bool _isGameFlowLocked = false;
         
@@ -38,34 +35,32 @@ namespace Game.Services
         
         private void Start()
         {
-            Initialize();
+            // Initialization now handled manually by GameServiceManager
         }
-        
+
         /// <summary>
-        /// Injects required dependencies - Called by GameServiceManager
+        /// Manual initialization with dependency injection - called by GameServiceManager
+        /// Injects dependencies, retrieves ServiceLocator dependencies, and initializes UI
         /// </summary>
-        public void InjectDependencies(ITurnService turnService, IUnitService unitService)
+        public void Init(ITurnService turnService, IUnitService unitService)
         {
+            // Phase 1: Inject dependencies from parameters
             this.turnService = turnService;
             this.unitService = unitService;
-            
-            dependenciesInjected = true;
-            Debug.Log("[UIService] Dependencies injected successfully");
-        }
-        
-        public void Initialize()
-        {
-            if (!dependenciesInjected)
+
+            // Phase 2: Get ServiceLocator dependencies
+            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (_stateManager == null)
             {
-                Debug.LogError("[UIService] Cannot initialize - Dependencies not injected!");
-                return;
+                Debug.LogWarning("[UIService] IGlobalStateManager not found - VFX visual feedback disabled");
             }
-            
+
+            // Phase 3: Validate and initialize
             ValidateDependencies();
             SubscribeToServiceEvents();
             CreateUIElements();
             UpdateDisplay();
-            
+
             Debug.Log("[UIService] Initialized successfully");
         }
         
@@ -78,11 +73,8 @@ namespace Game.Services
                 Debug.LogError("[UIService] ITurnService is null after injection");
             if (unitService == null)
                 Debug.LogError("[UIService] IUnitService is null after injection");
-
-            // Get GlobalStateManager from ServiceLocator
-            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
             if (_stateManager == null)
-                Debug.LogWarning("[UIService] IGlobalStateManager not found - VFX visual feedback disabled");
+                Debug.LogWarning("[UIService] IGlobalStateManager is null - VFX visual feedback disabled");
         }
         
         /// <summary>

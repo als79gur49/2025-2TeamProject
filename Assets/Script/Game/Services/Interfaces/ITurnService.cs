@@ -15,6 +15,13 @@ namespace Game.Services
         // 호환성 속성
         bool IsPlayerTurn { get; }      // AllySummon & AllyAction 페이즈에서 true
 
+        // 초기화 메서드
+        /// <summary>
+        /// Initializes the TurnService
+        /// Retrieves ServiceLocator dependencies (IGlobalStateManager)
+        /// </summary>
+        void Init();
+
         // 페이즈 제어 메서드
         void StartGame();               // EnemySummon 페이즈로 초기화
         void StartCurrentPhase();       // 현재 페이즈 처리 시작

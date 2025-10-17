@@ -557,11 +557,11 @@ namespace Game.Components
             
             for (int range = 1; range <= attackRange; range++)
             {
-                // 상하좌우 방향
+                // x좌우 방향
                 positions.Add(fromPosition + Vector2Int.up * range);
                 positions.Add(fromPosition + Vector2Int.down * range);
-                positions.Add(fromPosition + Vector2Int.left * range);
-                positions.Add(fromPosition + Vector2Int.right * range);
+                //positions.Add(fromPosition + Vector2Int.left * range);
+                //positions.Add(fromPosition + Vector2Int.right * range);
             }
             
             return positions;

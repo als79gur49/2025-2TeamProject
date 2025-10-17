@@ -4,14 +4,15 @@ using Game.Data;
 using Game.Interfaces;
 using Game.Services;
 using Game.Card.Effects;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Game.AI
 {
     /// <summary>
-    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.0 - 상황 인식 기반 Knapsack 알고리즘)
-    /// 필드 상황을 고려한 동적 가치 평가를 통해 최적의 카드와 배치 위치를 동시에 결정합니다.
+    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.2 - VFX 연동 비동기 순차 처리)
+    /// GlobalStateManager의 GameFlowLock 상태를 감지하여, 이전 VFX가 끝나면 다음 카드를 실행합니다.
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
@@ -30,6 +31,7 @@ namespace Game.AI
         private ISpawnValidator spawnValidator;
         private IGridState gridState;
         private IUnitService unitService;
+        private IGlobalStateManager _stateManager;
 
         private bool isInitialized = false;
 
@@ -42,7 +44,7 @@ namespace Game.AI
         #region 초기화
 
         /// <summary>
-        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.0 - 확장된 의존성)
+        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.2 - VFX 연동)
         /// </summary>
         public void Initialize(
             IResourceManager res,
@@ -59,11 +61,17 @@ namespace Game.AI
             gridState = state;
             unitService = unit;
 
+            _stateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (_stateManager == null)
+            {
+                LogError("❌ IGlobalStateManager not found in ServiceLocator! AI cannot function correctly.");
+            }
+
             // 덱에서 초기 핸드 드로우
             DrawInitialHand(initialHandSize);
 
             isInitialized = true;
-            Log("🤖 [EnemyAI v2.0] Initialized with context-aware dependencies");
+            Log("🤖 [EnemyAI v2.2] Initialized with state-aware async execution");
         }
 
         /// <summary>
@@ -111,24 +119,33 @@ namespace Game.AI
 
         #endregion
 
-        #region 소환 페이즈 실행 (v2.0 - 상황 인식 가치 평가)
+        #region 소환 페이즈 실행 (v2.2 - VFX 연동 비동기 순차 처리)
 
         /// <summary>
         /// EnemySummonPhase가 시작될 때 CardServiceManager에 의해 호출됩니다.
-        /// v2.0: 필드 상황을 고려한 동적 가치 평가 + Knapsack 알고리즘
+        /// v2.2: VFX 완료를 기다리는 비동기 순차 실행
         /// </summary>
         public void ExecuteSummonPhase()
         {
-            if (!isInitialized)
+            if (!isInitialized || _stateManager == null)
             {
-                LogError("[EnemyAI] Not initialized!");
+                LogError("[EnemyAI] Not initialized or StateManager is missing!");
                 return;
             }
 
+            StartCoroutine(ExecuteSummonPhaseCoroutine());
+        }
+
+        /// <summary>
+        /// 선택된 카드를 순차적으로 사용하는 코루틴.
+        /// 각 카드를 사용하기 전에 GameFlowLock이 해제될 때까지 대기합니다.
+        /// </summary>
+        private IEnumerator ExecuteSummonPhaseCoroutine()
+        {
             if (enemyHand.Count == 0)
             {
                 Log("No cards in hand to play");
-                return;
+                yield break;
             }
 
             // 1. 현재 사용 가능한 마나 확인
@@ -150,7 +167,7 @@ namespace Game.AI
             if (cardValueInfos.Count == 0)
             {
                 Log("No valid card placements found");
-                return;
+                yield break;
             }
 
             // 3. Knapsack 알고리즘 실행
@@ -159,21 +176,27 @@ namespace Game.AI
             if (selectedCardInfos.Count == 0)
             {
                 Log("No cards selected to play this turn");
-                return;
+                yield break;
             }
 
             Log($"Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
 
-            // 4. 선택된 카드들을 최고 위치에 실행
+            // 4. 선택된 카드들을 순차적으로 실행
             int successCount = 0;
             foreach (var info in selectedCardInfos)
             {
+                // 🔴 중요: 다음 카드를 실행하기 전에 GameFlowLock이 해제될 때까지 대기
+                // 즉, 이전 카드의 VFX나 다른 블로킹 애니메이션이 끝날 때까지 기다립니다.
+                yield return new WaitUntil(() => !_stateManager.IsBusy(BusyType.GameFlowLock));
+
+                // 이제 시스템이 유휴 상태이므로 다음 카드를 사용합니다.
+                // TryExecuteCard는 내부적으로 VFX를 재생하고 GameFlowLock을 설정해야 합니다.
                 bool success = cardSpawnService.TryExecuteCard(info.Card, info.Position, TeamType.Enemy);
                 if (success)
                 {
                     enemyHand.Remove(info.Card);
                     successCount++;
-                    Log($"Executed '{info.Card.CardName}' at {info.Position} value{info.Value}");
+                    Log($"Executed '{info.Card.CardName}' at {info.Position}. Waiting for its VFX to complete...");
                 }
                 else
                 {
@@ -407,13 +430,13 @@ namespace Game.AI
         {
             if (enableLogging)
             {
-                Debug.Log($"[EnemyAI v2.0] {message}");
+                Debug.Log($"[EnemyAI v2.2] {message}");
             }
         }
 
         private void LogError(string message)
         {
-            Debug.LogError($"[EnemyAI v2.0] {message}");
+            Debug.LogError($"[EnemyAI v2.2] {message}");
         }
 
         #endregion
@@ -439,7 +462,7 @@ namespace Game.AI
         /// </summary>
         public string GetStatus()
         {
-            return $"Enemy AI v2.0 Status:\n" +
+            return $"Enemy AI v2.2 Status:\n" +
                    $"- Initialized: {isInitialized}\n" +
                    $"- Deck Size: {enemyDeck?.Count ?? 0}\n" +
                    $"- Hand Size: {enemyHand.Count}\n" +
@@ -460,7 +483,7 @@ namespace Game.AI
             if (!showDebugGUI || !Application.isPlaying) return;
 
             GUILayout.BeginArea(new Rect(10, 300, 300, 200));
-            GUILayout.Box("Enemy AI v2.0 Debug");
+            GUILayout.Box("Enemy AI v2.2 Debug");
 
             if (isInitialized)
             {

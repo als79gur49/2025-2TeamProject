@@ -12,7 +12,13 @@ namespace Game.Services
         /// Gets the total number of active units
         /// </summary>
         int ActiveUnitCount { get; }
-        
+
+        /// <summary>
+        /// Initializes the UnitService
+        /// Starts periodic cleanup routines for dead units
+        /// </summary>
+        void Init();
+
         /// <summary>
         /// Registers a unit with the service
         /// </summary>

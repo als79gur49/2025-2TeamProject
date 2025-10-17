@@ -8,17 +8,13 @@ namespace Game.Services
     public interface IUIService
     {
         /// <summary>
-        /// Injects dependencies required by the UIService
+        /// Initializes the UIService with dependency injection
+        /// Injects dependencies, retrieves ServiceLocator dependencies, and initializes UI elements
         /// </summary>
         /// <param name="turnService">Turn management service</param>
         /// <param name="unitService">Unit management service</param>
-        void InjectDependencies(ITurnService turnService, IUnitService unitService);
-        
-        /// <summary>
-        /// Initializes the UI service
-        /// </summary>
-        void Initialize();
-        
+        void Init(ITurnService turnService, IUnitService unitService);
+
         /// <summary>
         /// Updates the display with current game state
         /// </summary>

@@ -21,6 +21,7 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private Game.VFX.SpellEffectExecutor spellEffectExecutor; // VFX 서비스 추가
     [SerializeField] private TeamConfigurationManager teamConfigurationManager; // 팀별 설정 관리 서비스 추가
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
+    [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
     
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
@@ -122,6 +123,9 @@ public class GameInitializer : MonoBehaviour
 
         // Base Management Services 등록 - BaseManager를 통한 Base 라이프사이클 관리
         RegisterBaseServices();
+
+        // Game Outcome Services 등록 - GameOutcomeManager를 통한 승/패 조건 관리
+        RegisterGameOutcomeServices();
     }
 
     /// <summary>
@@ -320,6 +324,39 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
+    /// Game Outcome 관리 서비스 등록 - GameOutcomeManager를 통한 승/패 조건 관리
+    /// </summary>
+    private void RegisterGameOutcomeServices()
+    {
+        Log("Registering Game Outcome management services via GameOutcomeManager...");
+
+        // GameOutcomeManager 등록
+        if (gameOutcomeManager != null)
+        {
+            // GameOutcomeManager 의존성 주입
+            IBaseManager baseManagerInterface = baseManager;
+
+            if (baseManagerInterface != null)
+            {
+                gameOutcomeManager.InjectDependencies(baseManagerInterface);
+                gameOutcomeManager.Initialize();
+                ServiceLocator.Register<IGameOutcomeManager>(gameOutcomeManager);
+                Log("✅ GameOutcomeManager initialized and registered");
+            }
+            else
+            {
+                LogError("❌ GameOutcomeManager dependency missing - BaseManager is null");
+            }
+        }
+        else
+        {
+            LogError("❌ GameOutcomeManager not found - Game outcome management services not registered");
+        }
+
+        Log("Game outcome management services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -401,6 +438,18 @@ public class GameInitializer : MonoBehaviour
         if (!ServiceLocator.IsRegistered<ITeamConfigurationManager>())
         {
             LogError("❌ Critical service missing: ITeamConfigurationManager");
+        }
+
+        // Base Management 서비스 확인
+        if (!ServiceLocator.IsRegistered<IBaseManager>())
+        {
+            LogError("❌ Critical service missing: IBaseManager");
+        }
+
+        // Game Outcome 서비스 확인
+        if (!ServiceLocator.IsRegistered<IGameOutcomeManager>())
+        {
+            LogError("❌ Critical service missing: IGameOutcomeManager");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

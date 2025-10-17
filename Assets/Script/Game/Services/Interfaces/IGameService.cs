@@ -11,20 +11,16 @@ namespace Game.Services
         /// Gets whether the game is currently active
         /// </summary>
         bool IsGameActive { get; }
-        
+
         /// <summary>
-        /// Injects dependencies required by the GameService
+        /// Initializes the GameService with dependency injection
+        /// Injects dependencies, validates, and subscribes to events
         /// </summary>
         /// <param name="turnService">Turn management service</param>
         /// <param name="unitService">Unit management service</param>
         /// <param name="uiService">UI management service</param>
-        void InjectDependencies(ITurnService turnService, IUnitService unitService, IUIService uiService);
-        
-        /// <summary>
-        /// Initializes the service
-        /// </summary>
-        void Initialize();
-        
+        void Init(ITurnService turnService, IUnitService unitService, IUIService uiService);
+
         /// <summary>
         /// Starts a new game
         /// </summary>

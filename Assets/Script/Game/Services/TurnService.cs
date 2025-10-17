@@ -40,12 +40,25 @@ namespace Game.Services
 
         private void Awake()
         {
+            Debug.Log("[TurnService] Awake() - Waiting for manual initialization");
+        }
+
+        /// <summary>
+        /// Manual initialization - called by GameServiceManager
+        /// Retrieves ServiceLocator dependencies after they are guaranteed to be registered
+        /// </summary>
+        public void Init()
+        {
             // GlobalStateManager 초기화
             _stateManager = ServiceLocator.Get<IGlobalStateManager>();
 
             if (_stateManager == null)
             {
                 Debug.LogWarning("[TurnService] IGlobalStateManager not found - Phase blocking disabled");
+            }
+            else
+            {
+                Debug.Log("[TurnService] Initialized successfully with GlobalStateManager");
             }
         }
         

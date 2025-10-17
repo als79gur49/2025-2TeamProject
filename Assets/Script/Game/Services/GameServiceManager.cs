@@ -2,6 +2,7 @@ using UnityEngine;
 using Game.Services;
 using Game.Core;
 using System;
+using Game.Interfaces;
 
 namespace Game.Services
 {
@@ -17,6 +18,9 @@ namespace Game.Services
         [SerializeField] private UIService uiService;
         [SerializeField] private GameService gameService;
         [SerializeField] private BaseManager baseManager;
+
+        // Retrieved from ServiceLocator
+        private IGameOutcomeManager gameOutcomeManager;
         
         [Header("Configuration")]
         [SerializeField] private bool autoInitialize = true;
@@ -74,10 +78,9 @@ namespace Game.Services
         
         // 🏗️ Service State Tracking
         #region Service State
-        
+
         private bool isInitialized = false;
         private bool areServicesHealthy = false;
-        private bool isDependencyInjectionComplete = false;
         private bool areEventsConnected = false;
         
         /// <summary>Gets whether the service manager is fully initialized</summary>
@@ -92,20 +95,32 @@ namespace Game.Services
         
         private void Awake()
         {
+            
+        }
+        private void Start()
+        {
+            // Phase 1: Retrieve core dependencies from ServiceLocator
+            gameOutcomeManager = ServiceLocator.Get<IGameOutcomeManager>();
+
+            if (gameOutcomeManager == null)
+            {
+                LogEvent("⚠️ GameOutcomeManager not found in ServiceLocator");
+            }
+            else
+            {
+                LogEvent("✅ GameOutcomeManager retrieved from ServiceLocator");
+            }
+
+            // Phase 2: Initialize service infrastructure
             if (autoInitialize)
             {
                 InitializeServices();
             }
-        }
-        private void Start()
-        {
-            // Initialize Bases before starting game
-            if (baseManager != null)
-            {
-                baseManager.InitializeBases();
-                LogEvent("🏰 Bases initialized");
-            }
 
+            // Phase 3: Manually initialize each service in correct order (includes BaseManager)
+            InitializeIndividualServicesManually();
+
+            // Phase 4: Start game
             gameService.StartGame();
         }
         private void OnDestroy()
@@ -119,40 +134,29 @@ namespace Game.Services
         
         /// <summary>
         /// Main initialization pipeline - coordinates the entire service setup process
+        /// Note: Individual service Init() calls are now handled separately in Start()
         /// </summary>
         public void InitializeServices()
         {
             try
             {
                 LogEvent("🏗️ Starting service initialization pipeline...");
-                
+
                 // Phase 1: Create service components
                 CreateServiceComponents();
                 LogEvent("✅ Service components created");
-                
-                // Phase 2: Register services with ServiceLocator
-                RegisterServicesWithLocator();
-                LogEvent("✅ Services registered with ServiceLocator");
-                
-                // Phase 3: Inject dependencies
-                InjectServiceDependencies();
-                LogEvent("✅ Dependencies injected");
-                
-                // Phase 4: Initialize individual services
-                InitializeIndividualServices();
-                LogEvent("✅ Individual services initialized");
-                
-                // Phase 5: Connect event system
+
+                // Phase 2: Connect event system
                 ConnectServiceEvents();
                 LogEvent("✅ Event system connected");
-                
-                // Phase 6: Validate service health
+
+                // Phase 3: Validate service health
                 ValidateServiceHealth();
                 LogEvent("✅ Service health validated");
-                
+
                 isInitialized = true;
                 OnServicesInitialized?.Invoke();
-                LogEvent("🎉 Service initialization pipeline completed successfully!");
+                LogEvent("🎉 Service initialization pipeline completed - ready for manual Init() calls");
             }
             catch (Exception ex)
             {
@@ -193,38 +197,95 @@ namespace Game.Services
             }
         }
         
-        /// <summary>
-        /// Registers all services with the ServiceLocator
-        /// </summary>
-        private void RegisterServicesWithLocator()
-        {
-        }
         
         /// <summary>
-        /// Injects dependencies into services that require them
-        /// </summary>
-        private void InjectServiceDependencies()
-        {
-            // Inject dependencies into GameService (requires all other services)
-            gameService.InjectDependencies(turnService, unitService, uiService);
-            LogEvent("💉 GameService dependencies injected");
-            
-            // Inject dependencies into UIService (requires TurnService and UnitService)
-            uiService.InjectDependencies(turnService, unitService);
-            LogEvent("💉 UIService dependencies injected");
-            
-            isDependencyInjectionComplete = true;
-        }
-        
-        /// <summary>
-        /// Initializes all individual services
+        /// Initializes all individual services (DEPRECATED)
+        /// Use InitializeIndividualServicesManually() instead
         /// </summary>
         private void InitializeIndividualServices()
         {
-            gameService.Initialize();
-            uiService.Initialize();
-            
-            LogEvent("🚀 All services initialized individually");
+            LogEvent("⚠️ InitializeIndividualServices() deprecated - using manual Init() pattern");
+            // Manual initialization is now handled by InitializeIndividualServicesManually()
+        }
+
+        /// <summary>
+        /// Manually initializes each service in the correct dependency order
+        /// Called after component creation and before game start
+        /// This ensures ServiceLocator dependencies are ready and proper initialization sequence
+        /// Now integrates dependency injection directly into Init() calls
+        /// </summary>
+        private void InitializeIndividualServicesManually()
+        {
+            LogEvent("🎯 Starting manual service initialization with dependency injection...");
+
+            // Order matters - initialize in dependency order
+
+            // 1. TurnService (independent, uses ServiceLocator)
+            if (turnService != null)
+            {
+                turnService.Init();
+                LogEvent("✅ TurnService initialized");
+            }
+            else
+            {
+                LogEvent("❌ TurnService is null - cannot initialize");
+            }
+
+            // 2. UnitService (independent)
+            if (unitService != null)
+            {
+                unitService.Init();
+                LogEvent("✅ UnitService initialized");
+            }
+            else
+            {
+                LogEvent("❌ UnitService is null - cannot initialize");
+            }
+
+            // 3. UIService (depends on TurnService, UnitService)
+            if (uiService != null)
+            {
+                uiService.Init(turnService, unitService);
+                LogEvent("✅ UIService initialized with dependencies");
+            }
+            else
+            {
+                LogEvent("❌ UIService is null - cannot initialize");
+            }
+
+            // 4. GameService (depends on TurnService, UnitService, UIService)
+            if (gameService != null)
+            {
+                gameService.Init(turnService, unitService, uiService);
+                LogEvent("✅ GameService initialized with dependencies");
+            }
+            else
+            {
+                LogEvent("❌ GameService is null - cannot initialize");
+            }
+
+            // 5. BaseManager (depends on GridManager, TeamConfigurationManager)
+            if (baseManager != null)
+            {
+                IGridManager gridManager = ServiceLocator.Get<IGridManager>();
+                ITeamConfigurationManager teamConfigManager = ServiceLocator.Get<ITeamConfigurationManager>();
+
+                if (gridManager != null && teamConfigManager != null)
+                {
+                    baseManager.Init(gridManager, teamConfigManager);
+                    LogEvent("✅ BaseManager initialized with dependencies");
+                }
+                else
+                {
+                    LogEvent("❌ Cannot initialize BaseManager - GridManager or TeamConfigurationManager not available in ServiceLocator");
+                }
+            }
+            else
+            {
+                LogEvent("❌ BaseManager is null - cannot initialize");
+            }
+
+            LogEvent("🎉 All services manually initialized with dependency injection");
         }
         
         /// <summary>
@@ -257,11 +318,12 @@ namespace Game.Services
             uiService.OnEndTurnRequested += HandleEndPhaseRequested;
             uiService.OnRestartRequested += HandleRestartRequested;
 
-            // BaseManager events
-            if (baseManager != null)
+            // GameOutcomeManager events
+            if (gameOutcomeManager != null)
             {
-                baseManager.OnPlayerBaseDestroyed += HandlePlayerBaseDestroyed;
-                baseManager.OnEnemyBaseDestroyed += HandleEnemyBaseDestroyed;
+                gameOutcomeManager.OnVictory += HandleEnemyBaseDestroyed;
+                gameOutcomeManager.OnDefeat += HandlePlayerBaseDestroyed;
+                LogEvent("🏆 GameOutcomeManager events connected");
             }
 
             areEventsConnected = true;
@@ -298,14 +360,7 @@ namespace Game.Services
                 LogEvent("❌ GameService is null");
                 allHealthy = false;
             }
-            
-            
-            if (!isDependencyInjectionComplete)
-            {
-                LogEvent("❌ Dependency injection not completed");
-                allHealthy = false;
-            }
-            
+
             if (!areEventsConnected)
             {
                 LogEvent("❌ Events not connected");
@@ -501,11 +556,11 @@ namespace Game.Services
                     uiService.OnRestartRequested -= HandleRestartRequested;
                 }
 
-                // BaseManager events
-                if (baseManager != null)
+                // GameOutcomeManager events
+                if (gameOutcomeManager != null)
                 {
-                    baseManager.OnPlayerBaseDestroyed -= HandlePlayerBaseDestroyed;
-                    baseManager.OnEnemyBaseDestroyed -= HandleEnemyBaseDestroyed;
+                    gameOutcomeManager.OnVictory -= HandleEnemyBaseDestroyed;
+                    gameOutcomeManager.OnDefeat -= HandlePlayerBaseDestroyed;
                 }
 
                 areEventsConnected = false;
@@ -594,12 +649,12 @@ namespace Game.Services
             return $"Services Status:\n" +
                    $"- Initialized: {isInitialized}\n" +
                    $"- Healthy: {areServicesHealthy}\n" +
-                   $"- Dependencies Injected: {isDependencyInjectionComplete}\n" +
                    $"- Events Connected: {areEventsConnected}\n" +
                    $"- TurnService: {(turnService != null ? "✅" : "❌")}\n" +
                    $"- UnitService: {(unitService != null ? "✅" : "❌")}\n" +
                    $"- UIService: {(uiService != null ? "✅" : "❌")}\n" +
-                   $"- GameService: {(gameService != null ? "✅" : "❌")}\n";
+                   $"- GameService: {(gameService != null ? "✅" : "❌")}\n" +
+                   $"- BaseManager: {(baseManager != null ? "✅" : "❌")}\n";
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Game.Interfaces;
 
 namespace Game.Services
 {
@@ -20,10 +21,12 @@ namespace Game.Services
         Base EnemyBase { get; }
 
         /// <summary>
-        /// Initializes both Player and Enemy bases on the grid
-        /// Should be called during game initialization phase
+        /// Initializes the BaseManager with dependency injection
+        /// Injects dependencies and initializes both Player and Enemy bases
         /// </summary>
-        void InitializeBases();
+        /// <param name="gridManager">Grid management service</param>
+        /// <param name="teamConfigManager">Team configuration management service</param>
+        void Init(IGridManager gridManager, ITeamConfigurationManager teamConfigManager);
 
         /// <summary>
         /// Cleans up Base objects for game restart

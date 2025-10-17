@@ -41,13 +41,18 @@ namespace Game.Services
         
         private void Awake()
         {
-            Debug.Log("[UnitService] Awake() called - Registration handled by GameInitializer");
+            Debug.Log("[UnitService] Awake() - Waiting for manual initialization");
         }
-        
-        private void Start()
+
+        /// <summary>
+        /// Manual initialization - called by GameServiceManager
+        /// Starts periodic cleanup routine for dead units
+        /// </summary>
+        public void Init()
         {
             // Periodic cleanup of dead units
             InvokeRepeating(nameof(CleanupDeadUnits), 1f, 2f);
+            Debug.Log("[UnitService] Initialized - Cleanup routine started");
         }
         
         public void RegisterUnit(Unit unit)
