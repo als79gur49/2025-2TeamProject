@@ -24,8 +24,9 @@ namespace Game.Services
         [SerializeField] private Transform handUIParent;
         [SerializeField] private GameObject cardUIPrefab;
         [SerializeField] private float cardSpacing = 120f;
-        [SerializeField] private bool arrangeCardsInArc = true;
+        [SerializeField] private bool arrangeCardsInArc = false;  // 수직 배치 사용
         [SerializeField] private float arcRadius = 800f;
+        [SerializeField] private bool arrangeVertically = true;   // 수직 배치 옵션
 
         [Header("카드 데이터 소스")]
         [SerializeField] private List<CardData> availableCards = new List<CardData>();
@@ -184,6 +185,7 @@ namespace Game.Services
 
         /// <summary>
         /// HandUI 부모 오브젝트 찾기 또는 생성
+        /// 좌측 상단에서 하단으로 배치
         /// </summary>
         private Transform FindOrCreateHandUIParent()
         {
@@ -200,15 +202,15 @@ namespace Game.Services
                 // 없으면 생성
                 var handUIObject = new GameObject("HandUI");
                 handUIObject.transform.SetParent(canvas.transform, false);
-                
-                // RectTransform 설정
+
+                // RectTransform 설정 - 좌측 배치 (위에서 아래로)
                 var rectTransform = handUIObject.AddComponent<RectTransform>();
-                rectTransform.anchorMin = new Vector2(0f, 0f);
-                rectTransform.anchorMax = new Vector2(1f, 0.3f);
+                rectTransform.anchorMin = new Vector2(0f, 0.3f);   // 좌측 하단
+                rectTransform.anchorMax = new Vector2(0.2f, 0.9f); // 좌측 상단
                 rectTransform.offsetMin = Vector2.zero;
                 rectTransform.offsetMax = Vector2.zero;
 
-                Log("🖼️ HandUI parent created");
+                Log("🖼️ HandUI parent created on LEFT side");
                 return handUIObject.transform;
             }
 
@@ -425,6 +427,10 @@ namespace Game.Services
             {
                 ArrangeCardsInArc();
             }
+            else if (arrangeVertically)
+            {
+                ArrangeCardsVertically();
+            }
             else
             {
                 ArrangeCardsInLine();
@@ -482,6 +488,31 @@ namespace Game.Services
                 if (rectTransform != null)
                 {
                     rectTransform.anchoredPosition = new Vector2(startX + i * cardSpacing, 0);
+                    rectTransform.rotation = Quaternion.identity;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 카드들을 수직으로 배열 (위에서 아래로) - 좌측 배치용
+        /// </summary>
+        private void ArrangeCardsVertically()
+        {
+            int cardCount = cardUIComponents.Count;
+            if (cardCount == 0) return;
+
+            // 위에서 아래로 배치
+            float startY = 0f;  // 상단 시작
+
+            for (int i = 0; i < cardCount; i++)
+            {
+                if (cardUIComponents[i] == null) continue;
+
+                var rectTransform = cardUIComponents[i].GetComponent<RectTransform>();
+                if (rectTransform != null)
+                {
+                    // 수직 배치 (X는 중앙, Y는 위에서 아래로)
+                    rectTransform.anchoredPosition = new Vector2(0, startY - i * cardSpacing);
                     rectTransform.rotation = Quaternion.identity;
                 }
             }

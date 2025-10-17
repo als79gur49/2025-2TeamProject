@@ -15,6 +15,7 @@ namespace Game.Services
         [SerializeField] private CardHandManager cardHandManager;
         [SerializeField] private CardSpawnService cardSpawnService;
         [SerializeField] private SpawnValidator spawnValidator;
+        [SerializeField] private EnemyCardHandView enemyCardHandView;
 
         [Header("AI 설정")]
         [SerializeField] private EnemyAIController enemyAIController;
@@ -115,6 +116,12 @@ namespace Game.Services
                 Log("✔️ Created SpawnValidator component");
             }
 
+            if (enemyCardHandView == null)
+            {
+                enemyCardHandView = gameObject.AddComponent<EnemyCardHandView>();
+                Log("👹 Created EnemyCardHandView component");
+            }
+
             // EnemyAIController 생성 또는 찾기
             if (enemyAIController == null)
             {
@@ -182,6 +189,18 @@ namespace Game.Services
                 );
                 Log("💉 EnemyAIController v2.0 dependencies injected via Initialize()");
             }
+
+            // EnemyCardHandView 초기화
+            if (enemyCardHandView != null && enemyAIController != null)
+            {
+                enemyCardHandView.Init(enemyAIController);
+                Log("💉 EnemyCardHandView dependencies injected via Init()");
+
+                // 🔔 적군 AI 이벤트 구독
+                enemyAIController.OnCardUsed += HandleEnemyCardUsed;
+                enemyAIController.OnCardDrawn += HandleEnemyCardDrawn;
+                Log("✅ Subscribed to EnemyAIController card events");
+            }
         }
 
         /// <summary>
@@ -247,6 +266,12 @@ namespace Game.Services
             if (enemyAIController == null)
             {
                 LogError("❌ EnemyAIController is null");
+                allHealthy = false;
+            }
+
+            if (enemyCardHandView == null)
+            {
+                LogError("❌ EnemyCardHandView is null");
                 allHealthy = false;
             }
 
@@ -353,6 +378,7 @@ namespace Game.Services
             {
                 enemyAIController.DrawCard(1);
                 Log("🃏 Enemy AI drew a card");
+                // UI 갱신은 OnCardDrawn 이벤트로 자동 처리됨
             }
 
             // 4. 기타 턴 시작 시 초기화 작업
@@ -391,6 +417,7 @@ namespace Game.Services
             if (enemyAIController != null)
             {
                 enemyAIController.ExecuteSummonPhase();
+                // UI 갱신은 OnCardUsed 이벤트로 자동 처리됨
             }
             else
             {
@@ -447,6 +474,34 @@ namespace Game.Services
 
         #endregion
 
+        #region 적군 카드 이벤트 핸들러
+
+        /// <summary>
+        /// 적군이 카드를 사용했을 때 호출되는 핸들러
+        /// </summary>
+        private void HandleEnemyCardUsed()
+        {
+            if (enemyCardHandView != null)
+            {
+                enemyCardHandView.RefreshEnemyHand();
+                Log("👹 Enemy card used - UI refreshed via event");
+            }
+        }
+
+        /// <summary>
+        /// 적군이 카드를 드로우했을 때 호출되는 핸들러
+        /// </summary>
+        private void HandleEnemyCardDrawn()
+        {
+            if (enemyCardHandView != null)
+            {
+                enemyCardHandView.RefreshEnemyHand();
+                Log("👹 Enemy card drawn - UI refreshed via event");
+            }
+        }
+
+        #endregion
+
         #region 이벤트 정리
 
         /// <summary>
@@ -460,6 +515,14 @@ namespace Game.Services
             {
                 turnService.OnPhaseChanged -= HandlePhaseChanged;
                 Log("🔗 Disconnected from TurnService events");
+            }
+
+            // 적군 AI 이벤트 구독 해제
+            if (enemyAIController != null)
+            {
+                enemyAIController.OnCardUsed -= HandleEnemyCardUsed;
+                enemyAIController.OnCardDrawn -= HandleEnemyCardDrawn;
+                Log("🔗 Unsubscribed from EnemyAIController card events");
             }
 
             Log("🔗 All card service events disconnected");
@@ -503,7 +566,8 @@ namespace Game.Services
                    $"- CardHandManager: {(cardHandManager != null ? "✅" : "❌")}\n" +
                    $"- CardSpawnService: {(cardSpawnService != null ? "✅" : "❌")}\n" +
                    $"- SpawnValidator: {(spawnValidator != null ? "✅" : "❌")}\n" +
-                   $"- EnemyAIController: {(enemyAIController != null ? "✅" : "❌")}\n";
+                   $"- EnemyAIController: {(enemyAIController != null ? "✅" : "❌")}\n" +
+                   $"- EnemyCardHandView: {(enemyCardHandView != null ? "✅" : "❌")}\n";
         }
 
         /// <summary>
@@ -512,6 +576,7 @@ namespace Game.Services
         public ICardHandManager GetCardHandManager() => cardHandManager;
         public ICardSpawnService GetCardSpawnService() => cardSpawnService;
         public ISpawnValidator GetSpawnValidator() => spawnValidator;
+        public IEnemyCardHandView GetEnemyCardHandView() => enemyCardHandView;
 
         #endregion
     }

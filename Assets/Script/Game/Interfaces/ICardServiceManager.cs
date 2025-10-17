@@ -28,5 +28,8 @@ namespace Game.Interfaces
 
         /// <summary>스폰 검증자 반환</summary>
         ISpawnValidator GetSpawnValidator();
+
+        /// <summary>적군 카드 핸드 뷰 반환</summary>
+        IEnemyCardHandView GetEnemyCardHandView();
     }
 }
