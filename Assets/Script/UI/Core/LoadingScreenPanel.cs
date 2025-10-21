@@ -37,9 +37,13 @@ public class LoadingScreenPanel : UIPanel
 
     #region Initialization
 
-    protected override void OnInitialize()
+    /// <summary>
+    /// 의존성 없는 초기화 (Awake에서 호출됨)
+    /// Instantiate 직후에도 작동해야 하는 UI 컴포넌트 검증 및 내부 상태 초기화
+    /// </summary>
+    protected override void OnInitializeSelf()
     {
-        base.OnInitialize();
+        base.OnInitializeSelf();
 
         // Canvas 컴포넌트 검증 (Prefab에 미리 설정되어 있어야 함)
         Canvas canvas = GetComponent<Canvas>();
@@ -65,10 +69,30 @@ public class LoadingScreenPanel : UIPanel
         // UI 요소 검증
         ValidateUIComponents();
 
-        // 초기 상태 설정
-        ResetPanel();
+        // 🎯 FIX: 초기 상태만 설정, ResetPanel() 호출 안 함
+        // ResetPanel()을 호출하면 SetLoadingTip(defaultLoadingTip)이 실행되어
+        // SceneTransitionController에서 설정한 SceneData의 로딩 팁이 기본값으로 덮어씌워짐
+        currentProgress = 0f;
+        UpdateProgressDisplay(0f);
 
-        Debug.Log("[LoadingScreenPanel] Initialized successfully");
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 0f;
+        }
+
+        Debug.Log("[LoadingScreenPanel] Self-initialized successfully (Awake)");
+    }
+
+    /// <summary>
+    /// 의존성 있는 초기화 (Start에서 호출됨)
+    /// ServiceLocator 등 외부 서비스 접근이 필요한 초기화
+    /// LoadingScreenPanel은 외부 의존성이 없으므로 비어있음
+    /// </summary>
+    protected override void OnInitializeWithDependencies()
+    {
+        base.OnInitializeWithDependencies();
+
+        Debug.Log("[LoadingScreenPanel] Dependency initialization complete (Start)");
     }
 
     /// <summary>
@@ -181,6 +205,7 @@ public class LoadingScreenPanel : UIPanel
     {
         if (loadingTipText != null)
         {
+            Debug.Log($"|{tip}|  text");
             loadingTipText.text = string.IsNullOrWhiteSpace(tip) ? defaultLoadingTip : tip;
         }
     }

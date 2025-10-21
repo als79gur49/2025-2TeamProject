@@ -187,6 +187,10 @@ namespace Game.Services
                         Debug.Log($"[SceneLoaderService] Scene ready but waiting ({remainingTime:F2}s remaining before scene switch)");
                     }
                 }
+                else
+                {
+                    Debug.Log($"[SceneLoaderService] Check Async Loading Progress {asyncLoad.progress}");
+                }
 
                 // 진행률 이벤트 발생
                 OnSceneLoadProgress?.Invoke(sceneData, _loadingProgress);

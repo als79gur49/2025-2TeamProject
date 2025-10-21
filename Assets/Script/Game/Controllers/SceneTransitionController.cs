@@ -28,6 +28,7 @@ namespace Game.Controllers
 
         // 🔒 Services
         private ISceneLoaderService sceneLoaderService;
+        private IBGMAudioService bgmAudioService;
 
         // 📡 Events
         public event Action<SceneData> OnSceneTransitionStarted;
@@ -98,6 +99,13 @@ namespace Game.Controllers
             {
                 Debug.LogError("[SceneTransitionController] ISceneLoaderService not found in ServiceLocator!");
                 return;
+            }
+
+            // BGMAudioService 주입
+            bgmAudioService = ServiceLocator.Get<IBGMAudioService>();
+            if (bgmAudioService == null)
+            {
+                Debug.LogWarning("[SceneTransitionController] IBGMAudioService not found in ServiceLocator! BGM transitions will be disabled.");
             }
 
             // 서비스 이벤트 구독
@@ -279,11 +287,73 @@ namespace Game.Controllers
         #region Service Event Handlers
 
         /// <summary>
+        /// 씬 전환 시 BGM 크로스페이드 처리
+        /// SceneData에 bgMusic이 설정되어 있으면 자동으로 크로스페이드 실행
+        /// AudioData의 FadeOutTime과 FadeInTime을 사용하여 동적으로 크로스페이드 시간 계산
+        /// </summary>
+        private void HandleBGMTransition(SceneData sceneData)
+        {
+            // SceneData에 bgMusic이 없으면 스킵
+            if (sceneData.BgMusic == null)
+            {
+                Debug.Log($"[SceneTransitionController] No BGM configured for scene: {sceneData.SceneName}");
+                return;
+            }
+
+            // BGMAudioService가 없으면 스킵
+            if (bgmAudioService == null)
+            {
+                Debug.LogWarning("[SceneTransitionController] BGMAudioService not available for BGM transition");
+                return;
+            }
+
+            // ScriptableObject를 AudioData로 캐스팅
+            AudioData newBGM = sceneData.BgMusic as AudioData;
+            if (newBGM == null)
+            {
+                Debug.LogError($"[SceneTransitionController] BgMusic is not an AudioData: {sceneData.BgMusic.GetType()}");
+                return;
+            }
+
+            // CrossFade 시간 계산: AudioData의 FadeOut/FadeIn 시간 사용
+            float crossFadeTime;
+            AudioData currentBGM = bgmAudioService.CurrentBGM;
+
+            if (currentBGM != null)
+            {
+                // 현재 BGM이 있는 경우: 현재 BGM의 FadeOut 시간 + 새 BGM의 FadeIn 시간
+                crossFadeTime = currentBGM.FadeOutTime + newBGM.FadeInTime;
+                Debug.Log($"[SceneTransitionController] Calculating crossfade: Current BGM FadeOut({currentBGM.FadeOutTime}s) + New BGM FadeIn({newBGM.FadeInTime}s) = {crossFadeTime}s");
+            }
+            else
+            {
+                // 첫 BGM이거나 현재 재생 중인 BGM이 없는 경우: 새 BGM의 FadeIn 시간만 사용
+                // CrossFade는 halfTime으로 나누므로 2배 적용
+                crossFadeTime = newBGM.FadeInTime * 2f;
+                Debug.Log($"[SceneTransitionController] No current BGM, using new BGM FadeIn({newBGM.FadeInTime}s) * 2 = {crossFadeTime}s");
+            }
+
+            // 최소값 보장 (0초 방지)
+            if (crossFadeTime <= 0f)
+            {
+                crossFadeTime = 1.0f;
+                Debug.LogWarning($"[SceneTransitionController] CrossFade time is 0 or negative, using default 1.0s");
+            }
+
+            // CrossFadeBGM 실행 (현재 BGM FadeOut → 새 BGM FadeIn)
+            Debug.Log($"[SceneTransitionController] Starting BGM crossfade to: {newBGM.name} ({crossFadeTime}s)");
+            bgmAudioService.CrossFadeBGM(newBGM, crossFadeTime);
+        }
+
+        /// <summary>
         /// 씬 로딩 시작 이벤트 핸들러
         /// </summary>
         private void HandleSceneLoadStarted(SceneData sceneData)
         {
             Debug.Log($"[SceneTransitionController] Scene load started: {sceneData.SceneName}");
+
+            // BGM 크로스페이드 처리
+            HandleBGMTransition(sceneData);
         }
 
         /// <summary>

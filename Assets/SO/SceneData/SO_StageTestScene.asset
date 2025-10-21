@@ -20,5 +20,5 @@ MonoBehaviour:
   - "\uCE74\uB4DC\uB97C \uC900\uBE44\uD558\uC138\uC694!"
   - "\uC801\uACFC\uC758 \uC804\uD22C\uAC00 \uACE7 \uC2DC\uC791\uB429\uB2C8\uB2E4"
   - "\uC804\uB7B5\uC744 \uC138\uC6B0\uACE0 \uC2B9\uB9AC\uB97C \uC7C1\uCDE8\uD558\uC138\uC694"
-  bgMusic: {fileID: 0}
+  bgMusic: {fileID: 11400000, guid: c6d34cdd53f99a345a7f18cda91461b8, type: 2}
   description: "\uAC8C\uC784 \uC2A4\uD14C\uC774\uC9C0 \uC52C (Gameplay Scene)"

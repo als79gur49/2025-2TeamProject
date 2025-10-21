@@ -207,10 +207,7 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// </summary>
     private void Awake()
     {
-        if (audioMixer == null)
-        {
-            Debug.LogError("VolumeController: AudioMixer가 설정되지 않았습니다.");
-        }
+        
     }
     
     /// <summary>
@@ -218,6 +215,10 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// </summary>
     private void Start()
     {
+        if (audioMixer == null)
+        {
+            Debug.LogError("VolumeController: AudioMixer가 설정되지 않았습니다.");
+        }
         InitializeVolume();
     }
     

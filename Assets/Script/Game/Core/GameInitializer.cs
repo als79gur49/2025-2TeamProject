@@ -417,12 +417,6 @@ public class GameInitializer : MonoBehaviour
             LogError("❌ Critical service missing: ITeamConfigurationManager");
         }
 
-        // Base Management 서비스 확인
-        if (!ServiceLocator.IsRegistered<IBaseManager>())
-        {
-            LogError("❌ Critical service missing: IBaseManager");
-        }
-
         // Game Outcome 서비스 확인
         if (!ServiceLocator.IsRegistered<IGameOutcomeManager>())
         {

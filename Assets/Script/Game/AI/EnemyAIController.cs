@@ -11,8 +11,9 @@ using System.Linq;
 namespace Game.AI
 {
     /// <summary>
-    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.2 - VFX 연동 비동기 순차 처리)
+    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.3 - Hybrid Re-validation)
     /// GlobalStateManager의 GameFlowLock 상태를 감지하여, 이전 VFX가 끝나면 다음 카드를 실행합니다.
+    /// v2.3: 카드 실행 직전 필드 상태 재검증 및 대안 위치 탐색으로 지능적인 카드 사용 구현
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
@@ -20,6 +21,9 @@ namespace Game.AI
         [SerializeField] private List<CardData> enemyDeck = new List<CardData>(); // 적이 사용할 수 있는 카드 목록
         [SerializeField] private int initialHandSize = 3; // 초기 손패 크기
         [SerializeField] private bool enableLogging = true;
+
+        // 카드 가치 판정 임계값 (0 = 양수 가치면 허용)
+        private const int MIN_VALUE_THRESHOLD = 0;
 
         // 이벤트
         public event System.Action OnCardUsed;   // 카드 사용 시 발생
@@ -51,7 +55,7 @@ namespace Game.AI
         #region 초기화
 
         /// <summary>
-        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.2 - VFX 연동)
+        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.3 - Hybrid Re-validation)
         /// </summary>
         public void Initialize(
             IResourceManager res,
@@ -78,7 +82,7 @@ namespace Game.AI
             DrawInitialHand(initialHandSize);
 
             isInitialized = true;
-            Log("🤖 [EnemyAI v2.2] Initialized with state-aware async execution");
+            Log("🤖 [EnemyAI v2.3] Initialized with hybrid re-validation system");
         }
 
         /// <summary>
@@ -129,11 +133,11 @@ namespace Game.AI
 
         #endregion
 
-        #region 소환 페이즈 실행 (v2.2 - VFX 연동 비동기 순차 처리)
+        #region 소환 페이즈 실행 (v2.3 - Hybrid Re-validation)
 
         /// <summary>
         /// EnemySummonPhase가 시작될 때 CardServiceManager에 의해 호출됩니다.
-        /// v2.2: VFX 완료를 기다리는 비동기 순차 실행
+        /// v2.3: VFX 완료를 기다리며, 각 카드 실행 직전 필드 상태를 재검증하여 지능적 실행
         /// </summary>
         public void ExecuteSummonPhase()
         {
@@ -191,7 +195,7 @@ namespace Game.AI
 
             Log($"Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
 
-            // 4. 선택된 카드들을 순차적으로 실행
+            // 4. 선택된 카드들을 순차적으로 실행 (v2.3: 실행 전 재검증)
             int successCount = 0;
             foreach (var info in selectedCardInfos)
             {
@@ -199,21 +203,52 @@ namespace Game.AI
                 // 즉, 이전 카드의 VFX나 다른 블로킹 애니메이션이 끝날 때까지 기다립니다.
                 yield return new WaitUntil(() => !_stateManager.IsBusy(BusyType.GameFlowLock));
 
-                // 이제 시스템이 유휴 상태이므로 다음 카드를 사용합니다.
+                // 🆕 v2.3: 카드 실행 직전 필드 상태 재검증
+                bool isStillValid = spawnValidator.CanUseCard(info.Card, info.Position, isPlayerUnit: false);
+                int currentValue = 0;
+
+                if (isStillValid)
+                {
+                    currentValue = CalculateValueAtPosition(info.Card, info.Position);
+                }
+
+                CardValueInfo finalInfo = info; // 기본값: 원래 계획 사용
+
+                // 원래 계획이 더 이상 최적이 아닌 경우 재계산
+                if (!isStillValid || currentValue <= MIN_VALUE_THRESHOLD)
+                {
+                    Log($"⚠️ Original plan for '{info.Card.CardName}' at {info.Position} is no longer optimal " +
+                        $"(Valid: {isStillValid}, Value: {currentValue}). Recalculating...");
+
+                    var recalculatedInfo = CalculateBestSituationalValue(info.Card);
+
+                    if (recalculatedInfo.Value > MIN_VALUE_THRESHOLD)
+                    {
+                        finalInfo = recalculatedInfo;
+                        Log($"✅ Found better position: {finalInfo.Position} with value {finalInfo.Value}");
+                    }
+                    else
+                    {
+                        Log($"❌ No valid alternative found. Skipping '{info.Card.CardName}'");
+                        continue; // 이 카드는 건너뛰기
+                    }
+                }
+
+                // 최종 결정된 위치에 카드 실행
                 // TryExecuteCard는 내부적으로 VFX를 재생하고 GameFlowLock을 설정해야 합니다.
-                bool success = cardSpawnService.TryExecuteCard(info.Card, info.Position, TeamType.Enemy);
+                bool success = cardSpawnService.TryExecuteCard(finalInfo.Card, finalInfo.Position, TeamType.Enemy);
                 if (success)
                 {
-                    enemyHand.Remove(info.Card);
+                    enemyHand.Remove(finalInfo.Card);
                     successCount++;
-                    Log($"Executed '{info.Card.CardName}' at {info.Position}. Waiting for its VFX to complete...");
+                    Log($"Executed '{finalInfo.Card.CardName}' at {finalInfo.Position}. Waiting for its VFX to complete...");
 
                     // 🔔 이벤트 발생
                     OnCardUsed?.Invoke();
                 }
                 else
                 {
-                    LogError($"Failed to execute '{info.Card.CardName}' at {info.Position}");
+                    LogError($"Failed to execute '{finalInfo.Card.CardName}' at {finalInfo.Position}");
                 }
             }
 
@@ -443,13 +478,13 @@ namespace Game.AI
         {
             if (enableLogging)
             {
-                Debug.Log($"[EnemyAI v2.2] {message}");
+                Debug.Log($"[EnemyAI v2.3] {message}");
             }
         }
 
         private void LogError(string message)
         {
-            Debug.LogError($"[EnemyAI v2.2] {message}");
+            Debug.LogError($"[EnemyAI v2.3] {message}");
         }
 
         #endregion
@@ -475,7 +510,7 @@ namespace Game.AI
         /// </summary>
         public string GetStatus()
         {
-            return $"Enemy AI v2.2 Status:\n" +
+            return $"Enemy AI v2.3 Status:\n" +
                    $"- Initialized: {isInitialized}\n" +
                    $"- Deck Size: {enemyDeck?.Count ?? 0}\n" +
                    $"- Hand Size: {enemyHand.Count}\n" +
@@ -496,7 +531,7 @@ namespace Game.AI
             if (!showDebugGUI || !Application.isPlaying) return;
 
             GUILayout.BeginArea(new Rect(10, 300, 300, 200));
-            GUILayout.Box("Enemy AI v2.2 Debug");
+            GUILayout.Box("Enemy AI v2.3 Debug");
 
             if (isInitialized)
             {

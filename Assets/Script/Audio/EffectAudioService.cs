@@ -93,6 +93,7 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     /// <summary>
     /// Unity Awake: 컴포넌트 초기화
     /// 메인 AudioSource 설정 및 풀 생성
+    /// ServiceBootstrap보다 먼저 초기화되도록 Awake에서 Initialize() 호출
     /// </summary>
     private void Awake()
     {
@@ -109,13 +110,8 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
             mainAudioSource.playOnAwake = false;
             mainAudioSource.outputAudioMixerGroup = audioMixer?.FindMatchingGroups(MIXER_GROUP_NAME)?[0];
         }
-    }
 
-    /// <summary>
-    /// Unity Start: 서비스 자동 초기화
-    /// </summary>
-    private void Start()
-    {
+        // ServiceBootstrap.Start()의 ValidateServices()보다 먼저 초기화
         Initialize();
     }
 

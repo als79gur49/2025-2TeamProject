@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "\uD30C\uC774\uC5B4\uBCFC"
   description: "\uD654\uC5FC\uAD6C \uC18C\uD658."
-  cardArt: {fileID: 21300000, guid: 784ec009898a347da85c11fe8c261b09, type: 3}
+  cardArt: {fileID: 21300000, guid: 3ad4061bd79af1244965df2e00ed3c94, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0
   manaCost: 1

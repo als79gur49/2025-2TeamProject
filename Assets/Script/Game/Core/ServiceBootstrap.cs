@@ -32,6 +32,10 @@ namespace Game.Core
         [Tooltip("Required: Must have LoadingScreenPanel reference. SceneTransitionController depends on SceneLoaderService.")]
         [SerializeField] private GameObject sceneTransitionControllerPrefab;
 
+        [Header("Audio Service Configuration")]
+        [Tooltip("Required: AudioServiceContainer prefab with all audio services configured")]
+        [SerializeField] private GameObject audioServiceContainerPrefab;
+
         [Header("Initial Scene Configuration")]
         [Tooltip("Scene name to load after bootstrap initialization (e.g., 'MainMenuScene')")]
         [SerializeField] private string initialSceneName = "MainMenuScene";
@@ -140,12 +144,11 @@ namespace Game.Core
             // PHASE 1: Foundational Services (no dependencies)
             InitializeSceneLoaderService();
 
-            // PHASE 2: Controllers (depend on Phase 1 services)
-            InitializeSceneTransitionController();
+            // PHASE 2: Audio System (no dependencies)
+            InitializeAudioServiceContainer();
 
-            // PHASE 3: Additional services can be added here
-            // InitializeAudioService();
-            // InitializeDataService();
+            // PHASE 3: Controllers (depend on Phase 1 services)
+            InitializeSceneTransitionController();
         }
 
         /// <summary>
@@ -154,7 +157,7 @@ namespace Game.Core
         /// </summary>
         private void InitializeSceneLoaderService()
         {
-            Log("[1/2] Initializing SceneLoaderService...");
+            Log("[1/3] Initializing SceneLoaderService...");
 
             // Create service instance
             GameObject serviceObj = sceneLoaderServicePrefab != null
@@ -177,12 +180,93 @@ namespace Game.Core
         }
 
         /// <summary>
+        /// Initialize AudioServiceContainer and register all audio services with ServiceLocator.
+        /// Dependencies: None
+        ///
+        /// Registers:
+        /// - AudioServiceContainer (container management)
+        /// - IBGMAudioService (background music)
+        /// - IEffectAudioService (sound effects)
+        /// - IVolumeController (volume management)
+        /// </summary>
+        private void InitializeAudioServiceContainer()
+        {
+            Log("[Audio] Initializing Audio System (BGM + Effect + Volume)...");
+
+            // Validate prefab reference
+            if (audioServiceContainerPrefab == null)
+            {
+                LogError("  ✗ AudioServiceContainer prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create container instance from prefab
+            GameObject containerObj = Instantiate(audioServiceContainerPrefab);
+            AudioServiceContainer container = containerObj.GetComponent<AudioServiceContainer>();
+
+            if (container == null)
+            {
+                LogError("  ✗ AudioServiceContainer component not found on prefab!");
+                LogError("  → Verify the prefab has AudioServiceContainer component");
+                Destroy(containerObj);
+                return;
+            }
+
+            // ✅ RegisterSingleton 사용 (ServiceCleanup 자동 부착)
+            // AudioServiceContainer의 Awake()에서 DontDestroyOnLoad 호출됨
+            // ServiceCleanup은 게임 종료 시에만 OnDestroy()에서 자동 Unregister
+            ServiceLocator.RegisterSingleton<AudioServiceContainer, AudioServiceContainer>(container);
+
+            // Register individual audio services for direct access
+            // Search for services in child GameObjects (each service needs separate GameObject for AudioSource management)
+
+            // BGM Service
+            var bgmService = containerObj.GetComponentInChildren<BGMAudioService>();
+            if (bgmService != null)
+            {
+                ServiceLocator.RegisterSingleton<IBGMAudioService, BGMAudioService>(bgmService);
+                Log("  ✓ BGMAudioService registered");
+            }
+            else
+            {
+                LogError("  ✗ BGMAudioService not found in container children");
+            }
+
+            // Effect Service
+            var effectService = containerObj.GetComponentInChildren<EffectAudioService>();
+            if (effectService != null)
+            {
+                ServiceLocator.RegisterSingleton<IEffectAudioService, EffectAudioService>(effectService);
+                Log("  ✓ EffectAudioService registered");
+            }
+            else
+            {
+                LogError("  ✗ EffectAudioService not found in container children");
+            }
+
+            // Volume Controller
+            var volumeController = containerObj.GetComponentInChildren<VolumeController>();
+            if (volumeController != null)
+            {
+                ServiceLocator.RegisterSingleton<IVolumeController, VolumeController>(volumeController);
+                Log("  ✓ VolumeController registered");
+            }
+            else
+            {
+                LogError("  ✗ VolumeController not found in container children");
+            }
+
+            Log("  ✓ Audio System initialization complete");
+        }
+
+        /// <summary>
         /// Initialize SceneTransitionController and register with ServiceLocator.
         /// Dependencies: ISceneLoaderService (must be registered first)
         /// </summary>
         private void InitializeSceneTransitionController()
         {
-            Log("[2/2] Initializing SceneTransitionController...");
+            Log("[3/3] Initializing SceneTransitionController...");
 
             // Validate dependency
             if (!ServiceLocator.IsRegistered<ISceneLoaderService>())
@@ -238,6 +322,12 @@ namespace Game.Core
             // Validate SceneLoaderService
             allValid &= ValidateService<ISceneLoaderService>("SceneLoaderService");
 
+            // Validate Audio Services
+            allValid &= ValidateService<AudioServiceContainer>("AudioServiceContainer");
+            allValid &= ValidateAudioService<IBGMAudioService>("BGMAudioService");
+            allValid &= ValidateAudioService<IEffectAudioService>("EffectAudioService");
+            allValid &= ValidateAudioService<IVolumeController>("VolumeController");
+
             // Validate SceneTransitionController
             allValid &= ValidateService<ISceneTransitionController>("SceneTransitionController");
 
@@ -277,6 +367,40 @@ namespace Game.Core
                 if (!globalService.IsValid())
                 {
                     LogError($"  ✗ {serviceName}: IsValid() returned false");
+                    return false;
+                }
+            }
+
+            Log($"  ✓ {serviceName}: Valid");
+            return true;
+        }
+
+        /// <summary>
+        /// Validate audio service type with additional audio-specific checks.
+        /// </summary>
+        private bool ValidateAudioService<T>(string serviceName) where T : class
+        {
+            // Check if registered
+            if (!ServiceLocator.IsRegistered<T>())
+            {
+                LogError($"  ✗ {serviceName}: Not registered in ServiceLocator");
+                return false;
+            }
+
+            // Check if retrievable
+            T service = ServiceLocator.Get<T>();
+            if (service == null)
+            {
+                LogError($"  ✗ {serviceName}: Registered but returns null");
+                return false;
+            }
+
+            // Audio-specific validation
+            if (service is IAudioService audioService)
+            {
+                if (!audioService.IsInitialized)
+                {
+                    LogError($"  ✗ {serviceName}: IsInitialized returned false");
                     return false;
                 }
             }

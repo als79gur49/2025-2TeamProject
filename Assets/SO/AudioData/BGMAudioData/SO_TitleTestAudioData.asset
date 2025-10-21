@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d1ae6478cdb245478cc097e4e0a3921, type: 3}
+  m_Name: SO_TitleTestAudioData
+  m_EditorClassIdentifier: 
+  audioType: 0
+  clips:
+  - {fileID: 8300000, guid: c2a33e9171267404e8d1224f96ae8424, type: 3}
+  volumeMin: 1
+  volumeMax: 1
+  pitchMin: 1
+  pitchMax: 1
+  mixerGroup: {fileID: -6105992756741041927, guid: 2f1d1dab3c0469249beacc5176d6e544,
+    type: 2}
+  loop: 1
+  fadeInTime: 3
+  fadeOutTime: 3
+  priority: 128
+  cooldownTime: 0

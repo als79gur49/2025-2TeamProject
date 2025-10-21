@@ -154,6 +154,8 @@ MonoBehaviour:
   sceneLoaderServicePrefab: {fileID: 0}
   sceneTransitionControllerPrefab: {fileID: 4954189406057982525, guid: 3a4f174d1955d5e4ca29064f49ff57c5,
     type: 3}
+  audioServiceContainerPrefab: {fileID: 4391852133465269709, guid: 6d47d9a1d32d2b04d96d808d88eead3e,
+    type: 3}
   initialSceneName: TitleTestScene
   enableDebugLogs: 1
   validateOnStart: 1

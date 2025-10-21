@@ -34,6 +34,7 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
     /// <summary>
     /// Unity Awake: 컴포넌트 초기화
     /// AudioSource 참조 획득 및 기본 설정
+    /// ServiceBootstrap보다 먼저 초기화되도록 Awake에서 Initialize() 호출
     /// </summary>
     private void Awake()
     {
@@ -50,13 +51,8 @@ public class BGMAudioService : MonoBehaviour, IBGMAudioService
             audioSource.playOnAwake = false;
             audioSource.outputAudioMixerGroup = audioMixer?.FindMatchingGroups(MIXER_GROUP_NAME)?[0];
         }
-    }
 
-    /// <summary>
-    /// Unity Start: 서비스 자동 초기화
-    /// </summary>
-    private void Start()
-    {
+        // ServiceBootstrap.Start()의 ValidateServices()보다 먼저 초기화
         Initialize();
     }
 

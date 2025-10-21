@@ -163,14 +163,17 @@ namespace Game
             OnDeath?.Invoke(gameObject);
 
             // 점유 타일 정리
-            foreach (var tile in occupiedTiles)
+            // 복사본 생성 후 원본 먼저 Clear하여 양방향 참조 안전하게 해제
+            var tilesToClean = new List<Tile>(occupiedTiles);
+            occupiedTiles.Clear();
+
+            foreach (var tile in tilesToClean)
             {
                 if (tile != null)
                 {
                     tile.RemoveBase();
                 }
             }
-            occupiedTiles.Clear();
 
             // 오브젝트 파괴
             Destroy(gameObject, 1f);

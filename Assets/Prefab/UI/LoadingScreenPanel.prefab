@@ -213,7 +213,7 @@ MonoBehaviour:
   progressText: {fileID: 2552235596773298055}
   loadingTipText: {fileID: 1638704563897507641}
   canvasGroup: {fileID: 3597649240858851131}
-  backgroundImage: {fileID: 0}
+  backgroundImage: {fileID: 560795288533155845}
   fadeInDuration: 2
   fadeOutDuration: 2
   minimumDisplayTime: 5

@@ -340,7 +340,8 @@ namespace Game.Services
 
                 case CardData.TargetType.Ground:
                     // 타일이 있는 곳 어디든 배치 가능 (빈 타일에만)
-                    return gridController?.IsValidPosition(targetPosition) ?? true &&
+                    // Fix: 괄호 추가로 연산자 우선순위 명확화 (occupancy 체크가 반드시 실행되도록)
+                    return (gridController?.IsValidPosition(targetPosition) ?? true) &&
                            !(gridController?.IsPositionOccupied(targetPosition) ?? false);
 
                 case CardData.TargetType.Enemy:

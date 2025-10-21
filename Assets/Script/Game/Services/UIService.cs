@@ -111,6 +111,27 @@ namespace Game.Services
             if (gameCanvas == null) CreateCanvas();
             if (endTurnButton == null) CreateEndTurnButton();
             if (turnStatusText == null) CreateTurnStatusText();
+
+            // Register button events after UI elements exist (created or assigned)
+            RegisterButtonEvents();
+        }
+
+        /// <summary>
+        /// Registers button event listeners - handles both auto-created and Inspector-assigned buttons
+        /// </summary>
+        private void RegisterButtonEvents()
+        {
+            if (endTurnButton != null)
+            {
+                // Remove any existing listeners to prevent duplicates
+                endTurnButton.onClick.RemoveAllListeners();
+                endTurnButton.onClick.AddListener(OnEndTurnButtonClicked);
+                Debug.Log("[UIService] EndTurnButton onClick event registered");
+            }
+            else
+            {
+                Debug.LogWarning("[UIService] Cannot register button events - endTurnButton is null");
+            }
         }
         
         private void Update()
@@ -262,8 +283,8 @@ namespace Game.Services
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
-            
-            endTurnButton.onClick.AddListener(OnEndTurnButtonClicked);
+
+            // Event registration now handled by RegisterButtonEvents()
         }
         
         private void CreateTurnStatusText()
