@@ -37,7 +37,7 @@ namespace Game.Core
         {
             if (serviceType == null)
                 throw new ArgumentNullException(nameof(serviceType));
-            
+
             if (implementation == null)
                 throw new ArgumentNullException(nameof(implementation));
 
@@ -45,46 +45,81 @@ namespace Game.Core
                 throw new ArgumentException($"Implementation {implementation.GetType().Name} does not implement {serviceType.Name}");
 
             lock (lockObject)
-            {               
+            {
+                // Check for duplicate registration
+                if (services.ContainsKey(serviceType))
+                {
+                    Debug.LogWarning($"[ServiceLocator] Service {serviceType.Name} is already registered. Overwriting...");
+                }
+
                 services[serviceType] = implementation;
                 OnServiceRegistered?.Invoke(serviceType, implementation);
-                
-                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}, Count after: {services.Count}");              
+
+                Debug.Log($"[ServiceLocator] Registered {serviceType.Name} -> {implementation.GetType().Name}, Count after: {services.Count}");
+
+                // Validate if MonoBehaviour-based service
+                if (implementation is MonoBehaviour monoBehaviour)
+                {
+                    ValidateMonoBehaviourService(monoBehaviour, serviceType);
+                }
             }
         }
 
         /// <summary>
-        /// 싱글톤 서비스 등록 - MonoBehaviour 컴포넌트용
+        /// 싱글톤 서비스 등록 - 인터페이스 기반 (컴파일 타임 타입 검증)
+        /// MonoBehaviour 컴포넌트를 인터페이스 타입으로 등록하여 의존성 역전 원칙(DIP) 준수
         /// </summary>
-        public static void RegisterSingleton<T>(T instance) where T : MonoBehaviour
+        /// <typeparam name="TInterface">서비스 인터페이스 타입 (Get<TInterface>()로 조회)</typeparam>
+        /// <typeparam name="TImplementation">구현 타입 (MonoBehaviour를 상속하고 TInterface를 구현)</typeparam>
+        /// <param name="instance">등록할 MonoBehaviour 인스턴스</param>
+        /// <example>
+        /// ServiceLocator.RegisterSingleton<ISceneTransitionController, SceneTransitionController>(this);
+        /// </example>
+        public static void RegisterSingleton<TInterface, TImplementation>(TImplementation instance)
+            where TImplementation : MonoBehaviour, TInterface
+            where TInterface : class
         {
             if (instance == null)
                 throw new ArgumentNullException(nameof(instance));
 
             lock (lockObject)
             {
-                var type = typeof(T);
-                singletonInstances[type] = instance;
-                services[type] = instance;
-                
-                // 해당 오브젝트가 파괴될 때 자동으로 등록 해제
-                if (instance != null)
+                var interfaceType = typeof(TInterface);
+
+                // 인터페이스 타입을 키로 사용하여 등록
+                singletonInstances[interfaceType] = instance;
+                services[interfaceType] = instance;
+
+                // ServiceCleanup 컴포넌트 부착 (GameObject 파괴 시 자동 해제)
+                var gameObject = instance.gameObject;
+                if (gameObject != null)
                 {
-                    var gameObject = instance.gameObject;
-                    if (gameObject != null)
+                    var cleanup = gameObject.GetComponent<ServiceCleanup>();
+                    if (cleanup == null)
                     {
-                        var cleanup = gameObject.GetComponent<ServiceCleanup>();
-                        if (cleanup == null)
-                        {
-                            cleanup = gameObject.AddComponent<ServiceCleanup>();
-                        }
-                        cleanup.RegisterType(type);
+                        cleanup = gameObject.AddComponent<ServiceCleanup>();
                     }
+                    cleanup.RegisterType(interfaceType); // 인터페이스 타입으로 등록
                 }
-                
-                OnServiceRegistered?.Invoke(type, instance);
-                Debug.Log($"[ServiceLocator] Registered Singleton {type.Name} -> {instance.name}");
+
+                OnServiceRegistered?.Invoke(interfaceType, instance);
+                Debug.Log($"[ServiceLocator] Registered Singleton {interfaceType.Name} -> {instance.GetType().Name}");
             }
+        }
+
+        /// <summary>
+        /// 싱글톤 서비스 등록 - 구체 타입 (하위 호환성)
+        /// 인터페이스가 없는 MonoBehaviour를 직접 등록할 때 사용
+        /// </summary>
+        /// <typeparam name="T">MonoBehaviour 타입</typeparam>
+        /// <param name="instance">등록할 인스턴스</param>
+        /// <example>
+        /// ServiceLocator.RegisterSingleton<GameManager>(this);
+        /// </example>
+        public static void RegisterSingleton<T>(T instance) where T : MonoBehaviour
+        {
+            // 구체 타입을 인터페이스이자 구현으로 사용 (내부적으로 새 메서드 호출)
+            RegisterSingleton<T, T>(instance);
         }
 
         /// <summary>
@@ -265,6 +300,37 @@ namespace Game.Core
                     singletonInstances.Remove(type);
                     Debug.LogWarning($"[ServiceLocator] Removed destroyed service: {type.Name}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Validate MonoBehaviour-based service for common issues.
+        /// </summary>
+        private static void ValidateMonoBehaviourService(MonoBehaviour service, Type interfaceType)
+        {
+            // Check if service implements IGlobalService
+            if (service is IGlobalService)
+            {
+                // Global services should be marked as DontDestroyOnLoad
+                // Note: We can't directly check DontDestroyOnLoad status, but we can warn
+                Debug.Log($"[ServiceLocator]   → {interfaceType.Name} implements IGlobalService (expected to persist across scenes)");
+            }
+
+            // Check if GameObject is active
+            if (!service.gameObject.activeInHierarchy)
+            {
+                Debug.LogWarning($"[ServiceLocator] Service {interfaceType.Name} is on an inactive GameObject. This may cause issues.");
+            }
+        }
+
+        /// <summary>
+        /// Get all registered service types for debugging.
+        /// </summary>
+        public static IEnumerable<Type> GetRegisteredServiceTypes()
+        {
+            lock (lockObject)
+            {
+                return new List<Type>(services.Keys);
             }
         }
 
