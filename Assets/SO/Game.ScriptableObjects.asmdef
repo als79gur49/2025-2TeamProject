@@ -1,11 +1,7 @@
 {
-    "name": "Game.Scripts",
+    "name": "Game.ScriptableObjects",
     "rootNamespace": "Game",
-    "references": [
-        "Unity.InputSystem",
-        "Unity.TextMeshPro",
-        "Game.ScriptableObjects"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

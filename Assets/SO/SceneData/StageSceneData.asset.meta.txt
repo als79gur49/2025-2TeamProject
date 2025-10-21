@@ -1,0 +1,63 @@
+# StageSceneData Asset Configuration
+
+This file documents the configuration for the StageSceneData ScriptableObject asset.
+
+## Asset Creation Steps
+
+1. In Unity Editor:
+   - Right-click in `Assets/SO/SceneData/` folder
+   - Create → Game → Scene Management → Scene Data
+   - Name: "StageSceneData"
+
+2. Configure in Inspector:
+
+### Basic Information
+- **Scene Name**: "StageScene"
+  - Must match exactly with the scene name in Build Settings
+- **Category**: Gameplay (or appropriate SceneCategory enum value)
+
+### Loading Screen Settings
+- **Loading Background**: [Optional] Assign a sprite for loading screen
+- **Loading Tips**: [Recommended] Add gameplay tips
+  - Example: "Use WASD to move your character"
+  - Example: "Collect power-ups to boost your abilities"
+  - Example: "Defeat enemies to gain experience"
+
+### Audio Settings
+- **Bg Music**: [Optional] Assign AudioData ScriptableObject for gameplay music
+
+### Metadata
+- **Description**: "Main gameplay stage scene with combat and card mechanics"
+
+## Validation
+After creation, verify:
+- ✓ Scene Name matches Build Settings exactly (case-sensitive)
+- ✓ StageScene exists in project (Assets/Scenes/StageScene.unity)
+- ✓ StageScene is enabled in Build Settings
+- ✓ No warning messages in Inspector
+
+## Usage
+This asset will be assigned to UI panels that need to trigger transitions to the stage:
+- **Primary Use**: Assign to `MainMenuPanel.stageSceneData` field in MainMenuScene
+- The "Game Start" button in MainMenu will use this to transition to gameplay
+- Can also be used in "Retry" or "Continue" functionality
+
+## Integration with MainMenuPanel
+```csharp
+// In MainMenuPanel Inspector:
+public class MainMenuPanel : UIPanel
+{
+    [SerializeField] private SceneData stageSceneData; // ← Assign StageSceneData here
+
+    private void OnGameStartClicked()
+    {
+        sceneTransitionController.LoadSceneWithLoading(stageSceneData);
+    }
+}
+```
+
+## Notes
+- This is a critical asset for the main game flow (Menu → Stage)
+- Ensure loading tips are gameplay-relevant and helpful
+- Changes to Scene Name require updating Build Settings to match
+- Asset uses GUID-based references (safe for file renames)

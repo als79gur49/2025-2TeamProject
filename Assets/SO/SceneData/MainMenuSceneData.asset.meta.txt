@@ -1,0 +1,46 @@
+# MainMenuSceneData Asset Configuration
+
+This file documents the configuration for the MainMenuSceneData ScriptableObject asset.
+
+## Asset Creation Steps
+
+1. In Unity Editor:
+   - Right-click in `Assets/SO/SceneData/` folder
+   - Create → Game → Scene Management → Scene Data
+   - Name: "MainMenuSceneData"
+
+2. Configure in Inspector:
+
+### Basic Information
+- **Scene Name**: "MainMenuScene"
+  - Must match exactly with the scene name in Build Settings
+- **Category**: MainMenu (or appropriate SceneCategory enum value)
+
+### Loading Screen Settings
+- **Loading Background**: [Optional] Assign a sprite for loading screen
+- **Loading Tips**: [Optional] Add helpful tips for the main menu
+  - Example: "Press ESC to access settings"
+  - Example: "Check the options menu for game preferences"
+
+### Audio Settings
+- **Bg Music**: [Optional] Assign AudioData ScriptableObject for menu music
+
+### Metadata
+- **Description**: "Main menu scene with UI panels for game start, settings, and exit options"
+
+## Validation
+After creation, verify:
+- ✓ Scene Name matches Build Settings exactly (case-sensitive)
+- ✓ MainMenuScene exists in project (Assets/Scenes/MainMenuScene.unity)
+- ✓ MainMenuScene is enabled in Build Settings
+- ✓ No warning messages in Inspector
+
+## Usage
+This asset will be assigned to UI panels that need to trigger transitions to the main menu:
+- Assign to `MainMenuPanel.stageSceneData` field for "Game Start" button
+- Use in any "Return to Menu" functionality
+
+## Notes
+- This is a foundational asset required for the scene management system
+- Changes to Scene Name require updating Build Settings to match
+- Asset uses GUID-based references (safe for file renames)
