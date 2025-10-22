@@ -374,21 +374,11 @@ namespace Game.Components
             isAlive = false;
             enableRegeneration = false; // 사망 시 재생 중단
             ClearAllStatusEffects(); // 상태 이상 제거
-            
+
             Debug.Log($"[HealthComponent] {gameObject.name} has died! Health: {currentHealth}/{MaxHealth}");
-            
-            // Unit 컴포넌트에게 죽음을 알려서 Destroy 처리를 위임
-            var unit = GetComponent<Unit>();
-            if (unit != null)
-            {
-                Debug.Log($"[HealthComponent] Notifying Unit component of death for {gameObject.name}");
-                unit.OnHealthComponentDeath();
-            }
-            else
-            {
-                Debug.LogWarning($"[HealthComponent] No Unit component found on {gameObject.name}, cannot handle death properly");
-            }
-            
+
+            // 이벤트 기반 사망 처리 - 구독자(Unit, Base 등)가 각자 처리하도록 위임
+            // Unit과 Base 모두 OnDeath 이벤트를 구독하여 각자의 방식으로 파괴 처리
             OnDeath?.Invoke();
         }
 

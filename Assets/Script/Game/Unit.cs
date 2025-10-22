@@ -344,12 +344,21 @@ public class Unit : MonoBehaviour
             healthComponent = comp;
             Debug.Log($"[Unit] Auto-added HealthComponent to {gameObject.name}");
         }
-        
+
         // Apply legacy values to component
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(health);
             healthComponent.SetHealth(health);
+
+            // Subscribe to OnDeath event for event-based death handling
+            // HealthComponent will invoke this when ProcessDeath() is called
+            var healthComp = healthComponent as HealthComponent;
+            if (healthComp != null)
+            {
+                healthComp.OnDeath += OnHealthComponentDeath;
+                Debug.Log($"[Unit] Subscribed to HealthComponent.OnDeath event for {gameObject.name}");
+            }
         }
     }
     
@@ -731,6 +740,16 @@ public class Unit : MonoBehaviour
         if (gridManager != null)
         {
             gridManager.OnUnitMoved -= OnUnitMovedInGrid;
+        }
+
+        // HealthComponent 이벤트 구독 해제
+        if (healthComponent != null)
+        {
+            var healthComp = healthComponent as HealthComponent;
+            if (healthComp != null)
+            {
+                healthComp.OnDeath -= OnHealthComponentDeath;
+            }
         }
     }
     
