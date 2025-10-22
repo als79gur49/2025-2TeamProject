@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Game.Services;
+using Game.Core;
 
 /// <summary>
 /// 설정 패널 (VolumeController 연동)
-/// 기존 SettingPanel의 기능을 AudioServiceContainer와 통합하여 개선
+/// ServiceLocator를 통한 서비스 접근 패턴 사용
 /// IOpenablePanel을 구현하여 확장 메서드로 Open/Close 버튼 자동 바인딩 지원
 /// </summary>
 public class SettingsPanel : UIPanel, IOpenablePanel
@@ -56,21 +58,42 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     // 초기값 저장 (리셋용)
     private VolumeSettings initialSettings;
     
-    #region UIPanel 오버라이드
-    
-    protected override void OnInitialize()
+    #region Initialization
+
+    /// <summary>
+    /// 의존성 없는 초기화 (Awake에서 호출됨)
+    /// UI 이벤트 설정
+    /// </summary>
+    protected override void OnInitializeSelf()
     {
-        base.OnInitialize();
+        base.OnInitializeSelf();
+
+        // UI 이벤트 설정 (버튼 리스너 등록)
+        SetupUIEvents();
+
+        Debug.Log("[SettingsPanel] Self-initialized successfully (Awake)");
+    }
+
+    /// <summary>
+    /// 의존성 있는 초기화 (Start에서 호출됨)
+    /// ServiceLocator에서 서비스 가져오기
+    /// </summary>
+    protected override void OnInitializeWithDependencies()
+    {
+        base.OnInitializeWithDependencies();
 
         // 서비스 초기화
         InitializeServices();
 
-        // UI 이벤트 설정
-        SetupUIEvents();
-
         // 초기 설정 로드
         LoadCurrentSettings();
+
+        Debug.Log("[SettingsPanel] Dependency initialization complete (Start)");
     }
+
+    #endregion
+
+    #region UIPanel 오버라이드
     
     protected override void OnShowPanel()
     {
@@ -91,32 +114,33 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     #endregion
     
     #region 서비스 초기화
-    
+
     /// <summary>
     /// 오디오 서비스들 초기화
+    /// ServiceLocator를 통한 서비스 접근
     /// </summary>
     private void InitializeServices()
     {
         try
         {
-            var container = AudioServiceContainer.Instance;
-            volumeController = container.GetService<IVolumeController>();
-            
+            // ✅ ServiceLocator 패턴 사용 (MainMenuPanel과 일관성 유지)
+            volumeController = ServiceLocator.Get<IVolumeController>();
+
             if (volumeController == null)
             {
-                Debug.LogError("SettingsPanel: VolumeController를 찾을 수 없습니다.");
+                Debug.LogError("[SettingsPanel] VolumeController not found in ServiceLocator! " +
+                              "Ensure VolumeController is registered in Bootstrap or AudioServiceContainer.");
                 return;
             }
-            
-            
-            Debug.Log("SettingsPanel: 서비스 초기화 완료");
+
+            Debug.Log("[SettingsPanel] Service initialization complete");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"SettingsPanel: 서비스 초기화 실패 - {ex.Message}");
+            Debug.LogError($"[SettingsPanel] Service initialization failed - {ex.Message}");
         }
     }
-    
+
     #endregion
     
     #region UI 이벤트 설정

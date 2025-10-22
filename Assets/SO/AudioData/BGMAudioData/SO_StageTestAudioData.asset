@@ -15,14 +15,14 @@ MonoBehaviour:
   audioType: 0
   clips:
   - {fileID: 8300000, guid: 7fc103d46da010f45822460a31ec7c7d, type: 3}
-  volumeMin: 1
-  volumeMax: 1
+  volumeMin: 0.779
+  volumeMax: 0.779
   pitchMin: 1
   pitchMax: 1
   mixerGroup: {fileID: -6105992756741041927, guid: 2f1d1dab3c0469249beacc5176d6e544,
     type: 2}
   loop: 1
-  fadeInTime: 3
-  fadeOutTime: 3
+  fadeInTime: 1
+  fadeOutTime: 1
   priority: 128
   cooldownTime: 0

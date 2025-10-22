@@ -77,10 +77,25 @@ public class GameInitializer : MonoBehaviour
     {
         Log("Initializing ServiceLocator...");
 
-        // 이전 서비스들 정리 (에디터에서 재시작할 때)
-        ServiceLocator.Clear();
+        // ✅ FIX: Bootstrap 서비스가 있으면 Clear하지 않음
+        // Bootstrap(ServiceBootstrap)이 이미 글로벌 서비스를 등록했으므로 보존해야 함
+        // ISceneTransitionController 존재 여부로 Bootstrap 초기화 확인
+        if (ServiceLocator.IsRegistered<ISceneTransitionController>())
+        {
+            Log("  ✓ Bootstrap services detected - preserving global services (ISceneTransitionController, IVolumeController, etc.)");
+            Log("  → Game services will be registered alongside Bootstrap services");
+            // Bootstrap 서비스는 유지하고 게임 서비스만 추가 등록
+        }
+        else
+        {
+            // Bootstrap 없이 씬을 직접 실행하는 경우에만 Clear
+            // (에디터에서 PrototypeTestScene을 단독으로 Play할 때)
+            Log("  ⚠ No Bootstrap detected - clearing ServiceLocator for standalone scene initialization");
+            Log("  → Global services (SceneTransition, Audio) will NOT be available");
+            ServiceLocator.Clear();
+        }
 
-        Log("ServiceLocator cleared and ready");
+        Log("ServiceLocator initialization complete");
     }
 
     /// <summary>

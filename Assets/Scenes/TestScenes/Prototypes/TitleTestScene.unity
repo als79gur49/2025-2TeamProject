@@ -985,7 +985,7 @@ MonoBehaviour:
   initializeOnAwake: 1
   hideOnStart: 0
   startGameButton: {fileID: 1275990388}
-  settingsButton: {fileID: 0}
+  settingsButton: {fileID: 857914210}
   quitButton: {fileID: 0}
   stageSceneData: {fileID: 11400000, guid: dba78ebd4dd2c7c4a84e5e2039698a65, type: 2}
 --- !u!1 &894424088
@@ -1006,7 +1006,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!81 &894424089
 AudioListener:
   m_ObjectHideFlags: 0
@@ -1410,6 +1410,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: StatusBar_Group_Light_GrayButton
+      objectReference: {fileID: 0}
+    - target: {fileID: 5657333298350896491, guid: 065d42745eac248ea8bfa8155e70cf46,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5657333298350896492, guid: 065d42745eac248ea8bfa8155e70cf46,
         type: 3}
@@ -2625,7 +2630,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &1387529947
 Light:
   m_ObjectHideFlags: 0

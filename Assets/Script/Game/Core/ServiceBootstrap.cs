@@ -218,43 +218,48 @@ namespace Game.Core
             // ServiceCleanup은 게임 종료 시에만 OnDestroy()에서 자동 Unregister
             ServiceLocator.RegisterSingleton<AudioServiceContainer, AudioServiceContainer>(container);
 
+            // ✅ FIX: Initialize services immediately before trying to access them
+            // AudioServiceContainer.Start() would be too late - we need services NOW
+            container.InitializeAllServices();
+            Log("  ✓ AudioServiceContainer services initialized");
+
             // Register individual audio services for direct access
-            // Search for services in child GameObjects (each service needs separate GameObject for AudioSource management)
+            // Use container.GetService<T>() instead of GetComponentInChildren to ensure services are found
 
             // BGM Service
-            var bgmService = containerObj.GetComponentInChildren<BGMAudioService>();
+            var bgmService = container.GetService<IBGMAudioService>();
             if (bgmService != null)
             {
-                ServiceLocator.RegisterSingleton<IBGMAudioService, BGMAudioService>(bgmService);
+                ServiceLocator.RegisterSingleton<IBGMAudioService, BGMAudioService>(bgmService as BGMAudioService);
                 Log("  ✓ BGMAudioService registered");
             }
             else
             {
-                LogError("  ✗ BGMAudioService not found in container children");
+                LogError("  ✗ BGMAudioService not found in container");
             }
 
             // Effect Service
-            var effectService = containerObj.GetComponentInChildren<EffectAudioService>();
+            var effectService = container.GetService<IEffectAudioService>();
             if (effectService != null)
             {
-                ServiceLocator.RegisterSingleton<IEffectAudioService, EffectAudioService>(effectService);
+                ServiceLocator.RegisterSingleton<IEffectAudioService, EffectAudioService>(effectService as EffectAudioService);
                 Log("  ✓ EffectAudioService registered");
             }
             else
             {
-                LogError("  ✗ EffectAudioService not found in container children");
+                LogError("  ✗ EffectAudioService not found in container");
             }
 
             // Volume Controller
-            var volumeController = containerObj.GetComponentInChildren<VolumeController>();
+            var volumeController = container.GetService<IVolumeController>();
             if (volumeController != null)
             {
-                ServiceLocator.RegisterSingleton<IVolumeController, VolumeController>(volumeController);
+                ServiceLocator.RegisterSingleton<IVolumeController, VolumeController>(volumeController as VolumeController);
                 Log("  ✓ VolumeController registered");
             }
             else
             {
-                LogError("  ✗ VolumeController not found in container children");
+                LogError("  ✗ VolumeController not found in container");
             }
 
             Log("  ✓ Audio System initialization complete");

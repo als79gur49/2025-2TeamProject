@@ -104,6 +104,7 @@ namespace Game.Core
 
                 OnServiceRegistered?.Invoke(interfaceType, instance);
                 Debug.Log($"[ServiceLocator] Registered Singleton {interfaceType.Name} -> {instance.GetType().Name}");
+                Debug.Log($"[ServiceLocator] Available services: {string.Join(", ", services.Keys.Select(k => k.Name))}");
             }
         }
 
@@ -156,6 +157,7 @@ namespace Game.Core
                 }
 
                 Debug.LogWarning($"[ServiceLocator] Service {serviceType.Name} not found. Available services: {string.Join(", ", services.Keys.Select(k => k.Name))}");
+
                 return null;
             }
         }

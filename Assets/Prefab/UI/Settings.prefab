@@ -316,10 +316,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a42b2716348e8584f969307caa02bb0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  panelID: SettingsPanel
   priority: 10
   initializeOnAwake: 1
   hideOnStart: 1
+  openButton: {fileID: 0}
+  closeButton: {fileID: 4409247855277611795}
   masterVolumeSlider: {fileID: 6485630296644973247}
   bgmVolumeSlider: {fileID: 2738338164208243379}
   effectVolumeSlider: {fileID: 5272110948910927303}
@@ -337,7 +338,6 @@ MonoBehaviour:
   hoverSoundsToggle: {fileID: 0}
   resetButton: {fileID: 0}
   applyButton: {fileID: 0}
-  closeButton: {fileID: 0}
   autoApplyChanges: 1
   showVolumePercentage: 1
 --- !u!1 &847029844587330098
@@ -2058,7 +2058,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 344.99762, y: -64.79355}
-  m_SizeDelta: {x: 0, y: 103.35266}
+  m_SizeDelta: {x: 275.48, y: 103.35266}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8024226758790361395
 CanvasRenderer:
@@ -2367,7 +2367,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 315.3301, y: -64.79355}
-  m_SizeDelta: {x: 0, y: 103.35266}
+  m_SizeDelta: {x: 156.81, y: 103.35266}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7291557458345603679
 CanvasRenderer:
@@ -3761,7 +3761,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 309.8601, y: -64.79355}
-  m_SizeDelta: {x: 0, y: 103.35266}
+  m_SizeDelta: {x: 134.93, y: 103.35266}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &378792264683344614
 CanvasRenderer:
