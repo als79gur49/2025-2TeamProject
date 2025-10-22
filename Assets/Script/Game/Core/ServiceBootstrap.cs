@@ -37,6 +37,10 @@ namespace Game.Core
         [Tooltip("Required: AudioServiceContainer prefab with all audio services configured")]
         [SerializeField] private GameObject audioServiceContainerPrefab;
 
+        [Header("UI Service Configuration")]
+        [Tooltip("Required: GlobalUIPanelManager prefab with Canvas (Sort Order 1000)")]
+        [SerializeField] private GameObject globalUIPanelManagerPrefab;
+
         [Header("Initial Scene Configuration")]
         [Tooltip("SceneData asset to load after bootstrap initialization. Contains scene name, BGM, and loading screen configuration.")]
         [SerializeField] private SceneData initialSceneData;
@@ -150,6 +154,9 @@ namespace Game.Core
 
             // PHASE 3: Controllers (depend on Phase 1 services)
             InitializeSceneTransitionController();
+
+            // PHASE 4: UI System (no dependencies)
+            InitializeGlobalUIPanelManager();
         }
 
         /// <summary>
@@ -310,6 +317,42 @@ namespace Game.Core
             Log("  ✓ SceneTransitionController created and registered");
         }
 
+        /// <summary>
+        /// Initialize GlobalUIPanelManager and register with ServiceLocator.
+        /// Dependencies: None
+        /// </summary>
+        private void InitializeGlobalUIPanelManager()
+        {
+            Log("[4/4] Initializing GlobalUIPanelManager...");
+
+            // Validate prefab reference
+            if (globalUIPanelManagerPrefab == null)
+            {
+                LogError("  ✗ GlobalUIPanelManager prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create manager instance from prefab
+            GameObject managerObj = Instantiate(globalUIPanelManagerPrefab);
+            GlobalUIPanelManager manager = managerObj.GetComponent<GlobalUIPanelManager>();
+
+            if (manager == null)
+            {
+                LogError("  ✗ GlobalUIPanelManager component not found on prefab!");
+                LogError("  → Verify the prefab has GlobalUIPanelManager component");
+                Destroy(managerObj);
+                return;
+            }
+
+            // ✅ RegisterSingleton 사용 (ServiceCleanup 자동 부착)
+            // GlobalUIPanelManager의 Awake()에서 DontDestroyOnLoad 호출됨
+            // ServiceCleanup은 게임 종료 시에만 OnDestroy()에서 자동 Unregister
+            ServiceLocator.RegisterSingleton<GlobalUIPanelManager, GlobalUIPanelManager>(manager);
+
+            Log("  ✓ GlobalUIPanelManager created and registered");
+        }
+
         #endregion
 
         #region Validation
@@ -336,6 +379,9 @@ namespace Game.Core
 
             // Validate SceneTransitionController
             allValid &= ValidateService<ISceneTransitionController>("SceneTransitionController");
+
+            // Validate GlobalUIPanelManager
+            allValid &= ValidateService<GlobalUIPanelManager>("GlobalUIPanelManager");
 
             if (allValid)
             {

@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1ae6478cdb245478cc097e4e0a3921, type: 3}
-  m_Name: SO_StageTestAudioData
+  m_Name: SO_Defeat_AudioData
   m_EditorClassIdentifier: 
-  audioType: 0
+  audioType: 1
   clips:
-  - {fileID: 8300000, guid: 7fc103d46da010f45822460a31ec7c7d, type: 3}
-  volumeMin: 0.34
-  volumeMax: 0.34
+  - {fileID: 8300000, guid: caddeab1bf901d543aae4f37ceae7b22, type: 3}
+  volumeMin: 0.5
+  volumeMax: 0.5
   pitchMin: 1
   pitchMax: 1
-  mixerGroup: {fileID: -6105992756741041927, guid: 2f1d1dab3c0469249beacc5176d6e544,
+  mixerGroup: {fileID: -6384595582647110726, guid: 2f1d1dab3c0469249beacc5176d6e544,
     type: 2}
-  loop: 1
-  fadeInTime: 1
-  fadeOutTime: 1
+  loop: 0
+  fadeInTime: 0
+  fadeOutTime: 0
   priority: 128
   cooldownTime: 0

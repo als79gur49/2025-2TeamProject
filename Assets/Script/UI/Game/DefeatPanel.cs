@@ -30,6 +30,10 @@ public class DefeatPanel : UIPanel, IGameResultPanel
     [Header("UI Components")]
     [SerializeField] private TextMeshProUGUI defeatMessageText;  // 패배 메시지 텍스트
 
+    [Header("Audio Configuration")]
+    [SerializeField] private SoundEventChannelSO soundEventChannel;  // Event Channel
+    [SerializeField] private AudioData defeatSoundData;              // Defeat 사운드
+
     [Header("Scene Configuration")]
     [SerializeField] private SceneData mainMenuScene;  // 메인 메뉴 씬 데이터
 
@@ -100,6 +104,13 @@ public class DefeatPanel : UIPanel, IGameResultPanel
     protected override void OnShowPanel()
     {
         base.OnShowPanel();
+
+        // Defeat 사운드 출력 (CombatComponent 패턴)
+        if (soundEventChannel != null && defeatSoundData != null)
+        {
+            soundEventChannel.RaiseSoundEvent(defeatSoundData, this);
+            Debug.Log("[DefeatPanel] Defeat sound played via SoundEventChannel");
+        }
 
         // 패배 메시지 표시
         if (defeatMessageText != null)

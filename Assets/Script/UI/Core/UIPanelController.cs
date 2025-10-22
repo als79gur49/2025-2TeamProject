@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class UIPanelController : MonoBehaviour
 {
-    // TODO: Button - Panel ¿¬°á ³»¿ë Ãß°¡ ÇÊ¿ä, Panel¿¡¼­ RegistÇÏ´Â ºÎºÐÀº ÀÖ´Ù. ¾Æ¸¶µµ ¾ÈÁ¤¼ºÀ» À§ÇØ¼­ IUIPanel ÀÌ¿ëÇÏ´Â ÇÔ¼ö·Î »ç¿ë
-    // ÀÌ¸¦ °¢ Å¸ÀÔ°ú ÇÔ¼ö¸¦ ¸ÅÇÎÇÏ¿©¼­, ½Ì±ÛÅÏ¿¡¼­ »ç¿ëÇÏ´Â ¹æ½Ä°ú °³º° ¹æ½Ä »ý°¢ Áß
-    // Ãß°¡·Î panelId¸¦ »ç¿ëÇÏ´Â °Í °°Àºµ¥, ½ÇÁ¦·Î »ç¿ë°¡´ÉÇÑÁö¿¡ ´ëÇØ¼­ È®ÀÎ
+    // TODO: Button - Panel ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½Ê¿ï¿½, Panelï¿½ï¿½ï¿½ï¿½ Registï¿½Ï´ï¿½ ï¿½Îºï¿½ï¿½ï¿½ ï¿½Ö´ï¿½. ï¿½Æ¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ø¼ï¿½ IUIPanel ï¿½Ì¿ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+    // ï¿½Ì¸ï¿½ ï¿½ï¿½ Å¸ï¿½Ô°ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½, ï¿½Ì±ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½Ä°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
+    // ï¿½ß°ï¿½ï¿½ï¿½ panelIdï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ë°¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ø¼ï¿½ È®ï¿½ï¿½
 
-    // Singleton ÆÐÅÏ
+    // Singleton ï¿½ï¿½ï¿½ï¿½
     private static UIPanelController instance;
     public static UIPanelController Instance
     {
@@ -23,7 +23,7 @@ public class UIPanelController : MonoBehaviour
                     var controllerGO = new GameObject("UIPanelController");
                     instance = controllerGO.AddComponent<UIPanelController>();
                     DontDestroyOnLoad(controllerGO);
-                    Debug.Log("UIPanelManager ÀÚµ¿ »ý¼ºµÊ");
+                    Debug.Log("UIPanelManager ï¿½Úµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
                 }
             }
             return instance;
@@ -31,10 +31,10 @@ public class UIPanelController : MonoBehaviour
     }
     private void Awake()
     {
-        // Singleton ÆÐÅÏ ±¸Çö
+        // Singleton ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (instance != null && instance != this)
         {
-            Debug.LogWarning("UIPaneController Áßº¹ ÀÎ½ºÅÏ½º Á¦°Å");
+            Debug.LogWarning("UIPaneController ï¿½ßºï¿½ ï¿½Î½ï¿½ï¿½Ï½ï¿½ ï¿½ï¿½ï¿½ï¿½");
             Destroy(gameObject);
             return;
         }
@@ -46,10 +46,10 @@ public class UIPanelController : MonoBehaviour
 
     public void OpenSettingPanel()
     {
-        UIPanelManager.Instance.ShowPanel<SettingsPanel>();
+        UIPanelFacade.ShowGlobalPanel<SettingsPanel>();
     }
     public void CloseSettingPanel()
     {
-        UIPanelManager.Instance.HidePanel<SettingsPanel>();
+        UIPanelFacade.HideGlobalPanel<SettingsPanel>();
     }
 }

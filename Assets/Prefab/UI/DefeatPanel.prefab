@@ -1310,7 +1310,9 @@ MonoBehaviour:
   restartButton: {fileID: 4656011185729861411}
   mainMenuButton: {fileID: 6769927940832260683}
   defeatMessageText: {fileID: 0}
-  mainMenuSceneName: SampleScene
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  defeatSoundData: {fileID: 11400000, guid: d5c82bf7e7f2361409dac64ec0eb3a1f, type: 2}
+  mainMenuScene: {fileID: 0}
   pauseGameOnShow: 1
 --- !u!1 &6788475765590356220
 GameObject:

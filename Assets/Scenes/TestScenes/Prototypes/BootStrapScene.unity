@@ -156,6 +156,8 @@ MonoBehaviour:
     type: 3}
   audioServiceContainerPrefab: {fileID: 4391852133465269709, guid: 6d47d9a1d32d2b04d96d808d88eead3e,
     type: 3}
+  globalUIPanelManagerPrefab: {fileID: 6167648636477887898, guid: 20a5451c39658284c9ab20d20cf22465,
+    type: 3}
   initialSceneData: {fileID: 11400000, guid: aa33edd18db3ead4883f603043a7c5f5, type: 2}
   enableDebugLogs: 1
   validateOnStart: 1

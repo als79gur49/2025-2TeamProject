@@ -9,7 +9,7 @@ namespace Game.Coordinators
     ///
     /// Responsibilities:
     /// - Subscribe to game-level events (GameOutcomeManager)
-    /// - Coordinate UI responses through UIPanelManager
+    /// - Coordinate UI responses through UIPanelFacade
     /// - Maintain clean separation between game logic and UI layers
     ///
     /// Architecture Benefits:
@@ -23,7 +23,7 @@ namespace Game.Coordinators
     /// - Self-sufficient initialization aligned with ResourceManager pattern
     ///
     /// Registered in: GameInitializer.RegisterGameOutcomeServices()
-    /// Dependencies: IGameOutcomeManager (from ServiceLocator), UIPanelManager (Singleton)
+    /// Dependencies: IGameOutcomeManager (from ServiceLocator)
     /// </summary>
     public class GameUICoordinator : MonoBehaviour
     {
@@ -32,7 +32,6 @@ namespace Game.Coordinators
 
         // Dependencies (retrieved from ServiceLocator)
         private IGameOutcomeManager gameOutcomeManager;
-        private UIPanelManager uiPanelManager;
 
         // Initialization state
         private bool isInitialized = false;
@@ -59,7 +58,6 @@ namespace Game.Coordinators
         ///
         /// Pattern: Single-step initialization
         /// - Retrieves IGameOutcomeManager from ServiceLocator
-        /// - Retrieves UIPanelManager from Singleton
         /// - Validates dependencies
         /// - Subscribes to game events
         /// </summary>
@@ -75,7 +73,6 @@ namespace Game.Coordinators
 
             // Retrieve dependencies from ServiceLocator
             gameOutcomeManager = ServiceLocator.Get<IGameOutcomeManager>();
-            uiPanelManager = UIPanelManager.Instance;
 
             // Validate dependencies
             if (!ValidateDependencies())
@@ -99,12 +96,6 @@ namespace Game.Coordinators
             if (gameOutcomeManager == null)
             {
                 Debug.LogError("[GameUICoordinator] IGameOutcomeManager is null - ensure it's registered in ServiceLocator");
-                return false;
-            }
-
-            if (uiPanelManager == null)
-            {
-                Debug.LogError("[GameUICoordinator] UIPanelManager.Instance is null - ensure it exists in scene");
                 return false;
             }
 
@@ -157,15 +148,8 @@ namespace Game.Coordinators
         {
             Log("[GameUICoordinator] Victory event received - coordinating UI response");
 
-            if (uiPanelManager != null)
-            {
-                uiPanelManager.ShowPanel<VictoryPanel>();
-                Log("[GameUICoordinator] VictoryPanel displayed successfully");
-            }
-            else
-            {
-                Debug.LogError("[GameUICoordinator] Cannot show VictoryPanel - UIPanelManager is null");
-            }
+            UIPanelFacade.ShowLocalPanel<VictoryPanel>();
+            Log("[GameUICoordinator] VictoryPanel displayed successfully");
         }
 
         /// <summary>
@@ -176,15 +160,8 @@ namespace Game.Coordinators
         {
             Log("[GameUICoordinator] Defeat event received - coordinating UI response");
 
-            if (uiPanelManager != null)
-            {
-                uiPanelManager.ShowPanel<DefeatPanel>();
-                Log("[GameUICoordinator] DefeatPanel displayed successfully");
-            }
-            else
-            {
-                Debug.LogError("[GameUICoordinator] Cannot show DefeatPanel - UIPanelManager is null");
-            }
+            UIPanelFacade.ShowLocalPanel<DefeatPanel>();
+            Log("[GameUICoordinator] DefeatPanel displayed successfully");
         }
 
         #endregion

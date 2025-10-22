@@ -214,9 +214,9 @@ MonoBehaviour:
   loadingTipText: {fileID: 1638704563897507641}
   canvasGroup: {fileID: 3597649240858851131}
   backgroundImage: {fileID: 560795288533155845}
-  fadeInDuration: 2
-  fadeOutDuration: 2
-  minimumDisplayTime: 5
+  fadeInDuration: 0.9
+  fadeOutDuration: 0.9
+  minimumDisplayTime: 2
   showPercentage: 1
   loadingTextFormat: Loading... {0:0}%
   defaultLoadingTip: "\uB85C\uB529 \uC911..."

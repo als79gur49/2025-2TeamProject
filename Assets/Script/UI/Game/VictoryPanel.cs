@@ -29,6 +29,10 @@ public class VictoryPanel : UIPanel, IGameResultPanel
     [Header("UI Components")]
     [SerializeField] private TextMeshProUGUI victoryMessageText;  // 승리 메시지 텍스트
 
+    [Header("Audio Configuration")]
+    [SerializeField] private SoundEventChannelSO soundEventChannel;  // Event Channel
+    [SerializeField] private AudioData victorySoundData;             // Victory 사운드
+
     [Header("Scene Configuration")]
     [SerializeField] private SceneData mainMenuScene;  // 메인 메뉴 씬 데이터
     [SerializeField] private SceneData nextLevelScene; // 다음 레벨 씬 데이터
@@ -103,6 +107,13 @@ public class VictoryPanel : UIPanel, IGameResultPanel
     protected override void OnShowPanel()
     {
         base.OnShowPanel();
+
+        // Victory 사운드 출력 (CombatComponent 패턴)
+        if (soundEventChannel != null && victorySoundData != null)
+        {
+            soundEventChannel.RaiseSoundEvent(victorySoundData, this);
+            Debug.Log("[VictoryPanel] Victory sound played via SoundEventChannel");
+        }
 
         // 승리 메시지 표시
         if (victoryMessageText != null)

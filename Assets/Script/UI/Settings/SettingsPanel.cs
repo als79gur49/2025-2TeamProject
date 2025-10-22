@@ -58,6 +58,10 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     // 초기값 저장 (리셋용)
     private VolumeSettings initialSettings;
     
+
+    private const string ON = "On";
+    private const string OFF = "Off";
+
     #region Initialization
 
     /// <summary>
@@ -293,15 +297,15 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// <summary>
     /// 마스터 음소거 변경
     /// </summary>
-    private void OnMasterMuteChanged(bool isMuted)
+    private void OnMasterMuteChanged(bool isOn)
     {
         if (volumeController == null) return;
-        
-        volumeController.IsMasterMuted = isMuted;
+
+        volumeController.IsMasterMuted = !isOn;
 
         if(masterMuteToggleText != null)
         {
-            masterMuteToggleText.text = isMuted ? "On" : "Off";
+            masterMuteToggleText.text = isOn ? ON : OFF;
         }
 
         if (autoApplyChanges)
@@ -311,15 +315,15 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// <summary>
     /// BGM 음소거 변경
     /// </summary>
-    private void OnBGMMuteChanged(bool isMuted)
+    private void OnBGMMuteChanged(bool isOn)
     {
         if (volumeController == null) return;
-        
-        volumeController.IsBGMMuted = isMuted;
+
+        volumeController.IsBGMMuted = !isOn;
 
         if (bgmMuteToggleText != null)
         {
-            bgmMuteToggleText.text = isMuted ? "On" : "Off";
+            bgmMuteToggleText.text = isOn ? ON : OFF;
         }
 
         if (autoApplyChanges)
@@ -329,15 +333,15 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     /// <summary>
     /// 효과음 음소거 변경
     /// </summary>
-    private void OnEffectMuteChanged(bool isMuted)
+    private void OnEffectMuteChanged(bool isOn)
     {
         if (volumeController == null) return;
-        
-        volumeController.IsEffectMuted = isMuted;
+
+        volumeController.IsEffectMuted = !isOn;
 
         if (effectMuteToggleText != null)
         {
-            effectMuteToggleText.text = isMuted ? "On" : "Off";
+            effectMuteToggleText.text = isOn ? ON : OFF;
         }
 
         if (autoApplyChanges)
@@ -516,13 +520,19 @@ public class SettingsPanel : UIPanel, IOpenablePanel
         
         // 음소거 토글 업데이트
         if (masterMuteToggle != null)
-            masterMuteToggle.isOn = volumeController.IsMasterMuted;
-        
+            masterMuteToggle.isOn = !volumeController.IsMasterMuted;
+        if(masterMuteToggleText != null)
+            masterMuteToggleText.text = !volumeController.IsMasterMuted ? ON : OFF;
+
         if (bgmMuteToggle != null)
-            bgmMuteToggle.isOn = volumeController.IsBGMMuted;
-        
+            bgmMuteToggle.isOn = !volumeController.IsBGMMuted;
+        if(bgmMuteToggleText != null)
+            bgmMuteToggleText.text = !volumeController.IsBGMMuted ? ON : OFF;
+
         if (effectMuteToggle != null)
-            effectMuteToggle.isOn = volumeController.IsEffectMuted;
+            effectMuteToggle.isOn = !volumeController.IsEffectMuted;
+        if(effectMuteToggleText != null)
+            effectMuteToggleText.text = !volumeController.IsEffectMuted ? ON : OFF;
         
         // UI 사운드 설정 업데이트 (AudioIntegrator에서 가져오기)
         // 실제 구현에서는 AudioIntegrator에서 현재 설정을 가져오는 메서드 필요

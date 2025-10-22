@@ -1476,8 +1476,10 @@ MonoBehaviour:
   nextLevelButton: {fileID: 3376823713159335468}
   mainMenuButton: {fileID: 6089462228403106282}
   victoryMessageText: {fileID: 0}
-  mainMenuSceneName: SampleScene
-  nextLevelSceneName: SampleScene
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  victorySoundData: {fileID: 11400000, guid: d571f9f8a4209564a88e75dd3f66086a, type: 2}
+  mainMenuScene: {fileID: 11400000, guid: aa33edd18db3ead4883f603043a7c5f5, type: 2}
+  nextLevelScene: {fileID: 0}
   pauseGameOnShow: 1
 --- !u!1 &7034960040491000056
 GameObject:
