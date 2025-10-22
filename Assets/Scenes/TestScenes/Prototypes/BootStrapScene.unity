@@ -156,7 +156,7 @@ MonoBehaviour:
     type: 3}
   audioServiceContainerPrefab: {fileID: 4391852133465269709, guid: 6d47d9a1d32d2b04d96d808d88eead3e,
     type: 3}
-  initialSceneName: TitleTestScene
+  initialSceneData: {fileID: 11400000, guid: aa33edd18db3ead4883f603043a7c5f5, type: 2}
   enableDebugLogs: 1
   validateOnStart: 1
 --- !u!4 &680541935

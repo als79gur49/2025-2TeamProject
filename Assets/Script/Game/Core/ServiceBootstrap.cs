@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using Game.Services;
 using Game.Controllers;
+using Game.SceneManagement;
 
 namespace Game.Core
 {
@@ -21,7 +22,7 @@ namespace Game.Core
     /// 2. Assign service prefabs in the Inspector
     /// 3. Set this scene as index 0 in Build Settings
     /// 4. Configure Script Execution Order to -100
-    /// 5. Assign initialSceneName (e.g., "MainMenuScene")
+    /// 5. Assign initialSceneData ScriptableObject in Inspector
     /// </summary>
     public class ServiceBootstrap : MonoBehaviour
     {
@@ -37,8 +38,8 @@ namespace Game.Core
         [SerializeField] private GameObject audioServiceContainerPrefab;
 
         [Header("Initial Scene Configuration")]
-        [Tooltip("Scene name to load after bootstrap initialization (e.g., 'MainMenuScene')")]
-        [SerializeField] private string initialSceneName = "MainMenuScene";
+        [Tooltip("SceneData asset to load after bootstrap initialization. Contains scene name, BGM, and loading screen configuration.")]
+        [SerializeField] private SceneData initialSceneData;
 
         [Header("Debug Options")]
         [SerializeField] private bool enableDebugLogs = true;
@@ -80,55 +81,55 @@ namespace Game.Core
 
         #endregion
 
-        #region Scene Loading (Unity Official Pattern)
+        #region Scene Loading (SceneTransitionController Integration)
 
         /// <summary>
-        /// Load initial scene using Additive mode to preserve BootstrapScene.
-        /// Unity Official Pattern: Persistent Bootstrap + Additive Loading
+        /// Load initial scene using SceneTransitionController with proper BGM and metadata handling.
         ///
-        /// References:
-        /// - Unity Technologies open-source games (Boss Room, 2D Roguelike)
-        /// - https://docs.unity3d.com/ScriptReference/SceneManagement.LoadSceneMode.html
+        /// Benefits of using SceneTransitionController instead of direct SceneManager:
+        /// - Automatic BGM transition from SceneData.BgMusic
+        /// - Loading screen with custom background and tips
+        /// - Consistent scene transition flow throughout the game
+        /// - Proper event handling (OnSceneTransitionStarted/Completed)
+        ///
+        /// Note: SceneTransitionController is already initialized in Awake() phase,
+        /// so it's safe to use here in Start() coroutine.
         /// </summary>
         private IEnumerator LoadInitialSceneAsync()
         {
-            if (string.IsNullOrEmpty(initialSceneName))
+            // Validate SceneData reference
+            if (initialSceneData == null)
             {
-                LogError("Initial scene name is not configured!");
+                LogError("Initial SceneData is not configured! Please assign a SceneData asset in the Inspector.");
                 yield break;
             }
 
-            Log($"Loading initial scene '{initialSceneName}' in Additive mode...");
+            Log($"Loading initial scene '{initialSceneData.SceneName}' via SceneTransitionController...");
 
-            // ✅ LoadSceneMode.Additive preserves BootstrapScene and all DontDestroyOnLoad services
-            // ❌ LoadSceneMode.Single would destroy BootstrapScene and all global services
-            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(
-                initialSceneName,
-                LoadSceneMode.Additive  // CRITICAL: Must use Additive to preserve bootstrap
-            );
+            // Get SceneTransitionController from ServiceLocator
+            ISceneTransitionController sceneTransitionController = ServiceLocator.Get<ISceneTransitionController>();
 
-            if (asyncLoad == null)
+            if (sceneTransitionController == null)
             {
-                LogError($"Failed to start loading scene '{initialSceneName}'. Check Build Settings.");
+                LogError("SceneTransitionController not found in ServiceLocator! Cannot load initial scene.");
+                LogError("This should never happen as SceneTransitionController is initialized in Awake().");
                 yield break;
             }
 
-            // Wait for scene to load
-            yield return asyncLoad;
+            // ✅ Use SceneTransitionController for proper scene loading with BGM and metadata
+            // This will:
+            // 1. Show loading screen (if configured in SceneData)
+            // 2. Load scene in Additive mode (preserving BootstrapScene)
+            // 3. Trigger BGM transition from SceneData.BgMusic
+            // 4. Set the loaded scene as active scene
+            sceneTransitionController.LoadSceneWithLoading(initialSceneData);
 
-            // ✅ Set newly loaded scene as active scene
-            // Active scene determines where new GameObjects are instantiated
-            Scene loadedScene = SceneManager.GetSceneByName(initialSceneName);
-            if (loadedScene.isLoaded)
-            {
-                SceneManager.SetActiveScene(loadedScene);
-                Log($"✓ Initial scene '{initialSceneName}' loaded and set as active");
-                Log($"  BootstrapScene remains loaded with global services");
-            }
-            else
-            {
-                LogError($"Scene '{initialSceneName}' failed to load properly");
-            }
+            // Wait a frame to let the transition start
+            yield return null;
+
+            Log($"✓ Initial scene transition started: {initialSceneData.SceneName}");
+            Log($"  BootstrapScene remains loaded with global services");
+            Log($"  BGM will be played from SceneData configuration");
         }
 
         #endregion
