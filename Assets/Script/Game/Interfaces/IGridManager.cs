@@ -172,6 +172,7 @@ namespace Game.Interfaces
         // ✅ 타일 상태 관리
         void SetTileBlocked(Vector2Int position, bool blocked);
         void SetTileHighlight(Vector2Int position, Color highlightColor);
+        void ClearHighlight(Vector2Int position);
         void ClearAllHighlights();
         
         // ✅ 이벤트

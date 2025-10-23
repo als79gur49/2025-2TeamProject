@@ -106,6 +106,10 @@ namespace Game.Components
         private Coroutine currentTransformMoveCoroutine;
         private bool isTransformMoving = false; // Transform 보간 진행 상태
 
+        // Phase 5: 순차 이동 시스템
+        private Coroutine sequentialMovementCoroutine;
+        private bool isSequentialMoving = false; // 순차 이동 진행 상태
+
         // 캐시된 컴포넌트
         private IGridManager gridManager;
         private IHealthComponent healthComponent;
@@ -175,8 +179,9 @@ namespace Game.Components
         public int MaxMovementPoints => maxMovementPoints;
         public MovementType MovementType => movementType;
         // Phase 2: Transform 보간 완료까지 다음 이동 차단
-        public bool CanMove => healthComponent?.IsAlive == true && currentMovementPoints > 0 && !isMoving && !isTransformMoving;
-        public bool IsMoving => isMoving;
+        // Phase 5: 순차 이동 진행 중에도 다음 이동 차단
+        public bool CanMove => healthComponent?.IsAlive == true && currentMovementPoints > 0 && !isMoving && !isTransformMoving && !isSequentialMoving;
+        public bool IsMoving => isMoving || isSequentialMoving; // Phase 5: 순차 이동 중에도 isMoving true
         public bool HasMovedThisTurn => hasMovedThisTurn;
 
         public bool CanMoveTo(Vector2Int targetPosition)
@@ -361,78 +366,91 @@ namespace Game.Components
         {
             var startPosition = gridManager?.GetUnitPosition(gameObject) ?? Vector2Int.zero;
 
-            if (!CanMoveTo(targetPosition))
+            // Phase 5: 순차 이동을 위한 경로 계산 먼저 수행
+            List<Vector2Int> path = null;
+            int movementCost = 0;
+
+            if (CanFly || CanPhaseThrough)
             {
-                return MovementResult.Failed(startPosition, "Cannot move to target position");
+                // 비행/위상 이동: 직선 경로 생성
+                movementCost = startPosition.GetManhattanDistance(targetPosition);
+                path = GenerateStraightPath(startPosition, targetPosition);
+            }
+            else
+            {
+                // 일반 이동: A* 경로 탐색
+                path = gridManager.FindPath(startPosition, targetPosition, gameObject);
+                if (path == null || path.Count < 2)
+                {
+                    return MovementResult.Failed(startPosition, "No valid path found");
+                }
+                movementCost = path.Count - 1; // 시작 위치 제외한 칸 수
             }
 
-            // Phase 2: 이전 Transform 이동 중단 (안전장치)
-            StopTransformMove();
+            // 이동력 검증
+            if (useMovementPoints && movementCost > currentMovementPoints)
+            {
+                return MovementResult.Failed(startPosition,
+                    $"Insufficient movement points: need {movementCost}, have {currentMovementPoints}");
+            }
+
+            // 목표 위치 점유 확인
+            if (gridManager.IsPositionOccupied(targetPosition))
+            {
+                var occupyingUnit = gridManager.GetUnitAtPosition(targetPosition);
+                if (occupyingUnit != null && occupyingUnit != gameObject)
+                {
+                    return MovementResult.Failed(startPosition,
+                        $"Target position occupied by {occupyingUnit.name}");
+                }
+            }
+
+            // Phase 5: 이전 순차 이동 중단 (안전장치)
+            InterruptSequentialMovement();
 
             OnMovementStarted?.Invoke(startPosition, targetPosition);
             isMoving = true;
+            hasMovedThisTurn = true;
 
-            try
+            // Phase 5: 순차 이동 코루틴 시작 (1칸씩 자동 이동)
+            sequentialMovementCoroutine = StartCoroutine(MoveAlongPathSequentially(path));
+
+            Debug.Log($"[MovementComponent] {gameObject.name}: Sequential movement started - " +
+                     $"{movementCost} steps from {startPosition} to {targetPosition}");
+
+            // 이동 시작 성공 반환 (실제 완료는 코루틴에서 비동기 처리)
+            var result = MovementResult.Succeeded(startPosition, targetPosition, path,
+                                                movementCost, 0f, "Sequential movement started");
+
+            // Phase 5: OnMovementCompleted는 코루틴 완료 시 발생 (MoveAlongPathSequentially 내부)
+            // isMoving은 코루틴 완료 시 자동으로 false 처리됨
+            return result;
+        }
+
+        /// <summary>
+        /// 비행/위상 이동을 위한 직선 경로 생성
+        /// </summary>
+        private List<Vector2Int> GenerateStraightPath(Vector2Int start, Vector2Int end)
+        {
+            var path = new List<Vector2Int> { start };
+
+            Vector2Int current = start;
+            while (current != end)
             {
-                // 경로 계산
-                int movementCost;
-
-                if (CanFly || CanPhaseThrough)
+                // 맨하탄 거리 기반 직선 이동 (X 또는 Y 한 방향씩)
+                if (current.x != end.x)
                 {
-                    movementCost = startPosition.GetManhattanDistance(targetPosition);
+                    current.x += (end.x > current.x) ? 1 : -1;
                 }
-                else
+                else if (current.y != end.y)
                 {
-                    var path = gridManager.FindPath(startPosition, targetPosition, gameObject);
-                    if (path == null || path.Count == 0)
-                    {
-                        return MovementResult.Failed(startPosition, "No valid path found");
-                    }
-                    movementCost = CalculatePathCost(path);
+                    current.y += (end.y > current.y) ? 1 : -1;
                 }
 
-                // 그리드 위치 업데이트 (즉시) - 로직은 즉시 처리
-                if (gridManager.MoveUnit(gameObject, startPosition, targetPosition))
-                {
-                    // Phase 2: Transform 즉시 이동 제거
-                    // 이제 Transform 이동은 AnimationEvent에서 처리됨
-
-                    // 이동 애니메이션 재생 (Transform 보간은 AnimationEvent에서 시작)
-                    if (animationController != null)
-                    {
-                        animationController.PlayMoveAnimation(startPosition, targetPosition);
-                    }
-                    else
-                    {
-                        Debug.LogError("AnimatorController is missing--");
-                        // 애니메이션 컨트롤러 없으면 Transform 즉시 이동
-                        transform.position = gridManager.GridToWorldPosition(targetPosition);
-                    }
-
-                    if (useMovementPoints)
-                    {
-                        ConsumeMovementPoints(movementCost);
-                    }
-
-                    hasMovedThisTurn = true;
-
-                    var result = MovementResult.Succeeded(startPosition, targetPosition, null,
-                                                        movementCost, 0f, "Movement successful");
-
-                    OnMovementCompleted?.Invoke(startPosition, targetPosition);
-                    return result;
-                }
-                else
-                {
-                    return MovementResult.Failed(startPosition, "Failed to move unit on grid");
-                }
+                path.Add(current);
             }
-            finally
-            {
-                // Phase 2: isMoving만 초기화 (isTransformMoving은 코루틴 완료 시)
-                isMoving = false;
-                Debug.Log($"[MovementComponent] {gameObject.name} Movement logic completed - isMoving reset to false");
-            }
+
+            return path;
         }
 
         public MovementResult MoveInDirection(Vector2Int direction, int distance = 1)
@@ -525,6 +543,9 @@ namespace Game.Components
 
             // Phase 2: Transform 이동도 중단
             StopTransformMove();
+
+            // Phase 5: 순차 이동도 중단
+            InterruptSequentialMovement();
 
             // 현재 Grid 위치로 동기화 (안전장치)
             if (gridManager != null)
@@ -899,6 +920,137 @@ namespace Game.Components
             }
 
             isTransformMoving = false;
+        }
+
+        #endregion
+
+        #region Phase 5: Sequential Movement System (1칸씩 순차 이동)
+
+        /// <summary>
+        /// 경로를 1칸씩 순차적으로 이동하는 코루틴
+        /// 한 번의 명령으로 목표 지점까지 자동으로 1칸씩 연속 이동
+        /// Base 높이 차이를 자연스럽게 표현하기 위한 시스템
+        /// </summary>
+        /// <param name="path">이동할 경로 (시작 위치 포함)</param>
+        private System.Collections.IEnumerator MoveAlongPathSequentially(List<Vector2Int> path)
+        {
+            if (path == null || path.Count < 2)
+            {
+                Debug.LogWarning($"[MovementComponent] {gameObject.name}: Invalid path for sequential movement");
+                isSequentialMoving = false;
+                yield break;
+            }
+
+            isSequentialMoving = true;
+            Debug.Log($"[MovementComponent] {gameObject.name}: Starting sequential movement - {path.Count - 1} steps");
+
+            // 시작 위치 제외하고 각 스텝 이동
+            for (int i = 1; i < path.Count; i++)
+            {
+                Vector2Int currentStep = path[i - 1];
+                Vector2Int nextStep = path[i];
+
+                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} - Moving from {currentStep} to {nextStep}");
+
+                // 경로 중간에 장애물이 생겼는지 재확인 (안전장치)
+                if (gridManager.IsPositionOccupied(nextStep))
+                {
+                    var occupyingUnit = gridManager.GetUnitAtPosition(nextStep);
+                    if (occupyingUnit != null && occupyingUnit != gameObject)
+                    {
+                        Debug.LogWarning($"[MovementComponent] {gameObject.name}: Path blocked at {nextStep} by {occupyingUnit.name}, stopping movement");
+                        break;
+                    }
+                }
+
+                // 1칸 이동 실행
+                yield return MoveOneStep(currentStep, nextStep);
+
+                // Transform 보간 완료 대기 (애니메이션 동기화)
+                while (isTransformMoving)
+                {
+                    yield return null;
+                }
+
+                // 이동력 1 소비
+                ConsumeMovementPoints(1);
+
+                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} completed, remaining points: {currentMovementPoints}");
+
+                // 선택적: 각 스텝 사이에 짧은 대기 시간 추가 (시각적 효과)
+                // yield return new WaitForSeconds(0.1f);
+            }
+
+            // Phase 5: 순차 이동 완료 처리
+            isSequentialMoving = false;
+            isMoving = false; // 이동 완료, 다음 명령 수락 가능
+            sequentialMovementCoroutine = null;
+
+            // Phase 5: 실제 이동 완료 시 이벤트 발생 (시작 위치와 최종 위치)
+            Vector2Int startPosition = path[0];
+            Vector2Int finalPosition = path[path.Count - 1];
+            OnMovementCompleted?.Invoke(startPosition, finalPosition);
+
+            Debug.Log($"[MovementComponent] {gameObject.name}: Sequential movement completed at {finalPosition} - CanMove: {CanMove}");
+        }
+
+        /// <summary>
+        /// 1칸 단위 이동 처리 (그리드 업데이트 + 애니메이션 트리거)
+        /// GridManager에 논리적 위치 업데이트 후 애니메이션 재생
+        /// Transform 이동은 AnimationEvent 기반으로 처리됨
+        /// </summary>
+        /// <param name="from">출발 위치</param>
+        /// <param name="to">도착 위치 (1칸 인접)</param>
+        private System.Collections.IEnumerator MoveOneStep(Vector2Int from, Vector2Int to)
+        {
+            // GridManager에 논리적 위치 업데이트 (데이터 레이어)
+            if (gridManager.MoveUnit(gameObject, from, to))
+            {
+                // 애니메이션 재생 (Transform 보간은 AnimationEvent에서 OnTransformMoveStart 호출 시 시작)
+                if (animationController != null)
+                {
+                    animationController.PlayMoveAnimation(from, to);
+                }
+                else
+                {
+                    // 애니메이션 컨트롤러 없으면 즉시 Transform 이동
+                    Debug.LogWarning($"[MovementComponent] {gameObject.name}: No AnimationController, moving transform immediately");
+                    transform.position = gridManager.GridToWorldPosition(to);
+                }
+            }
+            else
+            {
+                Debug.LogError($"[MovementComponent] {gameObject.name}: Failed to move unit on grid from {from} to {to}");
+            }
+
+            yield return null;
+        }
+
+        /// <summary>
+        /// 순차 이동 중단 처리 (공격, 스킬 사용, 사망 등)
+        /// </summary>
+        public void InterruptSequentialMovement()
+        {
+            if (sequentialMovementCoroutine != null)
+            {
+                StopCoroutine(sequentialMovementCoroutine);
+                sequentialMovementCoroutine = null;
+                Debug.Log($"[MovementComponent] {gameObject.name}: Sequential movement interrupted");
+            }
+
+            isSequentialMoving = false;
+            isMoving = false;
+
+            // Transform 이동도 중단
+            StopTransformMove();
+
+            // 현재 Grid 위치로 Transform 동기화 (안전장치)
+            if (gridManager != null)
+            {
+                var currentGridPos = gridManager.GetUnitPosition(gameObject);
+                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+                Debug.Log($"[MovementComponent] {gameObject.name}: Snapped to grid position {currentGridPos}");
+            }
         }
 
         #endregion

@@ -472,6 +472,13 @@ public class GridManager : MonoBehaviour, IGridManager
         // 하이라이트는 렌더링 기능이므로 GridRenderer에만 위임
         gridRenderer?.SetTileHighlight(position, highlightColor);
     }
+
+    public void ClearHighlight(Vector2Int position)
+    {
+        // 특정 타일 하이라이트 정리는 렌더링 기능이므로 GridRenderer에만 위임
+        gridRenderer?.ClearHighlight(position);
+    }
+
     public void ClearAllHighlights()
     {
         // 하이라이트 정리는 렌더링 기능이므로 GridRenderer에만 위임

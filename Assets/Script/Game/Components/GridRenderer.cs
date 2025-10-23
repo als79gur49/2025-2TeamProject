@@ -13,16 +13,24 @@ namespace Game.Components
     {
         private IReadOnlyGridState gridState;
         private GameObject tilePrefab;
-        
+
         // 타일 GameObjects 관리
         private Dictionary<Vector2Int, GameObject> tileObjects;
         private Dictionary<Vector2Int, Renderer> tileRenderers;
         private Dictionary<Vector2Int, Color> originalColors;
         private Dictionary<Vector2Int, Color> currentHighlights;
-        
+
+        // ✅ 강조 효과용 Plane 관리
+        private Dictionary<Vector2Int, GameObject> highlightPlanes;
+        private Dictionary<Vector2Int, Renderer> highlightPlaneRenderers;
+
         // 설정
         [SerializeField] private Material highlightMaterial;
         [SerializeField] private Color defaultHighlightColor = Color.yellow;
+
+        [Header("Highlight Plane Settings")]
+        [SerializeField] private float highlightPlaneYOffset = 2f; // 타일 위 높이
+        [SerializeField] private Material highlightPlaneMaterial; // 반투명 Material
         
         // 성능 최적화
         private Transform tileParent;
@@ -41,6 +49,10 @@ namespace Game.Components
             tileRenderers = new Dictionary<Vector2Int, Renderer>();
             originalColors = new Dictionary<Vector2Int, Color>();
             currentHighlights = new Dictionary<Vector2Int, Color>();
+
+            // ✅ Highlight Plane 컬렉션 초기화
+            highlightPlanes = new Dictionary<Vector2Int, GameObject>();
+            highlightPlaneRenderers = new Dictionary<Vector2Int, Renderer>();
             
             // 타일 부모 객체 생성
             CreateTileParent();
@@ -99,7 +111,7 @@ namespace Game.Components
         {
             var tileObject = Instantiate(tilePrefab, worldPosition, Quaternion.identity, tileParent);
             tileObject.name = $"Tile_{gridPosition.x}_{gridPosition.y}";
-            
+
             // 타일 컴포넌트 설정
             var tile = tileObject.GetComponent<Tile>();
             if (tile == null)
@@ -117,6 +129,80 @@ namespace Game.Components
             }
 
             tileObjects[gridPosition] = tileObject;
+
+            // ✅ Highlight Plane 생성 (타일 위에 배치)
+            CreateHighlightPlaneAt(gridPosition, worldPosition);
+        }
+
+        /// <summary>
+        /// 특정 위치에 강조 효과용 Plane 생성
+        /// </summary>
+        private void CreateHighlightPlaneAt(Vector2Int gridPosition, Vector3 tileWorldPosition)
+        {
+            // Plane 위치 계산 (타일보다 약간 위)
+            Vector3 planePosition = tileWorldPosition + new Vector3(0f, highlightPlaneYOffset, 0f);
+
+            // Quad Primitive 생성 (Plane보다 경량)
+            GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            plane.name = $"HighlightPlane_{gridPosition.x}_{gridPosition.y}";
+            plane.transform.SetParent(tileParent);
+            plane.transform.position = planePosition;
+
+            // Quad는 기본적으로 수직이므로 X축으로 90도 회전하여 수평으로 만듦
+            plane.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            // 타일 크기에 맞게 스케일 조정 (SampleTile 기준: 0.25, 0.5)
+            Vector2 tileSize = gridState.TileSizeVector;
+            plane.transform.localScale = new Vector3(tileSize.x, tileSize.y, 1f);
+
+            // Collider 제거 (상호작용 불필요)
+            var collider = plane.GetComponent<Collider>();
+            if (collider != null)
+            {
+                Destroy(collider);
+            }
+
+            // Material 설정 (반투명)
+            var planeRenderer = plane.GetComponent<Renderer>();
+            if (planeRenderer != null)
+            {
+                // highlightPlaneMaterial이 설정되어 있으면 사용, 없으면 기본 Material 사용
+                if (highlightPlaneMaterial != null)
+                {
+                    planeRenderer.material = new Material(highlightPlaneMaterial);
+                }
+                else
+                {
+                    // ✅ URP 기본 반투명 Material 생성
+                    var defaultMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+
+                    // URP Transparent 설정
+                    defaultMaterial.SetFloat("_Surface", 1); // 0 = Opaque, 1 = Transparent
+                    defaultMaterial.SetFloat("_Blend", 0); // 0 = Alpha, 1 = Premultiply, 2 = Additive, 3 = Multiply
+                    defaultMaterial.SetFloat("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    defaultMaterial.SetFloat("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    defaultMaterial.SetFloat("_ZWrite", 0);
+                    defaultMaterial.SetFloat("_AlphaClip", 0);
+
+                    // Render Queue 설정
+                    defaultMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+                    // Shader Keywords 설정
+                    defaultMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                    defaultMaterial.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+
+                    // 기본 색상 (반투명 흰색)
+                    defaultMaterial.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.5f));
+
+                    planeRenderer.material = defaultMaterial;
+                }
+
+                highlightPlaneRenderers[gridPosition] = planeRenderer;
+            }
+
+            // 기본적으로 비활성화 (강조 필요할 때만 활성화)
+            plane.SetActive(false);
+            highlightPlanes[gridPosition] = plane;
         }
 
         /// <summary>
@@ -224,7 +310,7 @@ namespace Game.Components
         // IGridRenderer 인터페이스 구현
 
         /// <summary>
-        /// 타일 하이라이트 설정
+        /// 타일 하이라이트 설정 - Plane 기반
         /// </summary>
         public void SetTileHighlight(Vector2Int position, Color highlightColor)
         {
@@ -232,7 +318,24 @@ namespace Game.Components
                 return;
 
             currentHighlights[position] = highlightColor;
-            UpdateTileVisual(position);
+
+            // ✅ Plane을 활성화하고 색상 설정
+            if (highlightPlanes.TryGetValue(position, out var plane) && plane != null)
+            {
+                plane.SetActive(true);
+
+                if (highlightPlaneRenderers.TryGetValue(position, out var planeRenderer) && planeRenderer != null)
+                {
+                    planeRenderer.material.color = highlightColor;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[GridRenderer] Highlight plane not found at position {position}");
+            }
+
+            // ❌ 기존 타일 색상 변경 제거 (Plane이 담당)
+            // UpdateTileVisual(position);
         }
 
         /// <summary>
@@ -247,27 +350,44 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 모든 하이라이트 정리
+        /// 모든 하이라이트 정리 - Plane 기반
         /// </summary>
         public void ClearAllHighlights()
         {
             var positionsToUpdate = new List<Vector2Int>(currentHighlights.Keys);
             currentHighlights.Clear();
-            
+
+            // ✅ 모든 Plane 비활성화
             foreach (var position in positionsToUpdate)
             {
-                UpdateTileVisual(position);
+                if (highlightPlanes.TryGetValue(position, out var plane) && plane != null)
+                {
+                    plane.SetActive(false);
+                }
             }
+
+            // ❌ 기존 타일 시각 업데이트 제거
+            // foreach (var position in positionsToUpdate)
+            // {
+            //     UpdateTileVisual(position);
+            // }
         }
 
         /// <summary>
-        /// 특정 타일 하이라이트 정리
+        /// 특정 타일 하이라이트 정리 - Plane 기반
         /// </summary>
         public void ClearHighlight(Vector2Int position)
         {
             if (currentHighlights.Remove(position))
             {
-                UpdateTileVisual(position);
+                // ✅ 해당 Plane 비활성화
+                if (highlightPlanes.TryGetValue(position, out var plane) && plane != null)
+                {
+                    plane.SetActive(false);
+                }
+
+                // ❌ 기존 타일 시각 업데이트 제거
+                // UpdateTileVisual(position);
             }
         }
 
@@ -366,6 +486,24 @@ namespace Game.Components
                 gridState.OnUnitPlaced -= HandleUnitPlaced;
                 gridState.OnUnitRemoved -= HandleUnitRemoved;
                 gridState.OnTileBlockedChanged -= HandleTileBlockedChanged;
+            }
+
+            // ✅ Highlight Plane 정리
+            if (highlightPlanes != null)
+            {
+                foreach (var plane in highlightPlanes.Values)
+                {
+                    if (plane != null)
+                    {
+                        Destroy(plane);
+                    }
+                }
+                highlightPlanes.Clear();
+            }
+
+            if (highlightPlaneRenderers != null)
+            {
+                highlightPlaneRenderers.Clear();
             }
         }
 
