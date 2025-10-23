@@ -13,7 +13,14 @@ namespace Game.Interfaces
     {
         // 그리드 속성
         Vector2Int GridSize { get; }
+
+        // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+        Vector2 TileSizeVector { get; }
+
+        // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+        [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
         float TileSize { get; }
+
         Vector3 GridOrigin { get; }
         
         // 위치 검증
@@ -105,6 +112,12 @@ namespace Game.Interfaces
     {
         // ✅ 기본 그리드 정보
         Vector2Int GridSize { get; }
+
+        // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+        Vector2 TileSizeVector { get; }
+
+        // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+        [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
         float TileSize { get; }
         
         // ✅ 위치 유효성 검증
@@ -184,6 +197,12 @@ namespace Game.Interfaces
     {
         // 그리드 속성들
         Vector2Int GridSize { get; }
+
+        // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+        Vector2 TileSizeVector { get; }
+
+        // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+        [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
         float TileSize { get; }
 
         // 위치 검증 메서드들

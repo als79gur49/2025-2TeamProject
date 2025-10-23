@@ -28,7 +28,7 @@ namespace Game.Components
         [SerializeField] private Vector3 unitOffset = Vector3.up * 0.1f;
 
         [Header("높이 설정 (Base/Ground 높이 차이)")]
-        [SerializeField] private float baseHeight = 0.5f;    // Base 위치 높이
+        [SerializeField] private float baseHeight = 1.85f;    // Base 위치 높이
         [SerializeField] private float groundHeight = 0.1f;  // Ground 기본 높이
 
         // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
@@ -47,6 +47,12 @@ namespace Game.Components
 
         // GridController 속성들 (비즈니스 로직에서 필요한 정보)
         public Vector2Int GridSize => gridState?.GridSize ?? Vector2Int.zero;
+
+        // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+        public Vector2 TileSizeVector => gridState?.TileSizeVector ?? Vector2.one;
+
+        // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+        [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
         public float TileSize => gridState?.TileSize ?? 1f;
 
         // 비즈니스 로직 이벤트들 (다른 비즈니스 컴포넌트들이 구독)

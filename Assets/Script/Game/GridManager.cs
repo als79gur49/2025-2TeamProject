@@ -16,7 +16,7 @@ public class GridManager : MonoBehaviour, IGridManager
 {
     [Header("Grid Configuration")]
     [SerializeField] private Vector2Int gridSize = new(10, 10);
-    [SerializeField] private float tileSize = 1f;
+    [SerializeField] private Vector2 tileSize = Vector2.one;
     [SerializeField] private GameObject tilePrefab;
     
     [Header("Pathfinding Settings")]
@@ -219,28 +219,37 @@ public class GridManager : MonoBehaviour, IGridManager
     }
 
     /// <summary>
-    /// 런타임 설정 변경 지원
+    /// 런타임 설정 변경 지원 - Vector2 타일 크기 지원
     /// </summary>
-    public void UpdateGridSettings(Vector2Int newSize, float newTileSize)
+    public void UpdateGridSettings(Vector2Int newSize, Vector2 newTileSize)
     {
         if (gridState == null)
         {
             Debug.LogWarning("[GridManager] GridState not initialized, cannot update settings");
             return;
         }
-        
+
         Debug.Log($"[GridManager] Updating grid settings: {gridSize} → {newSize}, tile size: {tileSize} → {newTileSize}");
-        
+
         gridSize = newSize;
         tileSize = newTileSize;
-        
+
         gridState.ResizeGrid(newSize);
-        
+
         // 렌더러 업데이트
         if (gridRenderer != null)
         {
             gridRenderer.Initialize(gridState, tilePrefab); // 재초기화
         }
+    }
+
+    /// <summary>
+    /// 하위 호환성 오버로드 - float 타일 크기 (deprecated)
+    /// </summary>
+    [System.Obsolete("Use UpdateGridSettings(Vector2Int, Vector2) instead")]
+    public void UpdateGridSettings(Vector2Int newSize, float newTileSize)
+    {
+        UpdateGridSettings(newSize, new Vector2(newTileSize, newTileSize));
     }
 
     /// <summary>
@@ -347,11 +356,16 @@ public class GridManager : MonoBehaviour, IGridManager
         // 런타임 중에만 적용
         if (Application.isPlaying && gridState != null && gridController != null)
         {
-            if (gridState.GridSize != gridSize || Mathf.Abs(gridState.TileSize - tileSize) > 0.001f)
+            // Vector2 비교 (부동소수점 안전)
+            bool tileSizeChanged =
+                !Mathf.Approximately(gridState.TileSizeVector.x, tileSize.x) ||
+                !Mathf.Approximately(gridState.TileSizeVector.y, tileSize.y);
+
+            if (gridState.GridSize != gridSize || tileSizeChanged)
             {
                 UpdateGridSettings(gridSize, tileSize);
             }
-            
+
             UpdatePathfindingSettings(allowDiagonalMovement, maxPathfindingIterations);
         }
     }
@@ -374,6 +388,12 @@ public class GridManager : MonoBehaviour, IGridManager
 
     // 기본 속성들
     public Vector2Int GridSize => GetController()?.GridSize ?? Vector2Int.zero;
+
+    // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+    public Vector2 TileSizeVector => GetController()?.TileSizeVector ?? Vector2.one;
+
+    // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+    [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
     public float TileSize => GetController()?.TileSize ?? 1f;
 
     // 위치 검증 메서드들

@@ -78,15 +78,15 @@ namespace Game.Components
             }
 
             var gridSize = gridState.GridSize;
-            var tileSize = gridState.TileSize;
-            
+            // tileSize는 사용되지 않으므로 제거 (GridToWorldPosition이 내부적으로 처리)
+
             for (int x = 0; x < gridSize.x; x++)
             {
                 for (int y = 0; y < gridSize.y; y++)
                 {
                     var gridPos = new Vector2Int(x, y);
                     var worldPos = gridState.GridToWorldPosition(gridPos);
-                    
+
                     CreateTileAt(gridPos, worldPos);
                 }
             }
@@ -315,15 +315,15 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 타일 크기 업데이트 (런타임 설정 변경용)
+        /// 타일 크기 업데이트 - Vector2 지원 (X/Y 개별 설정)
         /// </summary>
-        public void UpdateTileSize(float newTileSize)
+        public void UpdateTileSize(Vector2 newTileSize)
         {
             if (!isInitialized) return;
 
             // 기존 타일들의 위치를 새로운 크기에 맞게 조정
             var gridSize = gridState.GridSize;
-            
+
             for (int x = 0; x < gridSize.x; x++)
             {
                 for (int y = 0; y < gridSize.y; y++)
@@ -336,6 +336,15 @@ namespace Game.Components
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 하위 호환성 오버로드 - float 타일 크기 (deprecated)
+        /// </summary>
+        [System.Obsolete("Use UpdateTileSize(Vector2) instead")]
+        public void UpdateTileSize(float newTileSize)
+        {
+            UpdateTileSize(new Vector2(newTileSize, newTileSize));
         }
 
         /// <summary>
@@ -411,12 +420,12 @@ namespace Game.Components
         private void OnDrawGizmosSelected()
         {
             if (gridState == null) return;
-            
+
             // 그리드 라인 그리기
             Gizmos.color = Color.white;
             var gridSize = gridState.GridSize;
-            var tileSize = gridState.TileSize;
-            
+            // tileSize는 사용되지 않으므로 제거 (GridToWorldPosition이 내부적으로 처리)
+
             for (int x = 0; x <= gridSize.x; x++)
             {
                 var start = gridState.GridToWorldPosition(new Vector2Int(x, 0));

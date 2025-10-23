@@ -18,7 +18,7 @@ namespace Game.Components
     {
         [Header("그리드 설정")]
         [SerializeField] private Vector2Int gridSize = new Vector2Int(10, 10);
-        [SerializeField] private float tileSize = 1f;
+        [SerializeField] private Vector2 tileSize = Vector2.one;
         [SerializeField] private Vector3 gridOrigin = Vector3.zero;
 
         // ✅ 그리드 상태 저장소 - Dictionary 기반 고속 조회
@@ -43,7 +43,14 @@ namespace Game.Components
 
         // ✅ 속성
         public Vector2Int GridSize => gridSize;
-        public float TileSize => tileSize;
+
+        // ✅ 새로운 Vector2 타일 크기 (X/Y 개별 설정 지원)
+        public Vector2 TileSizeVector => tileSize;
+
+        // ✅ 기존 프로퍼티 유지 (deprecated, 하위 호환성)
+        [System.Obsolete("Use TileSizeVector instead. Returns X component for backward compatibility.")]
+        public float TileSize => tileSize.x;
+
         public Vector3 GridOrigin => gridOrigin;
         public int TotalTiles => gridSize.x * gridSize.y;
         public int OccupiedTiles => unitPositions.Count;
@@ -327,9 +334,9 @@ namespace Game.Components
         {
             // Y축 반전: gridPosition.y가 증가하면 Z축 감소 (화면상 위로)
             return gridOrigin + new Vector3(
-                gridPosition.x * tileSize,                           // X축: 좌→우
-                0f,                                                   // 높이 고정
-                (gridSize.y - 1 - gridPosition.y) * tileSize        // Z축: Y 반전 (하→상)
+                gridPosition.x * tileSize.x,                           // X축: 개별 크기 적용
+                0f,                                                    // 높이 고정
+                (gridSize.y - 1 - gridPosition.y) * tileSize.y        // Z축: Y 반전, 개별 크기 적용
             );
         }
 
@@ -340,8 +347,8 @@ namespace Game.Components
         public Vector2Int WorldToGridPosition(Vector3 worldPosition)
         {
             var localPosition = worldPosition - gridOrigin;
-            int x = Mathf.RoundToInt(localPosition.x / tileSize);
-            int z = Mathf.RoundToInt(localPosition.z / tileSize);
+            int x = Mathf.RoundToInt(localPosition.x / tileSize.x);  // X축: 개별 크기 적용
+            int z = Mathf.RoundToInt(localPosition.z / tileSize.y);  // Z축: 개별 크기 적용
 
             // Y축 반전: Z가 작을수록 Y가 큼 (하→상)
             int y = gridSize.y - 1 - z;
@@ -682,7 +689,9 @@ namespace Game.Components
 
             // Method 2: 월드 위치 기반으로 Tile 찾기 (fallback)
             Vector3 worldPos = GridToWorldPosition(position);
-            Collider[] colliders = Physics.OverlapSphere(worldPos, tileSize * 0.6f);
+            // 평균값 사용으로 직사각형 타일에서도 정확한 검색 (더 나은 정확도)
+            float searchRadius = (tileSize.x + tileSize.y) * 0.5f * 0.6f;
+            Collider[] colliders = Physics.OverlapSphere(worldPos, searchRadius);
             foreach (var collider in colliders)
             {
                 Tile tile = collider.GetComponent<Tile>();
@@ -721,7 +730,8 @@ namespace Game.Components
         {
             gridSize.x = Mathf.Max(1, gridSize.x);
             gridSize.y = Mathf.Max(1, gridSize.y);
-            tileSize = Mathf.Max(0.1f, tileSize);
+            tileSize.x = Mathf.Max(0.1f, tileSize.x);  // X축 검증
+            tileSize.y = Mathf.Max(0.1f, tileSize.y);  // Y축 검증
         }
 
         private void OnDrawGizmosSelected()
@@ -747,7 +757,12 @@ namespace Game.Components
             foreach (var blockedPos in blockedPositions)
             {
                 Vector3 center = GridToWorldPosition(blockedPos) + Vector3.up * 0.1f;
-                Gizmos.DrawCube(center, Vector3.one * tileSize * 0.8f);
+                // 직사각형 타일에 맞춰 큐브 크기 조정
+                Gizmos.DrawCube(center, new Vector3(
+                    tileSize.x * 0.8f,
+                    0.1f,
+                    tileSize.y * 0.8f
+                ));
             }
         }
     }
