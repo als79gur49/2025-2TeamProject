@@ -228,27 +228,11 @@ namespace Game.Services
 
         /// <summary>
         /// 카드들을 수직으로 배열 (위에서 아래로)
+        /// 수직 중앙을 기준으로 균형있게 배치
         /// </summary>
         private void ArrangeCardsVertically()
         {
-            int cardCount = enemyCardUIComponents.Count;
-            if (cardCount == 0) return;
-
-            // 위에서 아래로 배치
-            float startY = 0f;  // 상단 시작
-
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (enemyCardUIComponents[i] == null) continue;
-
-                var rectTransform = enemyCardUIComponents[i].GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    // 수직 배치 (X는 중앙, Y는 위에서 아래로)
-                    rectTransform.anchoredPosition = new Vector2(0, startY - i * cardSpacing);
-                    rectTransform.rotation = Quaternion.identity;
-                }
-            }
+            CardHandLayoutManager.ArrangeVerticalCentered(enemyCardUIComponents, cardSpacing);
         }
 
         /// <summary>

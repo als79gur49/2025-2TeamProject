@@ -849,6 +849,7 @@ namespace Game.Components
 
         /// <summary>
         /// 애니메이션 진행도에 맞춰 Transform을 실시간으로 보간
+        /// Phase 4: Base 높이 차이 반영 - CalculateWorldPositionWithHeight() 사용
         /// </summary>
         private System.Collections.IEnumerator SyncTransformWithAnimation(Vector2Int from, Vector2Int to)
         {
@@ -858,10 +859,17 @@ namespace Game.Components
                 yield break;
             }
 
-            Vector3 startPos = gridManager.GridToWorldPosition(from);
-            Vector3 endPos = gridManager.GridToWorldPosition(to);
+            // Phase 4: 높이를 포함한 월드 좌표 사용
+            // IGridManager를 통해 간접 접근 (IGridHeightCalculator 직접 의존 제거)
+            Vector3 startPos = gridManager.CalculateWorldPositionWithHeight(from);
+            Vector3 endPos = gridManager.CalculateWorldPositionWithHeight(to);
 
             // 애니메이션 진행도에 맞춰 Transform 보간
+            // Vector3.Lerp가 X, Y, Z 모두 자동 보간:
+            // - Base→Ground: Y 1.0 → 0.5 (자연스러운 하강)
+            // - Ground→Base: Y 0.5 → 1.0 (자연스러운 상승)
+            // - Base→Base: Y 1.0 (평행 이동)
+            // - Ground→Ground: Y 0.5 (평행 이동)
             while (animationController.IsAnimationPlaying && isTransformMoving)
             {
                 float progress = animationController.CurrentAnimationProgress;
@@ -875,7 +883,7 @@ namespace Game.Components
             isTransformMoving = false;
             currentTransformMoveCoroutine = null;
 
-            Debug.Log($"[MovementComponent] {gameObject.name}: Transform sync completed");
+            Debug.Log($"[MovementComponent] {gameObject.name}: Transform sync completed at {endPos}");
         }
 
         /// <summary>

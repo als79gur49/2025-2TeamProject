@@ -442,31 +442,7 @@ namespace Game.Services
         /// </summary>
         private void ArrangeCardsInArc()
         {
-            int cardCount = cardUIComponents.Count;
-            if (cardCount == 0) return;
-
-            float totalAngle = Mathf.Min(60f, cardCount * 8f); // 최대 60도
-            float startAngle = -totalAngle * 0.5f;
-            float angleStep = cardCount > 1 ? totalAngle / (cardCount - 1) : 0f;
-
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (cardUIComponents[i] == null) continue;
-
-                float angle = startAngle + angleStep * i;
-                float rad = angle * Mathf.Deg2Rad;
-
-                // 호형 위치 계산
-                float x = Mathf.Sin(rad) * arcRadius;
-                float y = -Mathf.Cos(rad) * arcRadius * 0.1f; // 살짝 아래로 구부림
-
-                var rectTransform = cardUIComponents[i].GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    rectTransform.anchoredPosition = new Vector2(x, y);
-                    rectTransform.rotation = Quaternion.Euler(0, 0, angle * 0.5f); // 살짝 회전
-                }
-            }
+            CardHandLayoutManager.ArrangeInArc(cardUIComponents, arcRadius);
         }
 
         /// <summary>
@@ -474,48 +450,16 @@ namespace Game.Services
         /// </summary>
         private void ArrangeCardsInLine()
         {
-            int cardCount = cardUIComponents.Count;
-            if (cardCount == 0) return;
-
-            float totalWidth = (cardCount - 1) * cardSpacing;
-            float startX = -totalWidth * 0.5f;
-
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (cardUIComponents[i] == null) continue;
-
-                var rectTransform = cardUIComponents[i].GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    rectTransform.anchoredPosition = new Vector2(startX + i * cardSpacing, 0);
-                    rectTransform.rotation = Quaternion.identity;
-                }
-            }
+            CardHandLayoutManager.ArrangeInLine(cardUIComponents, cardSpacing);
         }
 
         /// <summary>
         /// 카드들을 수직으로 배열 (위에서 아래로) - 좌측 배치용
+        /// 수직 중앙을 기준으로 균형있게 배치
         /// </summary>
         private void ArrangeCardsVertically()
         {
-            int cardCount = cardUIComponents.Count;
-            if (cardCount == 0) return;
-
-            // 위에서 아래로 배치
-            float startY = 0f;  // 상단 시작
-
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (cardUIComponents[i] == null) continue;
-
-                var rectTransform = cardUIComponents[i].GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    // 수직 배치 (X는 중앙, Y는 위에서 아래로)
-                    rectTransform.anchoredPosition = new Vector2(0, startY - i * cardSpacing);
-                    rectTransform.rotation = Quaternion.identity;
-                }
-            }
+            CardHandLayoutManager.ArrangeVerticalCentered(cardUIComponents, cardSpacing);
         }
 
         /// <summary>

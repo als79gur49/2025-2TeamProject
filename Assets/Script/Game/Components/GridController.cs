@@ -13,18 +13,23 @@ namespace Game.Components
     /// <summary>
     /// 그리드 컨트롤러 - 비즈니스 로직 및 게임 규칙 담당
     /// Phase 3: Clean Architecture Business Logic Layer - 성능 최적화 및 캐싱 적용
+    /// Phase 4: Base 높이 차이 반영 시스템 - IGridHeightCalculator 구현
     /// </summary>
-    public class GridController : IGridController
+    public class GridController : IGridController, IGridHeightCalculator
     {
         private IGridState gridState;
-        
+
         [Header("경로 탐색 설정")]
         private bool allowDiagonalMovement = false;
         private int maxPathfindingIterations = 1000;
         private bool useAdvancedPathfinding = true;
-        
+
         [Header("유닛 배치 설정")]
-        [SerializeField] private Vector3 unitOffset = Vector3.up * 0.5f;
+        [SerializeField] private Vector3 unitOffset = Vector3.up * 0.1f;
+
+        [Header("높이 설정 (Base/Ground 높이 차이)")]
+        [SerializeField] private float baseHeight = 0.5f;    // Base 위치 높이
+        [SerializeField] private float groundHeight = 0.1f;  // Ground 기본 높이
 
         // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
         private readonly Dictionary<(Vector2Int, Vector2Int), PathfindingResult> pathCache = 
@@ -1133,11 +1138,16 @@ namespace Game.Components
         }
         
         /// <summary>
-        /// Calculate world position for unit placement including offset
+        /// Calculate world position for unit placement including height and offset
+        /// Phase 4: Base 높이 차이 반영 - CalculateWorldPositionWithHeight() + unitOffset
         /// </summary>
         public Vector3 CalculateUnitWorldPosition(Vector2Int gridPosition)
         {
-            return gridState.GridToWorldPosition(gridPosition) + GetUnitOffset();
+            // Phase 4: 높이를 포함한 기본 좌표 (Base/Ground 판정)
+            Vector3 basePos = CalculateWorldPositionWithHeight(gridPosition);
+
+            // 유닛 배치 오프셋 추가 (시각적 보정)
+            return basePos + GetUnitOffset();
         }
         
         /// <summary>
@@ -1199,6 +1209,76 @@ namespace Game.Components
             Debug.LogWarning($"[GridController] Tile not found at position ({gridPosition.x}, {gridPosition.y})");
             return null;
         }
+
+        #region IGridHeightCalculator Implementation (Phase 4: Base 높이 차이 반영)
+
+        /// <summary>
+        /// Base 높이 프로퍼티 (Inspector 설정 가능)
+        /// </summary>
+        public float BaseHeight
+        {
+            get => baseHeight;
+            set => baseHeight = Mathf.Max(0f, value);
+        }
+
+        /// <summary>
+        /// Ground 기본 높이 프로퍼티 (Inspector 설정 가능)
+        /// </summary>
+        public float GroundHeight
+        {
+            get => groundHeight;
+            set => groundHeight = Mathf.Max(0f, value);
+        }
+
+        /// <summary>
+        /// 특정 그리드 위치의 지면 높이 반환
+        ///
+        /// 비즈니스 규칙:
+        /// - Base 위치: BaseHeight 반환
+        /// - Ground 위치: GroundHeight 반환
+        /// - 유효하지 않은 위치: GroundHeight 반환 (기본값)
+        ///
+        /// 확장 포인트:
+        /// - 향후 지형 타입별 높이 지원 가능 (경사로, 계단 등)
+        /// </summary>
+        public float GetGroundHeightAt(Vector2Int gridPosition)
+        {
+            // 유효성 검증
+            if (!IsValidPosition(gridPosition))
+                return groundHeight;
+
+            // Base 위치 확인 (GridState에서 조회)
+            GameObject baseObj = gridState?.GetBaseAtPosition(gridPosition);
+
+            // 비즈니스 규칙 적용
+            return baseObj != null ? baseHeight : groundHeight;
+        }
+
+        /// <summary>
+        /// 높이를 포함한 월드 좌표 계산 (Y축 포함)
+        ///
+        /// 계산 과정 (3단계):
+        /// 1. GridToWorldPosition() - Data Layer (순수 좌표, Y=0)
+        /// 2. GetGroundHeightAt() - Business Logic (높이 규칙 적용)
+        /// 3. Y축 합산 - 최종 월드 좌표 반환
+        ///
+        /// 주의:
+        /// - unitOffset은 포함하지 않음 (이동 시스템과 분리)
+        /// - unitOffset은 유닛 배치 시에만 사용 (SetUnitWorldPosition 참조)
+        /// </summary>
+        public Vector3 CalculateWorldPositionWithHeight(Vector2Int gridPosition)
+        {
+            // Phase 1: Data Layer (순수 좌표 변환, Y=0)
+            Vector3 basePos = GridToWorldPosition(gridPosition);
+
+            // Phase 2: Business Logic (높이 규칙 적용)
+            float height = GetGroundHeightAt(gridPosition);
+
+            // Phase 3: 통합 반환 (Y축만 추가)
+            return basePos + new Vector3(0f, height, 0f);
+        }
+
+        #endregion
     }
 
 }

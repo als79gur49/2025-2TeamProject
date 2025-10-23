@@ -23,6 +23,10 @@ namespace Game.Card.UI
         [SerializeField] private TextMeshProUGUI descriptionText;
         [SerializeField] private CanvasGroup canvasGroup;
 
+        [Header("Panel GameObjects - 드래그 시 활성화")]
+        [SerializeField] private GameObject cardNamePanel;
+        [SerializeField] private GameObject descriptionPanel;
+
         [Header("유닛 스탯 UI")]
         [SerializeField] private GameObject attackParent;
         [SerializeField] private TextMeshProUGUI attackText;
@@ -40,6 +44,10 @@ namespace Game.Card.UI
         [SerializeField] private GameObject glowEffect;
         [SerializeField] private Color validDropColor = Color.green;
         [SerializeField] private Color invalidDropColor = Color.red;
+
+        [Header("Event Channels")]
+        [SerializeField] private CardInfoEventChannelSO cardDragStartChannel;
+        [SerializeField] private CardDragEndEventChannelSO cardDragEndChannel;
 
         // 드래그 상태 관리
         private Vector3 originalPosition;
@@ -65,13 +73,16 @@ namespace Game.Card.UI
             // 컴포넌트 참조 설정
             if (canvasGroup == null)
                 canvasGroup = GetComponent<CanvasGroup>();
-            
+
             if (canvasGroup == null)
                 canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
             // 부모 캔버스 찾기
             parentCanvas = GetComponentInParent<Canvas>();
             graphicRaycaster = parentCanvas?.GetComponent<GraphicRaycaster>();
+
+            // 초기 상태: 모든 패널 비활성화
+            SetPanelsActive(false);
         }
 
         private void Start()
@@ -143,7 +154,7 @@ namespace Game.Card.UI
                 costText.color = GetManaCostColor(cardData.ManaCost);
             }
 
-            // 유닛 스탯 UI 업데이트
+            // 유닛 스탯 텍스트 업데이트 (패널 활성화는 드래그 시에만)
             if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
             {
                 var summonEffects = cardData.GetEffectsByType(Game.Card.Effects.EffectType.Summon);
@@ -151,32 +162,14 @@ namespace Game.Card.UI
                 {
                     var unitData = summonEffects[0].UnitToSummon;
 
-                    // 유닛 카드인 경우 스탯 표시
-                    if (attackParent != null)
-                        attackParent.SetActive(true);
+                    // 텍스트만 업데이트 (패널 활성화는 드래그 시)
                     if (attackText != null)
                         attackText.text = unitData.AttackPower.ToString();
-
-                    if (hpParent != null)
-                        hpParent.SetActive(true);
                     if (hpText != null)
                         hpText.text = unitData.MaxHealth.ToString();
-
-                    if (movementParent != null)
-                        movementParent.SetActive(true);
                     if (movementText != null)
                         movementText.text = unitData.MovementRange.ToString();
                 }
-            }
-            else
-            {
-                // 유닛 카드가 아닌 경우 스탯 UI 숨김
-                if (attackParent != null)
-                    attackParent.SetActive(false);
-                if (hpParent != null)
-                    hpParent.SetActive(false);
-                if (movementParent != null)
-                    movementParent.SetActive(false);
             }
 
             // Phase 3.18: 설명 정보 - CardData.Description 사용
@@ -328,6 +321,18 @@ namespace Game.Card.UI
         /// </summary>
         public bool IsDragging => isDragging;
 
+        /// <summary>
+        /// 모든 패널 활성화/비활성화
+        /// </summary>
+        private void SetPanelsActive(bool active)
+        {
+            if (cardNamePanel != null) cardNamePanel.SetActive(active);
+            if (descriptionPanel != null) descriptionPanel.SetActive(active);
+            if (attackParent != null) attackParent.SetActive(active);
+            if (hpParent != null) hpParent.SetActive(active);
+            if (movementParent != null) movementParent.SetActive(active);
+        }
+
         #endregion
 
         #region 드래그 앤 드롭 이벤트
@@ -365,6 +370,15 @@ namespace Game.Card.UI
             // 최상위로 이동 (다른 UI 위에 표시)
             if (parentCanvas != null)
                 transform.SetParent(parentCanvas.transform, true);
+
+            // 모든 패널 활성화
+            SetPanelsActive(true);
+
+            // Raise card info event to display card information
+            if (cardDragStartChannel != null && cardData != null)
+            {
+                cardDragStartChannel.RaiseEvent(cardData);
+            }
 
             Debug.Log($"[CardUI] Started dragging card: {cardData.CardName} (original index: {originalIndex})");
         }
@@ -406,6 +420,15 @@ namespace Game.Card.UI
             if (!dropSuccess && returnToOriginalPosition)
             {
                 StartCoroutine(ReturnToOriginalPosition());
+            }
+
+            // 모든 패널 비활성화
+            SetPanelsActive(false);
+
+            // Raise drag end event to hide card information
+            if (cardDragEndChannel != null)
+            {
+                cardDragEndChannel.RaiseEvent();
             }
 
             Debug.Log($"[CardUI] Ended dragging card: {cardData.CardName}, Drop success: {dropSuccess}");

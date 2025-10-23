@@ -143,7 +143,19 @@ namespace Game.Interfaces
         // ✅ 좌표 변환
         Vector3 GridToWorldPosition(Vector2Int gridPosition);
         Vector2Int WorldToGridPosition(Vector3 worldPosition);
-        
+
+        // ✅ 높이 계산 (Phase 4: Base 높이 차이 반영)
+        /// <summary>
+        /// 높이를 포함한 월드 좌표 계산 (GridController 위임)
+        /// MovementComponent가 IGridHeightCalculator에 직접 의존하지 않도록
+        /// </summary>
+        Vector3 CalculateWorldPositionWithHeight(Vector2Int gridPosition);
+
+        /// <summary>
+        /// 특정 위치의 지면 높이 반환 (GridController 위임)
+        /// </summary>
+        float GetGroundHeightAt(Vector2Int gridPosition);
+
         // ✅ 타일 상태 관리
         void SetTileBlocked(Vector2Int position, bool blocked);
         void SetTileHighlight(Vector2Int position, Color highlightColor);

@@ -424,6 +424,27 @@ public class GridManager : MonoBehaviour, IGridManager
     public Vector3 GridToWorldPosition(Vector2Int gridPosition) => GetController()?.GridToWorldPosition(gridPosition) ?? Vector3.zero;
     public Vector2Int WorldToGridPosition(Vector3 worldPosition) => GetController()?.WorldToGridPosition(worldPosition) ?? Vector2Int.zero;
 
+    // Phase 4: Base 높이 차이 반영 - 높이 계산 메서드 위임
+    /// <summary>
+    /// GridController의 높이 계산 메서드 위임
+    /// MovementComponent가 IGridHeightCalculator에 직접 의존하지 않도록
+    /// </summary>
+    public Vector3 CalculateWorldPositionWithHeight(Vector2Int gridPosition)
+    {
+        var heightCalculator = gridController as IGridHeightCalculator;
+        return heightCalculator?.CalculateWorldPositionWithHeight(gridPosition)
+               ?? GridToWorldPosition(gridPosition); // 폴백: 높이 없는 기본 좌표
+    }
+
+    /// <summary>
+    /// GridController의 지면 높이 조회 위임
+    /// </summary>
+    public float GetGroundHeightAt(Vector2Int gridPosition)
+    {
+        var heightCalculator = gridController as IGridHeightCalculator;
+        return heightCalculator?.GetGroundHeightAt(gridPosition) ?? 0f; // 폴백: 높이 0
+    }
+
     // 타일 상태 관리 - 렌더러와 연동
     public void SetTileBlocked(Vector2Int position, bool blocked) => GetController()?.SetTileBlocked(position, blocked);
     public void SetTileHighlight(Vector2Int position, Color highlightColor)

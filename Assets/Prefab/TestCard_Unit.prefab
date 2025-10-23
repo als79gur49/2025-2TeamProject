@@ -1261,13 +1261,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 35
+  m_fontSize: 42.15
   m_fontSizeBase: 35
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 35
-  m_fontStyle: 0
+  m_fontSizeMax: 45
+  m_fontStyle: 1
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -1947,6 +1947,8 @@ MonoBehaviour:
   costText: {fileID: 7674699039221518974}
   descriptionText: {fileID: 1563185151265081674}
   canvasGroup: {fileID: 275569819925827612}
+  cardNamePanel: {fileID: 6390042126928218535}
+  descriptionPanel: {fileID: 8169534122788877439}
   attackParent: {fileID: 2337723572398282717}
   attackText: {fileID: 6913407349454416338}
   hpParent: {fileID: 5087681987126863950}
@@ -1959,6 +1961,9 @@ MonoBehaviour:
   glowEffect: {fileID: 0}
   validDropColor: {r: 0, g: 1, b: 0, a: 1}
   invalidDropColor: {r: 1, g: 0, b: 0, a: 1}
+  cardDragStartChannel: {fileID: 11400000, guid: f40c24bbed81ca441b585950f6328067,
+    type: 2}
+  cardDragEndChannel: {fileID: 11400000, guid: a863f2c09661e6140bdb98b1503fc316, type: 2}
   showDebugInfo: 0
 --- !u!225 &275569819925827612
 CanvasGroup:
@@ -2426,7 +2431,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: -109.6, y: 124.5}
+  m_AnchoredPosition: {x: -109.6, y: 70.4}
   m_SizeDelta: {x: 227.16, y: 83.0305}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &9079010454275976363
