@@ -40,7 +40,9 @@ namespace Game.Interfaces
         /// </summary>
         /// <param name="from">시작 그리드 위치</param>
         /// <param name="to">목표 그리드 위치</param>
-        void PlayMoveAnimation(Vector2Int from, Vector2Int to);
+        /// <param name="isFirstStep">첫 칸 여부 (true: MoveSpeed=0에서 시작, false: 현재 값 유지)</param>
+        /// <param name="isLastStep">마지막 칸 여부 (true: 감속 적용, false: Walk 유지)</param>
+        void PlayMoveAnimation(Vector2Int from, Vector2Int to, bool isFirstStep = true, bool isLastStep = true);
 
         /// <summary>
         /// BlendTree 기반 공격 애니메이션 재생

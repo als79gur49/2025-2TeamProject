@@ -113,7 +113,11 @@ namespace Game.Components
         /// BlendTree 기반 이동 애니메이션 재생
         /// 상태 관리는 Handler에서 자동으로 처리됨
         /// </summary>
-        public void PlayMoveAnimation(Vector2Int from, Vector2Int to)
+        /// <param name="from">시작 위치</param>
+        /// <param name="to">목표 위치</param>
+        /// <param name="isFirstStep">첫 칸 여부 (true: MoveSpeed=0에서 시작, false: 현재 값 유지)</param>
+        /// <param name="isLastStep">마지막 칸 여부 (true: 감속 적용, false: Walk 유지)</param>
+        public void PlayMoveAnimation(Vector2Int from, Vector2Int to, bool isFirstStep = true, bool isLastStep = true)
         {
             if (skipAnimations)
             {
@@ -155,7 +159,7 @@ namespace Game.Components
             }
 
             // BlendTree 이동 시작 (이벤트는 BlendTreeAnimationController에서 발생)
-            blendTreeController.StartBlendTreeMove(startWorldPos, targetWorldPos);
+            blendTreeController.StartBlendTreeMove(startWorldPos, targetWorldPos, isFirstStep, isLastStep);
 
             // 이동 완료 모니터링 시작
             StartCoroutine(MonitorBlendTreeMove(to));

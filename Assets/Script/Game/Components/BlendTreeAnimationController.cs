@@ -77,6 +77,8 @@ namespace Game.Components
         private float moveStartTime;
         private float attackStartTime;
         private bool isBlendTreeMoving;
+        private bool isFirstMoveStep; // 첫 칸 여부 (가속 제어용)
+        private bool isLastMoveStep; // 마지막 칸 여부 (감속 제어용)
         private Coroutine updateSpeedCoroutine;
         private Coroutine updateAttackCoroutine;
         private Coroutine transformSyncCoroutine;
@@ -148,12 +150,15 @@ namespace Game.Components
 
         /// <summary>
         /// BlendTree 이동 시작 (외부에서 호출)
-        /// MoveSpeed를 0.0으로 초기화하고 실시간 속도 업데이트 시작
+        /// MoveSpeed 초기화 및 실시간 속도 업데이트 시작
         /// Phase 3-3: Transform 동기화 동시 시작
         /// </summary>
         /// <param name="startWorldPos">시작 월드 위치 (옵션)</param>
         /// <param name="targetWorldPos">목표 월드 위치 (옵션)</param>
-        public void StartBlendTreeMove(Vector3? startWorldPos = null, Vector3? targetWorldPos = null)
+        /// <param name="isFirstStep">첫 칸 여부 (true: MoveSpeed=0에서 시작, false: 현재 값 유지)</param>
+        /// <param name="isLastStep">마지막 칸 여부 (true: 감속 적용, false: 감속 스킵하여 Walk 유지)</param>
+        public void StartBlendTreeMove(Vector3? startWorldPos = null, Vector3? targetWorldPos = null,
+                                      bool isFirstStep = true, bool isLastStep = true)
         {
             if (animator == null)
             {
@@ -175,9 +180,15 @@ namespace Game.Components
             // 초기화
             moveStartTime = Time.time;
             isBlendTreeMoving = true;
+            isFirstMoveStep = isFirstStep; // 첫 칸 여부 저장
+            isLastMoveStep = isLastStep;   // 마지막 칸 여부 저장
 
-            // MoveSpeed 0.0으로 설정 (시작)
-            animator.SetFloat(MOVE_SPEED_PARAM, 0.0f);
+            // 첫 칸일 때만 MoveSpeed 0으로 초기화 (Idle 상태)
+            // 중간 칸은 이전 값(1.0) 유지 (Walk 상태)
+            if (isFirstStep)
+            {
+                animator.SetFloat(MOVE_SPEED_PARAM, 0.0f);
+            }
 
             // Animator Apply Root Motion 비활성화 검증
             if (animator.applyRootMotion)
@@ -238,10 +249,18 @@ namespace Game.Components
 
             isTransformSyncing = false;
 
-            // MoveSpeed 0.0으로 설정 (정지)
+            // 마지막 칸일 때만 MoveSpeed를 0으로 설정 (Idle 복귀)
+            // 중간 칸일 때는 1.0 유지 (Walk 상태 지속)
             if (animator != null)
             {
-                animator.SetFloat(MOVE_SPEED_PARAM, 0.0f);
+                if (isLastMoveStep)
+                {
+                    animator.SetFloat(MOVE_SPEED_PARAM, 0.0f);
+                }
+                else
+                {
+                    animator.SetFloat(MOVE_SPEED_PARAM, 1.0f);
+                }
             }
 
             // 이동 완료 이벤트 발생
@@ -396,14 +415,33 @@ namespace Game.Components
 
         /// <summary>
         /// 3단계 구조 이동 속도 계산
-        /// frontTransition: 0.0 → 1.0 가속
-        /// move: 1.0 정속 유지
-        /// backTransition: 1.0 → 0.0 감속
+        /// 첫 칸: frontTransition(0→1) → move(1.0) → [backTransition(1→0) if last]
+        /// 중간 칸: move(1.0) → [backTransition(1→0) if last]
         /// </summary>
         /// <param name="elapsed">이동 시작부터 경과 시간</param>
         /// <returns>현재 MoveSpeed 값 (0.0 ~ 1.0)</returns>
         private float CalculateCurrentSpeed(float elapsed)
         {
+            // 중간 칸: 가속 단계 스킵, 바로 정속(1.0)부터 시작
+            if (!isFirstMoveStep)
+            {
+                // Phase 3: Back Transition (마지막 칸만)
+                if (isLastMoveStep)
+                {
+                    float backTransitionStartTime = moveDuration - moveBackTransitionDuration;
+                    if (elapsed >= backTransitionStartTime)
+                    {
+                        float t = (elapsed - backTransitionStartTime) / moveBackTransitionDuration;
+                        float curveValue = speedCurve.Evaluate(t);
+                        return Mathf.Lerp(1.0f, 0.0f, curveValue);
+                    }
+                }
+
+                // Phase 2: Move (정속 유지)
+                return 1.0f;
+            }
+
+            // 첫 칸: 정상 3단계 구조
             // Phase 1: Front Transition (가속)
             if (elapsed < moveFrontTransitionDuration)
             {
@@ -412,13 +450,16 @@ namespace Game.Components
                 return Mathf.Lerp(0.0f, 1.0f, curveValue);
             }
 
-            // Phase 3: Back Transition (감속)
-            float backTransitionStartTime = moveDuration - moveBackTransitionDuration;
-            if (elapsed >= backTransitionStartTime)
+            // Phase 3: Back Transition (감속) - 마지막 칸만
+            if (isLastMoveStep)
             {
-                float t = (elapsed - backTransitionStartTime) / moveBackTransitionDuration;
-                float curveValue = speedCurve.Evaluate(t);
-                return Mathf.Lerp(1.0f, 0.0f, curveValue);
+                float backTransitionStartTime = moveDuration - moveBackTransitionDuration;
+                if (elapsed >= backTransitionStartTime)
+                {
+                    float t = (elapsed - backTransitionStartTime) / moveBackTransitionDuration;
+                    float curveValue = speedCurve.Evaluate(t);
+                    return Mathf.Lerp(1.0f, 0.0f, curveValue);
+                }
             }
 
             // Phase 2: Move (정속)

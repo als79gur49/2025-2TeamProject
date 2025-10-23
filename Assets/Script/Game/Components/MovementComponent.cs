@@ -949,8 +949,11 @@ namespace Game.Components
             {
                 Vector2Int currentStep = path[i - 1];
                 Vector2Int nextStep = path[i];
+                bool isFirstStep = (i == 1);             // 첫 번째 칸 여부
+                bool isLastStep = (i == path.Count - 1); // 마지막 칸 여부
 
-                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} - Moving from {currentStep} to {nextStep}");
+                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} - " +
+                         $"Moving from {currentStep} to {nextStep} (First: {isFirstStep}, Last: {isLastStep})");
 
                 // 경로 중간에 장애물이 생겼는지 재확인 (안전장치)
                 if (gridManager.IsPositionOccupied(nextStep))
@@ -963,8 +966,8 @@ namespace Game.Components
                     }
                 }
 
-                // 1칸 이동 실행
-                yield return MoveOneStep(currentStep, nextStep);
+                // 1칸 이동 실행 (첫 칸, 마지막 칸 여부 전달)
+                yield return MoveOneStep(currentStep, nextStep, isFirstStep, isLastStep);
 
                 // Transform 보간 완료 대기 (애니메이션 동기화)
                 while (isTransformMoving)
@@ -1001,7 +1004,9 @@ namespace Game.Components
         /// </summary>
         /// <param name="from">출발 위치</param>
         /// <param name="to">도착 위치 (1칸 인접)</param>
-        private System.Collections.IEnumerator MoveOneStep(Vector2Int from, Vector2Int to)
+        /// <param name="isFirstStep">첫 칸 여부 (애니메이션 가속 제어용)</param>
+        /// <param name="isLastStep">마지막 칸 여부 (애니메이션 감속 제어용)</param>
+        private System.Collections.IEnumerator MoveOneStep(Vector2Int from, Vector2Int to, bool isFirstStep = true, bool isLastStep = true)
         {
             // GridManager에 논리적 위치 업데이트 (데이터 레이어)
             if (gridManager.MoveUnit(gameObject, from, to))
@@ -1009,7 +1014,7 @@ namespace Game.Components
                 // 애니메이션 재생 (Transform 보간은 AnimationEvent에서 OnTransformMoveStart 호출 시 시작)
                 if (animationController != null)
                 {
-                    animationController.PlayMoveAnimation(from, to);
+                    animationController.PlayMoveAnimation(from, to, isFirstStep, isLastStep);
                 }
                 else
                 {

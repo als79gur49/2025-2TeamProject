@@ -20,4 +20,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TestScenes/Prototypes/PrototypeTestScene.unity
     guid: 60109c27cfff7494a835171f295d1cb8
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/PrototypeWithGraphicTestScene.unity
+    guid: 5b95dcb3f9f3e854598e4d658d3f2ba2
   m_configObjects: {}
