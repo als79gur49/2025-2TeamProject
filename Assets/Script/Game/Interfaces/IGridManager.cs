@@ -308,8 +308,9 @@ namespace Game.Interfaces
     /// 그리드 컨트롤러 인터페이스 - 비즈니스 로직 담당
     /// IGridManager 상속 제거로 책임 분리, ISP 적용으로 인터페이스 분리
     /// Phase 3.16: IGridEffectQuery 추가로 카드 효과 로직 분리
+    /// Phase 4: IGridHeightCalculator 추가로 Base/Ground 높이 계산 기능 노출
     /// </summary>
-    public interface IGridController : IGridSpatialQuery, IGridTeamQuery, IGridEffectQuery
+    public interface IGridController : IGridSpatialQuery, IGridTeamQuery, IGridEffectQuery, IGridHeightCalculator
     {
         // 의존성 초기화
         void Initialize(IGridState gridState);

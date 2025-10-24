@@ -84,6 +84,8 @@ namespace Game.Card.UI
 
             // 초기 상태: 모든 패널 비활성화
             SetPanelsActive(false);
+
+            Debug.Log($"[CardUI] CanvasGroup.blocksRaycasts initial value: {canvasGroup?.blocksRaycasts}");
         }
 
         private void Start()
@@ -373,9 +375,46 @@ namespace Game.Card.UI
             if (canvasGroup != null)
                 canvasGroup.alpha = dragAlpha;
 
-            // 레이캐스팅 비활성화 (다른 UI와 간섭 방지)
-            if (canvasGroup != null)
-                canvasGroup.blocksRaycasts = false;
+            // ============================================================
+            // ✅ blocksRaycasts = false 제거 (2025-10-24)
+            // ============================================================
+            //
+            // [비활성화 이유]
+            // 기존: "다른 UI와 간섭 방지" 목적으로 blocksRaycasts를 false로 설정
+            // 문제: Unity UI 이벤트 시스템이 차단되어 TileDropHandler.OnPointerEnter가 호출되지 않음
+            //       → 호버 중 카드 범위 프리뷰가 표시되지 않는 치명적 버그 발생
+            //
+            // [수정 근거]
+            // 1. 드래그 중에는 다른 UI와 상호작용할 필요가 없음
+            //    - 카드 드래그 = 배치 작업 진행 중
+            //    - 다른 카드 클릭, 버튼 클릭 등은 잘못된 UX
+            //    - 차단되는 것이 오히려 정상적인 동작
+            //
+            // 2. 타일 호버 감지가 핵심 기능
+            //    - OnPointerEnter를 통한 실시간 범위 프리뷰 필수
+            //    - blocksRaycasts = true 유지 시 정상 작동
+            //
+            // [예상했던 부작용과 실제]
+            // 우려 1: "드래그 중 핸드의 다른 카드 클릭 차단"
+            //   → 실제: 문제 없음. 드래그 중 다른 카드를 선택할 이유 없음
+            //
+            // 우려 2: "드래그 중 UI 버튼(설정, 종료 등) 클릭 차단"
+            //   → 실제: 문제 없음. 드래그 중이면 드롭하거나 취소해야 정상
+            //
+            // 우려 3: "타일 위 UI 요소 클릭 차단"
+            //   → 실제: 문제 없음. 드래그 중 타일 UI와 상호작용 불필요
+            //
+            // [대안 검토]
+            // - Physics Raycast 활용: 가능하지만 불필요한 복잡도 증가
+            // - 조건부 설정: blocksRaycasts의 근본 문제 해결 안됨
+            //
+            // [결론]
+            // blocksRaycasts를 기본값(true)으로 유지하는 것이 최선
+            // 타일의 OnPointerEnter/Exit 이벤트가 정상 작동하여 호버 프리뷰 표시 가능
+            // ============================================================
+
+            // if (canvasGroup != null)
+            //     canvasGroup.blocksRaycasts = false;
 
             // 최상위로 이동 (다른 UI 위에 표시)
             if (parentCanvas != null)
@@ -426,7 +465,8 @@ namespace Game.Card.UI
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 1f;
-                canvasGroup.blocksRaycasts = true;
+                // blocksRaycasts는 더 이상 조작하지 않음 (OnBeginDrag에서도 변경 안함)
+                // canvasGroup.blocksRaycasts = true;
             }
 
             // 드롭 실패 시 원래 위치로 복귀

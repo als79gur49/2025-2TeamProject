@@ -117,7 +117,12 @@ namespace Game.VFX
             // VFX 생성 및 초기화 (try-catch 사용, yield return 없음)
             try
             {
-                worldPos = context.GridController.GridToWorldPosition(targetPos);
+                // Phase 4: Base/Ground 높이 차이 반영
+                // CalculateWorldPositionWithHeight()는 IGridHeightCalculator를 통해
+                // Base 타일(Y=1.85f) 또는 Ground 타일(Y=0.1f)의 높이를 자동으로 적용
+                // 기존: GridToWorldPosition() → Y=0 고정
+                // 변경: CalculateWorldPositionWithHeight() → Base/Ground 자동 구분
+                worldPos = context.GridController.CalculateWorldPositionWithHeight(targetPos);
                 vfxInstance = Instantiate(vfxData.VFXPrefab, worldPos, Quaternion.identity);
 
                 // VFXEventTrigger 초기화 (리스트 콜백)
