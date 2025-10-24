@@ -13,6 +13,7 @@ namespace Game.Components
     {
         private IReadOnlyGridState gridState;
         private GameObject tilePrefab;
+        private IGridHeightCalculator heightCalculator;
 
         // 타일 GameObjects 관리
         private Dictionary<Vector2Int, GameObject> tileObjects;
@@ -27,6 +28,9 @@ namespace Game.Components
         private Dictionary<Vector2Int, GameObject> highlightPlanes;
         private Dictionary<Vector2Int, Renderer> highlightPlaneRenderers;
 
+        // Base 배치/제거가 자주 발생하지 않으므로 높이를 캐싱하여 성능 최적화
+        private Dictionary<Vector2Int, float> cachedHeights;
+
         // 설정
         [SerializeField] private Material highlightMaterial;
         [SerializeField] private Color defaultHighlightColor = Color.yellow;
@@ -34,7 +38,7 @@ namespace Game.Components
         [SerializeField] private Color invalidDropColor = new Color(1f, 0f, 0f, 0.5f);  // 무효한 드롭 위치 색상 (빨간색)
 
         [Header("Highlight Plane Settings")]
-        [SerializeField] private float highlightPlaneYOffset = 2f; // 타일 위 높이
+        [SerializeField] private float highlightPlaneYOffset = 0.15f; // 타일 위 높이
         [SerializeField] private Material highlightPlaneMaterial; // 반투명 Material
         
         // 성능 최적화
@@ -44,11 +48,12 @@ namespace Game.Components
         /// <summary>
         /// 초기화
         /// </summary>
-        public void Initialize(IReadOnlyGridState gridState, GameObject tilePrefab)
+        public void Initialize(IReadOnlyGridState gridState, GameObject tilePrefab, IGridHeightCalculator heightCalculator)
         {
             this.gridState = gridState ?? throw new ArgumentNullException(nameof(gridState));
             this.tilePrefab = tilePrefab ?? throw new ArgumentNullException(nameof(tilePrefab));
-            
+            this.heightCalculator = heightCalculator ?? throw new ArgumentNullException(nameof(heightCalculator));
+
             // 컬렉션 초기화
             tileObjects = new Dictionary<Vector2Int, GameObject>();
             tileRenderers = new Dictionary<Vector2Int, Renderer>();
@@ -58,19 +63,20 @@ namespace Game.Components
             // ✅ Highlight Plane 컬렉션 초기화
             highlightPlanes = new Dictionary<Vector2Int, GameObject>();
             highlightPlaneRenderers = new Dictionary<Vector2Int, Renderer>();
+            cachedHeights = new Dictionary<Vector2Int, float>();
 
             // 카드 프리뷰 컬렉션 초기화
             currentPreviewPositions = new HashSet<Vector2Int>();
-            
+
             // 타일 부모 객체 생성
             CreateTileParent();
-            
+
             // 그리드 생성
             GenerateVisualGrid();
-            
+
             // 이벤트 구독
             SubscribeToGridStateEvents();
-            
+
             isInitialized = true;
             Debug.Log($"[GridRenderer] Initialized with grid size {gridState.GridSize}");
         }
@@ -138,17 +144,20 @@ namespace Game.Components
 
             tileObjects[gridPosition] = tileObject;
 
-            // ✅ Highlight Plane 생성 (타일 위에 배치)
-            CreateHighlightPlaneAt(gridPosition, worldPosition);
+            // ✅ Highlight Plane은 Lazy Creation (실제 하이라이트 필요 시 생성)
         }
 
         /// <summary>
-        /// 특정 위치에 강조 효과용 Plane 생성
+        /// 강조 효과용 Plane 생성 (Lazy Initialization용)
         /// </summary>
-        private void CreateHighlightPlaneAt(Vector2Int gridPosition, Vector3 tileWorldPosition)
+        private GameObject CreateHighlightPlane(Vector2Int gridPosition)
         {
-            // Plane 위치 계산 (타일보다 약간 위)
-            Vector3 planePosition = tileWorldPosition + new Vector3(0f, highlightPlaneYOffset, 0f);
+            // 현재 시점의 정확한 지형 높이 계산
+            Vector3 tileWorldPosition = gridState.GridToWorldPosition(gridPosition);
+            float groundHeight = heightCalculator.GetGroundHeightAt(gridPosition);
+
+            // Plane 위치 계산 (실제 지형 높이 + 오프셋)
+            Vector3 planePosition = tileWorldPosition + new Vector3(0f, groundHeight + highlightPlaneYOffset, 0f);
 
             // Quad Primitive 생성 (Plane보다 경량)
             GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -210,7 +219,37 @@ namespace Game.Components
 
             // 기본적으로 비활성화 (강조 필요할 때만 활성화)
             plane.SetActive(false);
-            highlightPlanes[gridPosition] = plane;
+
+            return plane;
+        }
+
+        /// <summary>
+        /// Highlight Plane을 Lazy하게 생성하거나 높이를 업데이트
+        /// Base 배치/제거로 높이가 변경된 경우 자동으로 반영
+        /// </summary>
+        private void EnsureHighlightPlaneAt(Vector2Int gridPosition)
+        {
+            float currentHeight = heightCalculator.GetGroundHeightAt(gridPosition);
+
+            if (!highlightPlanes.ContainsKey(gridPosition))
+            {
+                // 처음 생성
+                var plane = CreateHighlightPlane(gridPosition);
+                highlightPlanes[gridPosition] = plane;
+                cachedHeights[gridPosition] = currentHeight;
+            }
+            else if (!cachedHeights.TryGetValue(gridPosition, out float cachedHeight) ||
+                     Mathf.Abs(cachedHeight - currentHeight) > 0.01f)
+            {
+                // 높이가 변경된 경우만 업데이트 (Base 배치/제거 시)
+                var plane = highlightPlanes[gridPosition];
+                if (plane != null)
+                {
+                    Vector3 tileWorldPosition = gridState.GridToWorldPosition(gridPosition);
+                    plane.transform.position = tileWorldPosition + new Vector3(0f, currentHeight + highlightPlaneYOffset, 0f);
+                    cachedHeights[gridPosition] = currentHeight;
+                }
+            }
         }
 
         /// <summary>
@@ -318,7 +357,7 @@ namespace Game.Components
         // IGridRenderer 인터페이스 구현
 
         /// <summary>
-        /// 타일 하이라이트 설정 - Plane 기반
+        /// 타일 하이라이트 설정 - Plane 기반 (Lazy Creation)
         /// </summary>
         public void SetTileHighlight(Vector2Int position, Color highlightColor)
         {
@@ -326,24 +365,19 @@ namespace Game.Components
                 return;
 
             currentHighlights[position] = highlightColor;
-            Debug.Log($"[GridRenderer] Highlight plane");
-            // ✅ Plane을 활성화하고 색상 설정
+
+            // ✅ Lazy Creation: Plane이 없거나 높이가 변경되었으면 생성/업데이트
+            EnsureHighlightPlaneAt(position);
+
+            // Plane 활성화 및 색상 설정
             if (highlightPlanes.TryGetValue(position, out var plane) && plane != null)
             {
                 plane.SetActive(true);
-                Debug.Log($"[GridRenderer] Highlight plane2");
                 if (highlightPlaneRenderers.TryGetValue(position, out var planeRenderer) && planeRenderer != null)
                 {
                     planeRenderer.material.color = highlightColor;
                 }
             }
-            else
-            {
-                Debug.LogWarning($"[GridRenderer] Highlight plane not found at position {position}");
-            }
-
-            // ❌ 기존 타일 색상 변경 제거 (Plane이 담당)
-            // UpdateTileVisual(position);
         }
 
         /// <summary>
@@ -512,6 +546,11 @@ namespace Game.Components
             if (highlightPlaneRenderers != null)
             {
                 highlightPlaneRenderers.Clear();
+            }
+
+            if (cachedHeights != null)
+            {
+                cachedHeights.Clear();
             }
         }
 

@@ -1986,7 +1986,8 @@ MonoBehaviour:
   hpText: {fileID: 4421155175055286047}
   movementParent: {fileID: 5786796363063124743}
   movementText: {fileID: 4050533452198850498}
-  dragAlpha: 0.6
+  dragAlpha: 0.55
+  dragScale: 0.65
   returnToOriginalPosition: 1
   returnSpeed: 10
   glowEffect: {fileID: 0}

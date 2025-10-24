@@ -383,7 +383,7 @@ namespace Game.Interfaces
     public interface IGridRenderer
     {
         // 초기화
-        void Initialize(IReadOnlyGridState gridState, GameObject tilePrefab);
+        void Initialize(IReadOnlyGridState gridState, GameObject tilePrefab, IGridHeightCalculator heightCalculator);
         
         // 시각적 효과
         void SetTileHighlight(Vector2Int position, Color highlightColor);

@@ -139,13 +139,13 @@ public class GridManager : MonoBehaviour, IGridManager
         };
         
         gridRenderer = rendererGO.AddComponent<GridRenderer>();
-        
+
         // 타일 프리팹 검증 및 생성
         ValidateOrCreateTilePrefab();
-        
-        // 렌더러 초기화
-        gridRenderer.Initialize(gridState, tilePrefab);
-        
+
+        // 렌더러 초기화 (gridController는 IGridHeightCalculator를 구현)
+        gridRenderer.Initialize(gridState, tilePrefab, gridController);
+
         Debug.Log("[GridManager] Presentation Layer created: GridRenderer");
     }
     
@@ -239,7 +239,7 @@ public class GridManager : MonoBehaviour, IGridManager
         // 렌더러 업데이트
         if (gridRenderer != null)
         {
-            gridRenderer.Initialize(gridState, tilePrefab); // 재초기화
+            gridRenderer.Initialize(gridState, tilePrefab, gridController); // 재초기화
         }
     }
 
