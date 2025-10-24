@@ -65,6 +65,7 @@ namespace Game.Card.UI
         private ICardSpawnService cardSpawnService;
         private ISpawnValidator spawnValidator;
         private ICardHandManager cardHandManager;
+        private IGridRenderer gridRenderer;
 
         #region Unity Lifecycle
 
@@ -110,6 +111,12 @@ namespace Game.Card.UI
                 spawnValidator = cardServiceManager?.GetSpawnValidator();
                 cardHandManager = cardServiceManager?.GetCardHandManager();
 
+                var gridManager = ServiceLocator.Get<IGridManager>();
+                if (gridManager != null)
+                {
+                    gridRenderer = gridManager.GetGridRenderer();
+                }
+
                 if (cardSpawnService == null)
                     Debug.LogError("[CardUI] CardSpawnService not found in ServiceLocator");
 
@@ -118,6 +125,9 @@ namespace Game.Card.UI
 
                 if (cardHandManager == null)
                     Debug.LogError("[CardUI] CardHandManager not found in ServiceLocator");
+
+                if (gridRenderer == null)
+                    Debug.LogWarning("[CardUI] GridRenderer not found in GridManager - card preview disabled");
             }
         }
 
@@ -405,6 +415,9 @@ namespace Game.Card.UI
             if (!isDragging) return;
 
             isDragging = false;
+
+            // ✅ 프리뷰 정리 추가 (드롭 처리 전)
+            gridRenderer?.ClearCardPreview();
 
             // 드롭 처리 (레이캐스팅이 비활성화된 상태에서 실행)
             bool dropSuccess = HandleDrop(eventData);

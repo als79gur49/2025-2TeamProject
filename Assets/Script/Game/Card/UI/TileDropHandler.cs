@@ -5,6 +5,7 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Data;
 using static Game.Interfaces.ITeamComponent;
+using System.Collections;
 
 namespace Game.Card.UI
 {
@@ -41,6 +42,7 @@ namespace Game.Card.UI
         private ICardSpawnService cardSpawnService;
         private ISpawnValidator spawnValidator;
         private IGridManager gridManager;
+        private IGridRenderer gridRenderer;
         private AudioSource audioSource;
 
         #region Unity Lifecycle
@@ -90,15 +92,23 @@ namespace Game.Card.UI
                 spawnValidator = cardServiceManager.GetSpawnValidator();
 
                 gridManager = ServiceLocator.Get<IGridManager>();
-                
+
+                if (gridManager != null)
+                {
+                    gridRenderer = gridManager.GetGridRenderer();
+                }
+
                 if (cardSpawnService == null)
                     Debug.LogError("[TileDropHandler] CardSpawnService not found in ServiceLocator");
-                
+
                 if (spawnValidator == null)
                     Debug.LogError("[TileDropHandler] SpawnValidator not found in ServiceLocator");
-                
+
                 if (gridManager == null)
                     Debug.LogError("[TileDropHandler] GridManager not found in ServiceLocator");
+
+                if (gridRenderer == null)
+                    Debug.LogError("[TileDropHandler] GridRenderer not found in GridManager");
             }
         }
 
@@ -182,6 +192,7 @@ namespace Game.Card.UI
 
         /// <summary>
         /// 카드 드롭 처리 (CardUI에서 직접 호출) - EffectData 기반 처리
+        /// ✅ 시각적 프리뷰 먼저 표시 → 실행 → 짧은 효과 후 정리
         /// </summary>
         public bool HandleCardDrop(CardData cardData, CardUI cardUI)
         {
@@ -196,22 +207,41 @@ namespace Game.Card.UI
                 return false;
             }
 
+            // ✅ 1. 프리뷰 표시 (최종 확인용)
+            ShowCardPreview(cardData);
+
+            // 2. 실제 카드 실행 (기존 방식 유지)
+            bool success = false;
+
             // 효과 타입에 따른 처리 분기
             if (cardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
             {
-                return HandleUnitCardDrop(cardData, cardUI);
+                success = HandleUnitCardDrop(cardData, cardUI);
             }
             else if (cardData.HasEffectType(Game.Card.Effects.EffectType.Damage) ||
                      cardData.HasEffectType(Game.Card.Effects.EffectType.Heal))
             {
-                return HandleSpellCardDrop(cardData, cardUI);
+                success = HandleSpellCardDrop(cardData, cardUI);
             }
             else
             {
                 Debug.LogWarning($"[TileDropHandler] Unsupported effect types in card {cardData.CardName}");
                 PlayDropFailedFeedback();
+                ClearCardPreview(); // 실패 시 즉시 정리
                 return false;
             }
+
+            // ✅ 3. 짧은 시각 효과 후 프리뷰 정리
+            if (success)
+            {
+                StartCoroutine(ClearPreviewAfterDelay(0.2f));
+            }
+            else
+            {
+                ClearCardPreview(); // 실패 시 즉시 정리
+            }
+
+            return success;
         }
 
         /// <summary>
@@ -310,6 +340,9 @@ namespace Game.Card.UI
                 var cardData = cardUI.GetCardData();
                 if (cardData != null)
                 {
+                    // ✅ 프리뷰 표시 추가 (SpellEffectExecutor 범위 계산 로직 사용)
+                    ShowCardPreview(cardData);
+
                     // 카드 타입에 따른 유효성 검사
                     isValidDrop = ValidateCardDrop(cardData);
                     SetHighlight(true);
@@ -324,6 +357,9 @@ namespace Game.Card.UI
         public void OnPointerExit(PointerEventData eventData)
         {
             if (!isInteractable) return;
+
+            // ✅ 프리뷰 정리 추가
+            ClearCardPreview();
 
             SetHighlight(false);
             HideDropPreview();
@@ -503,6 +539,51 @@ namespace Game.Card.UI
         /// 상호작용 가능 여부 반환
         /// </summary>
         public bool IsInteractable => isInteractable;
+
+        #endregion
+
+        #region 카드 프리뷰 시스템
+
+        /// <summary>
+        /// 카드 프리뷰 표시
+        /// SpellEffectExecutor의 실제 범위 계산 로직 사용
+        /// </summary>
+        private void ShowCardPreview(CardData cardData)
+        {
+            Debug.Log($"[TileDropHandler] Card preview shown");
+            if (gridRenderer == null || gridManager == null || spawnValidator == null)
+                return;
+
+            // ✅ SpellEffectExecutor의 실제 범위 계산 로직 사용
+            var (validPos, invalidPos) = CardPreviewHelper.ValidateAffectedPositions(
+                cardData,
+                gridPosition,
+                gridManager,
+                spawnValidator
+            );
+
+            // GridRenderer에 프리뷰 요청
+            gridRenderer.ShowValidatedPreview(validPos, invalidPos);
+
+            Debug.Log($"[TileDropHandler] Card preview shown: {validPos.Count} valid, {invalidPos.Count} invalid positions");
+        }
+
+        /// <summary>
+        /// 프리뷰 정리
+        /// </summary>
+        private void ClearCardPreview()
+        {
+            gridRenderer?.ClearCardPreview();
+        }
+
+        /// <summary>
+        /// 지연 후 프리뷰 정리 코루틴
+        /// </summary>
+        private System.Collections.IEnumerator ClearPreviewAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            gridRenderer?.ClearCardPreview();
+        }
 
         #endregion
 

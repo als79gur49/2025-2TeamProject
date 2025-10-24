@@ -20,6 +20,9 @@ namespace Game.Components
         private Dictionary<Vector2Int, Color> originalColors;
         private Dictionary<Vector2Int, Color> currentHighlights;
 
+        // 카드 프리뷰 상태 관리
+        private HashSet<Vector2Int> currentPreviewPositions;
+
         // ✅ 강조 효과용 Plane 관리
         private Dictionary<Vector2Int, GameObject> highlightPlanes;
         private Dictionary<Vector2Int, Renderer> highlightPlaneRenderers;
@@ -27,6 +30,8 @@ namespace Game.Components
         // 설정
         [SerializeField] private Material highlightMaterial;
         [SerializeField] private Color defaultHighlightColor = Color.yellow;
+        [SerializeField] private Color validDropColor = new Color(0f, 1f, 0f, 0.5f);    // 유효한 드롭 위치 색상 (초록색)
+        [SerializeField] private Color invalidDropColor = new Color(1f, 0f, 0f, 0.5f);  // 무효한 드롭 위치 색상 (빨간색)
 
         [Header("Highlight Plane Settings")]
         [SerializeField] private float highlightPlaneYOffset = 2f; // 타일 위 높이
@@ -53,6 +58,9 @@ namespace Game.Components
             // ✅ Highlight Plane 컬렉션 초기화
             highlightPlanes = new Dictionary<Vector2Int, GameObject>();
             highlightPlaneRenderers = new Dictionary<Vector2Int, Renderer>();
+
+            // 카드 프리뷰 컬렉션 초기화
+            currentPreviewPositions = new HashSet<Vector2Int>();
             
             // 타일 부모 객체 생성
             CreateTileParent();
@@ -318,12 +326,12 @@ namespace Game.Components
                 return;
 
             currentHighlights[position] = highlightColor;
-
+            Debug.Log($"[GridRenderer] Highlight plane");
             // ✅ Plane을 활성화하고 색상 설정
             if (highlightPlanes.TryGetValue(position, out var plane) && plane != null)
             {
                 plane.SetActive(true);
-
+                Debug.Log($"[GridRenderer] Highlight plane2");
                 if (highlightPlaneRenderers.TryGetValue(position, out var planeRenderer) && planeRenderer != null)
                 {
                     planeRenderer.material.color = highlightColor;
@@ -552,6 +560,89 @@ namespace Game.Components
             // TODO: Implement actual placement effects
         }
 
+        // ============================================================================
+        // 카드 프리뷰 시스템
+        // ============================================================================
+
+        /// <summary>
+        /// 카드 영향 범위 프리뷰 표시
+        /// </summary>
+        /// <param name="center">중심 위치</param>
+        /// <param name="affectedPositions">영향 받는 위치 리스트</param>
+        /// <param name="previewColor">프리뷰 색상</param>
+        public void ShowCardPreview(Vector2Int center, List<Vector2Int> affectedPositions, Color previewColor)
+        {
+            ClearCardPreview(); // 기존 프리뷰 정리
+
+            if (affectedPositions == null) return;
+
+            foreach (var pos in affectedPositions)
+            {
+                if (highlightPlanes.TryGetValue(pos, out var plane) && plane != null)
+                {
+                    plane.SetActive(true);
+
+                    if (highlightPlaneRenderers.TryGetValue(pos, out var renderer) && renderer != null)
+                    {
+                        renderer.material.color = previewColor;
+                    }
+
+                    currentPreviewPositions.Add(pos);
+                }
+            }
+
+            Debug.Log($"[GridRenderer] Card preview shown at {center} affecting {affectedPositions.Count} positions");
+        }
+
+        /// <summary>
+        /// 영향 범위를 유효/무효 색상으로 구분 표시
+        /// </summary>
+        /// <param name="validPositions">유효한 위치 리스트</param>
+        /// <param name="invalidPositions">무효한 위치 리스트</param>
+        public void ShowValidatedPreview(List<Vector2Int> validPositions, List<Vector2Int> invalidPositions)
+        {
+            ClearCardPreview(); // 기존 프리뷰 정리
+
+            // 유효한 위치 하이라이트 (초록색)
+            if (validPositions != null)
+            {
+                foreach (var pos in validPositions)
+                {
+                    SetTileHighlight(pos, validDropColor);
+                    currentPreviewPositions.Add(pos);
+                }
+            }
+
+            // 무효한 위치 하이라이트 (빨간색)
+            if (invalidPositions != null)
+            {
+                foreach (var pos in invalidPositions)
+                {
+                    SetTileHighlight(pos, invalidDropColor);
+                    currentPreviewPositions.Add(pos);
+                }
+            }
+
+            Debug.Log($"[GridRenderer] Validated preview: {validPositions?.Count ?? 0} valid, {invalidPositions?.Count ?? 0} invalid");
+        }
+
+        /// <summary>
+        /// 카드 프리뷰 정리
+        /// </summary>
+        public void ClearCardPreview()
+        {
+            if (currentPreviewPositions == null || currentPreviewPositions.Count == 0)
+                return;
+
+            foreach (var pos in currentPreviewPositions)
+            {
+                ClearHighlight(pos);
+            }
+
+            currentPreviewPositions.Clear();
+            Debug.Log("[GridRenderer] Card preview cleared");
+        }
+
         /// <summary>
         /// 에디터에서 그리드 시각화
         /// </summary>
@@ -570,7 +661,7 @@ namespace Game.Components
                 var end = gridState.GridToWorldPosition(new Vector2Int(x, gridSize.y));
                 Gizmos.DrawLine(start, end);
             }
-            
+
             for (int y = 0; y <= gridSize.y; y++)
             {
                 var start = gridState.GridToWorldPosition(new Vector2Int(0, y));

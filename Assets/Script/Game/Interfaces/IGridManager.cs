@@ -394,6 +394,11 @@ namespace Game.Interfaces
         // 시각 효과
         void PlayTileEffect(Vector2Int position, string effectName);
         void SetTileTransparency(Vector2Int position, float alpha);
+
+        // 카드 프리뷰 시스템 (드래그 드롭 시각적 피드백)
+        void ShowCardPreview(Vector2Int center, List<Vector2Int> affectedPositions, Color previewColor);
+        void ShowValidatedPreview(List<Vector2Int> validPositions, List<Vector2Int> invalidPositions);
+        void ClearCardPreview();
     }
 
     /// <summary>
