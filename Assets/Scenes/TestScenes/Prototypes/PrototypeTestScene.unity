@@ -1227,7 +1227,7 @@ PrefabInstance:
     - target: {fileID: 5534947778988982225, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 156.81
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5534947778988982225, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
@@ -1312,7 +1312,7 @@ PrefabInstance:
     - target: {fileID: 7131933945454563729, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 275.48
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7131933945454563729, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
@@ -1357,7 +1357,7 @@ PrefabInstance:
     - target: {fileID: 8152921151633442426, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 134.93
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8152921151633442426, guid: 115f47a21ef95b24e81555f3410d9d77,
         type: 3}
@@ -1529,7 +1529,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridSize: {x: 6, y: 6}
-  tileSize: 5
+  tileSize: {x: 1, y: 1}
   tilePrefab: {fileID: 9055745435785402388, guid: 1b3d4e9108b99bb4097ad22d69f7b97e,
     type: 3}
   allowDiagonalMovement: 0
@@ -2390,6 +2390,10 @@ MonoBehaviour:
   baseManager: {fileID: 2064765277}
   gameOutcomeManager: {fileID: 2068062105}
   gameUICoordinator: {fileID: 1017529362}
+  damageDisplayRepository: {fileID: 0}
+  damageDisplayService: {fileID: 0}
+  damageDisplayEventChannel: {fileID: 0}
+  damagePopupPrefab: {fileID: 0}
   autoInitializeOnStart: 1
   logInitializationSteps: 1
   showDebugInfo: 1
@@ -2421,7 +2425,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridSize: {x: 10, y: 10}
-  tileSize: 1
+  tileSize: {x: 1, y: 1}
   gridOrigin: {x: 0, y: 0, z: 0}
 --- !u!1 &1265405163
 GameObject:
@@ -3296,6 +3300,8 @@ MonoBehaviour:
     type: 3}
   baseSize: {x: 6, y: 1}
   baseCenterYOffset: 0
+  playerBaseHealthUI: {fileID: 0}
+  enemyBaseHealthUI: {fileID: 0}
   enableLogging: 1
 --- !u!4 &2064765278
 Transform:
