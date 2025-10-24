@@ -831,7 +831,7 @@ MonoBehaviour:
   startGameButton: {fileID: 2036610657}
   settingsButton: {fileID: 0}
   quitButton: {fileID: 0}
-  stageSceneData: {fileID: 11400000, guid: e59d9f2412a89a245bc1aa1cd5fb6732, type: 2}
+  stageSceneData: {fileID: 11400000, guid: 41d972cc72de4f9439f507a26372b89a, type: 2}
 --- !u!1 &894424088
 GameObject:
   m_ObjectHideFlags: 0

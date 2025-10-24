@@ -36,6 +36,9 @@ namespace Game.Interfaces
         /// <summary>핸드에서 카드 제거</summary>
         bool RemoveCardFromHand(CardData cardData);
 
+        /// <summary>핸드에서 카드 제거 (CardUI 참조와 함께)</summary>
+        bool RemoveCardFromHand(CardData cardData, Game.Card.UI.CardUI cardUI);
+
         /// <summary>핸드 초기화 (모든 카드 제거)</summary>
         void ClearHand();
 

@@ -30,6 +30,7 @@ namespace Game.Services
 
         [Header("카드 데이터 소스")]
         [SerializeField] private List<CardData> availableCards = new List<CardData>();
+        [SerializeField] private List<CardData> initialHandCards = new List<CardData>();
 
         [Header("상호작용 설정")]
         [SerializeField] private bool enablePlayerInteraction = false;
@@ -101,11 +102,11 @@ namespace Game.Services
             // 이벤트 시스템 설정
             SetupEventSystem();
 
-            // 초기 핸드 설정 (테스트용)
-            SetupInitialHand();
-
             isInitialized = true;
             Log("✅ CardHandManager initialization completed");
+
+            // 초기 핸드 설정 (테스트용)
+            SetupInitialHand();
         }
 
         /// <summary>
@@ -175,12 +176,44 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 초기 핸드 설정 (테스트용)
+        /// 초기 핸드 설정 (initialHandCards를 핸드에 추가)
         /// </summary>
         private void SetupInitialHand()
         {
-            // TODO: Phase 4에서 실제 카드 드로우 로직으로 대체
-            Log("🎴 Initial hand setup completed (placeholder)");
+            if (initialHandCards == null || initialHandCards.Count == 0)
+            {
+                Log("⚠️ No initial hand cards configured");
+                return;
+            }
+
+            Log($"🎴 Setting up initial hand with {initialHandCards.Count} cards");
+
+            foreach (var cardData in initialHandCards)
+            {
+                if (cardData == null)
+                {
+                    LogError("Null CardData found in initialHandCards list");
+                    continue;
+                }
+
+                if (IsHandFull())
+                {
+                    LogError($"Hand is full! Cannot add {cardData.CardName} to initial hand");
+                    break;
+                }
+
+                bool success = AddCardToHand(cardData);
+                if (success)
+                {
+                    Log($"✅ Added initial card: {cardData.CardName}");
+                }
+                else
+                {
+                    LogError($"Failed to add initial card: {cardData.CardName}");
+                }
+            }
+
+            Log($"✅ Initial hand setup completed: {handCards.Count}/{maxHandSize} cards");
         }
 
         /// <summary>
@@ -369,9 +402,50 @@ namespace Game.Services
                 var cardUI = cardUIComponents[cardIndex];
                 if (cardUI != null)
                 {
-                    DestroyImmediate(cardUI.gameObject);
+                    Destroy(cardUI.gameObject);
                 }
                 cardUIComponents.RemoveAt(cardIndex);
+            }
+
+            // 핸드 레이아웃 업데이트
+            UpdateHandLayout();
+
+            Log($"✅ Removed {cardData.CardName} from hand ({handCards.Count}/{maxHandSize})");
+            return true;
+        }
+
+        /// <summary>
+        /// 핸드에서 카드 제거 (CardUI 참조와 함께)
+        /// CardUI 객체를 직접 받아서 정확하게 제거 - 드래그 중 부모 변경 문제 해결
+        /// </summary>
+        public bool RemoveCardFromHand(CardData cardData, CardUI cardUI)
+        {
+            if (!isInitialized || cardData == null || cardUI == null)
+                return false;
+
+            // 카드 데이터 제거
+            int cardIndex = handCards.IndexOf(cardData);
+            if (cardIndex != -1)
+            {
+                handCards.RemoveAt(cardIndex);
+            }
+            else
+            {
+                LogError($"⚠️ CardData {cardData.CardName} not found in handCards");
+            }
+
+            // UI 제거 - 정확한 CardUI 객체를 직접 제거
+            if (cardUIComponents.Contains(cardUI))
+            {
+                cardUIComponents.Remove(cardUI);
+                Destroy(cardUI.gameObject);
+                Log($"🗑️ Destroyed CardUI for {cardData.CardName}");
+            }
+            else
+            {
+                LogError($"⚠️ CardUI not found in cardUIComponents for {cardData.CardName}");
+                // 그래도 파괴는 시도
+                Destroy(cardUI.gameObject);
             }
 
             // 핸드 레이아웃 업데이트
@@ -412,7 +486,7 @@ namespace Game.Services
             else
             {
                 LogError($"CardUI component not found on prefab for {cardData.CardName}");
-                DestroyImmediate(cardUIObject);
+                Destroy(cardUIObject);
             }
         }
 
@@ -472,7 +546,7 @@ namespace Game.Services
             {
                 if (cardUI != null)
                 {
-                    DestroyImmediate(cardUI.gameObject);
+                    Destroy(cardUI.gameObject);
                 }
             }
 

@@ -1168,6 +1168,82 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 150, y: 38.947052}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &5113796637897305285
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8644433786284536875}
+  - component: {fileID: 218303535002359753}
+  - component: {fileID: 7234503458688529546}
+  m_Layer: 0
+  m_Name: NamePanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &8644433786284536875
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5113796637897305285}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5353008931448423992}
+  m_Father: {fileID: 53277688086135723}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 117.7, y: 33}
+  m_SizeDelta: {x: 235.5879, y: 50}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &218303535002359753
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5113796637897305285}
+  m_CullTransparentMesh: 0
+--- !u!114 &7234503458688529546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5113796637897305285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.49803922}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: f678a4330ce9344e9964317a0b9183db, type: 3}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &5330312657574226415
 GameObject:
   m_ObjectHideFlags: 0
@@ -1480,18 +1556,18 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6390042126928218535}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 53277688086135723}
+  m_Father: {fileID: 8644433786284536875}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: 41}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: -0.000015258789, y: 0}
   m_SizeDelta: {x: 0, y: 49.54001}
-  m_Pivot: {x: 0, y: 0.5}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &5299341307721263600
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1840,9 +1916,9 @@ GameObject:
   m_Component:
   - component: {fileID: 53277688086135723}
   - component: {fileID: 7877466603396862114}
+  - component: {fileID: 5565905702914655022}
   - component: {fileID: 5409087295159626670}
   - component: {fileID: 9019657363929014674}
-  - component: {fileID: 5565905702914655022}
   - component: {fileID: 275569819925827612}
   m_Layer: 0
   m_Name: TestCard_Unit
@@ -1865,7 +1941,7 @@ RectTransform:
   m_Children:
   - {fileID: 5694721376798845864}
   - {fileID: 3175811292936480692}
-  - {fileID: 5353008931448423992}
+  - {fileID: 8644433786284536875}
   - {fileID: 1187076652414163562}
   - {fileID: 7947637675111913102}
   - {fileID: 8608573802152411200}
@@ -1884,6 +1960,42 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7006624643073576995}
   m_CullTransparentMesh: 0
+--- !u!114 &5565905702914655022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7006624643073576995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45a088672ccd6ad4ea9dde2b1ade567f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardImage: {fileID: 1451345833366059444}
+  itemImage: {fileID: 6814021653386137932}
+  cardNameText: {fileID: 1847598309943173653}
+  costText: {fileID: 7674699039221518974}
+  descriptionText: {fileID: 1563185151265081674}
+  canvasGroup: {fileID: 275569819925827612}
+  cardNamePanel: {fileID: 5113796637897305285}
+  descriptionPanel: {fileID: 8169534122788877439}
+  attackParent: {fileID: 2337723572398282717}
+  attackText: {fileID: 6913407349454416338}
+  hpParent: {fileID: 5087681987126863950}
+  hpText: {fileID: 4421155175055286047}
+  movementParent: {fileID: 5786796363063124743}
+  movementText: {fileID: 4050533452198850498}
+  dragAlpha: 0.6
+  returnToOriginalPosition: 1
+  returnSpeed: 10
+  glowEffect: {fileID: 0}
+  validDropColor: {r: 0, g: 1, b: 0, a: 1}
+  invalidDropColor: {r: 1, g: 0, b: 0, a: 1}
+  cardDragStartChannel: {fileID: 11400000, guid: f40c24bbed81ca441b585950f6328067,
+    type: 2}
+  cardDragEndChannel: {fileID: 11400000, guid: a863f2c09661e6140bdb98b1503fc316, type: 2}
+  showDebugInfo: 0
 --- !u!114 &5409087295159626670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1929,42 +2041,6 @@ MonoBehaviour:
   m_EffectColor: {r: 0, g: 0, b: 0, a: 0.07058824}
   m_EffectDistance: {x: 0, y: -7}
   m_UseGraphicAlpha: 1
---- !u!114 &5565905702914655022
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7006624643073576995}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 45a088672ccd6ad4ea9dde2b1ade567f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardImage: {fileID: 1451345833366059444}
-  itemImage: {fileID: 6814021653386137932}
-  cardNameText: {fileID: 1847598309943173653}
-  costText: {fileID: 7674699039221518974}
-  descriptionText: {fileID: 1563185151265081674}
-  canvasGroup: {fileID: 275569819925827612}
-  cardNamePanel: {fileID: 6390042126928218535}
-  descriptionPanel: {fileID: 8169534122788877439}
-  attackParent: {fileID: 2337723572398282717}
-  attackText: {fileID: 6913407349454416338}
-  hpParent: {fileID: 5087681987126863950}
-  hpText: {fileID: 4421155175055286047}
-  movementParent: {fileID: 5786796363063124743}
-  movementText: {fileID: 4050533452198850498}
-  dragAlpha: 0.6
-  returnToOriginalPosition: 1
-  returnSpeed: 10
-  glowEffect: {fileID: 0}
-  validDropColor: {r: 0, g: 1, b: 0, a: 1}
-  invalidDropColor: {r: 1, g: 0, b: 0, a: 1}
-  cardDragStartChannel: {fileID: 11400000, guid: f40c24bbed81ca441b585950f6328067,
-    type: 2}
-  cardDragEndChannel: {fileID: 11400000, guid: a863f2c09661e6140bdb98b1503fc316, type: 2}
-  showDebugInfo: 0
 --- !u!225 &275569819925827612
 CanvasGroup:
   m_ObjectHideFlags: 0

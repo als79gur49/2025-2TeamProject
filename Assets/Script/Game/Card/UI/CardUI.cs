@@ -335,14 +335,21 @@ namespace Game.Card.UI
 
         /// <summary>
         /// 모든 패널 활성화/비활성화
+        /// Phase 3.19: SummonEffect가 있는 카드만 스탯 UI 표시
         /// </summary>
         private void SetPanelsActive(bool active)
         {
+            // 기본 패널은 항상 활성화
             if (cardNamePanel != null) cardNamePanel.SetActive(active);
             if (descriptionPanel != null) descriptionPanel.SetActive(active);
-            if (attackParent != null) attackParent.SetActive(active);
-            if (hpParent != null) hpParent.SetActive(active);
-            if (movementParent != null) movementParent.SetActive(active);
+
+            // 스탯 패널은 SummonEffect가 있을 때만 활성화
+            bool hasUnitStats = active && cardData != null &&
+                                cardData.HasEffectType(Game.Card.Effects.EffectType.Summon);
+
+            if (attackParent != null) attackParent.SetActive(hasUnitStats);
+            if (hpParent != null) hpParent.SetActive(hasUnitStats);
+            if (movementParent != null) movementParent.SetActive(hasUnitStats);
         }
 
         #endregion
@@ -751,12 +758,27 @@ namespace Game.Card.UI
 
         /// <summary>
         /// 카드 사용 완료 처리 (소환 성공 시 호출)
+        /// CardHandManager에 카드 제거를 요청하여 핸드 레이아웃 자동 업데이트
+        /// this 참조를 함께 전달하여 정확한 UI 객체 제거
         /// </summary>
         public void OnCardUsed()
         {
-            // 카드 UI 제거 또는 비활성화
-            gameObject.SetActive(false);
             Debug.Log($"[CardUI] Card used: {cardData?.CardName}");
+
+            // CardHandManager에 카드 제거 요청 (this 참조와 함께)
+            if (cardHandManager != null && cardData != null)
+            {
+                // this 참조를 함께 전달하여 정확한 UI 제거
+                cardHandManager.RemoveCardFromHand(cardData, this);
+                Debug.Log($"[CardUI] Requested card removal with UI reference - layout will update automatically");
+            }
+            else
+            {
+                // fallback: 직접 파괴
+                Debug.LogWarning($"[CardUI] CardHandManager is null, destroying directly");
+                Destroy(gameObject);
+            }
+
         }
 
         /// <summary>

@@ -179,10 +179,6 @@ namespace Game.Services
             bool canSpawn = isValidPhase && isValidPosition && hasEnoughResources && isValidTarget;
 
             Log($"{(canSpawn ? "✅" : "❌")} Spawn validation result: {canSpawn}");
-            if(canSpawn == false)
-            {
-                LogError($"isValidPhase{isValidPhase}, isValidPosition{isValidPosition}, hasEnoughResources{hasEnoughResources}, isValidTarget{isValidTarget}");
-            }
 
             return canSpawn;
         }

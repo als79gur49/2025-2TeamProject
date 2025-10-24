@@ -60,7 +60,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: 0.0000042915344, y: 4.11, z: 0.07523051}
-  m_LocalScale: {x: 0.5, y: 0.5, z: -0.5}
+  m_LocalScale: {x: 0.6, y: 0.6, z: -0.6}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6936418686941373816}
@@ -1014,7 +1014,7 @@ MonoBehaviour:
   attackSpeed: 1
   attackType: 0
   rangeType: 0
-  criticalChance: 0.1
+  criticalChance: 0
   criticalMultiplier: 2
   armorPenetration: 0
   canCounterAttack: 0
