@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 using Game;
 using Game.Core;
 using Game.Interfaces;
@@ -13,6 +15,7 @@ namespace Game.Services
     /// - Monitor Base health and trigger game-over events
     /// - Coordinate with GridManager for Base placement
     /// - Emit victory/defeat events for GameService
+    /// - Manage Base HP UI updates through event-based system
     ///
     /// Architecture Integration:
     /// - Registered in GameInitializer.RegisterCoreServices()
@@ -34,6 +37,15 @@ namespace Game.Services
         [SerializeField]
         [Tooltip("Y offset for base positioning (distance from top/bottom edges)")]
         private int baseCenterYOffset = 0; // 0 = place at edges
+
+        [Header("UI References")]
+        [SerializeField]
+        [Tooltip("Player Base HP UI GameObject (should contain Slider and/or TextMeshProUGUI)")]
+        private GameObject playerBaseHealthUI;
+
+        [SerializeField]
+        [Tooltip("Enemy Base HP UI GameObject (should contain Slider and/or TextMeshProUGUI)")]
+        private GameObject enemyBaseHealthUI;
 
         [Header("Debug Settings")]
         [SerializeField] private bool enableLogging = true;
@@ -79,6 +91,7 @@ namespace Game.Services
         private void OnDestroy()
         {
             CleanupEventSubscriptions();
+            CleanupHealthEventSubscriptions();
         }
 
         #endregion
@@ -128,6 +141,9 @@ namespace Game.Services
 
             // Subscribe to death events
             SubscribeToBaseEvents();
+
+            // Subscribe to health change events for UI updates
+            SubscribeToHealthEvents();
 
             isInitialized = true;
             Log($"[BaseManager] Bases initialized - Player: {playerBasePos}, Enemy: {enemyBasePos}");
@@ -311,6 +327,104 @@ namespace Game.Services
 
         #endregion
 
+        #region Health Event Management
+
+        /// <summary>
+        /// Subscribes to Base HealthComponent events for UI updates
+        /// </summary>
+        private void SubscribeToHealthEvents()
+        {
+            if (playerBase?.HealthComponent != null)
+            {
+                playerBase.HealthComponent.OnHealthChanged += HandlePlayerHealthChanged;
+                Log("[BaseManager] Subscribed to Player Base health events");
+
+                // Initial UI update
+                HandlePlayerHealthChanged(playerBase.HealthComponent.CurrentHealth);
+            }
+            else
+            {
+                Debug.LogWarning("[BaseManager] Player Base or HealthComponent is null - cannot subscribe to health events");
+            }
+
+            if (enemyBase?.HealthComponent != null)
+            {
+                enemyBase.HealthComponent.OnHealthChanged += HandleEnemyHealthChanged;
+                Log("[BaseManager] Subscribed to Enemy Base health events");
+
+                // Initial UI update
+                HandleEnemyHealthChanged(enemyBase.HealthComponent.CurrentHealth);
+            }
+            else
+            {
+                Debug.LogWarning("[BaseManager] Enemy Base or HealthComponent is null - cannot subscribe to health events");
+            }
+        }
+
+        /// <summary>
+        /// Cleans up HealthComponent event subscriptions
+        /// </summary>
+        private void CleanupHealthEventSubscriptions()
+        {
+            if (playerBase?.HealthComponent != null)
+            {
+                playerBase.HealthComponent.OnHealthChanged -= HandlePlayerHealthChanged;
+                Log("[BaseManager] Unsubscribed from Player Base health events");
+            }
+
+            if (enemyBase?.HealthComponent != null)
+            {
+                enemyBase.HealthComponent.OnHealthChanged -= HandleEnemyHealthChanged;
+                Log("[BaseManager] Unsubscribed from Enemy Base health events");
+            }
+        }
+
+        /// <summary>
+        /// Handles Player Base HP changes and updates UI
+        /// </summary>
+        private void HandlePlayerHealthChanged(int currentHP)
+        {
+            if (playerBase?.HealthComponent == null) return;
+
+            int maxHP = playerBase.HealthComponent.MaxHealth;
+            Log($"[BaseManager] Player Base HP changed: {currentHP}/{maxHP}");
+            UpdateHealthUI(playerBaseHealthUI, currentHP, maxHP);
+        }
+
+        /// <summary>
+        /// Handles Enemy Base HP changes and updates UI
+        /// </summary>
+        private void HandleEnemyHealthChanged(int currentHP)
+        {
+            if (enemyBase?.HealthComponent == null) return;
+
+            int maxHP = enemyBase.HealthComponent.MaxHealth;
+            Log($"[BaseManager] Enemy Base HP changed: {currentHP}/{maxHP}");
+            UpdateHealthUI(enemyBaseHealthUI, currentHP, maxHP);
+        }
+
+        /// <summary>
+        /// Updates the Health UI for a specific Base
+        /// Supports both Slider and TextMeshProUGUI components
+        /// </summary>
+        private void UpdateHealthUI(GameObject healthUI, int currentHP, int maxHP)
+        {
+            if (healthUI == null)
+            {
+                // UI 참조가 없을 수 있음 (선택 사항)
+                return;
+            }
+
+            // Update TextMeshProUGUI if present
+            TextMeshProUGUI text = healthUI.GetComponentInChildren<TextMeshProUGUI>();
+            if (text != null)
+            {
+                text.text = $"{currentHP}";
+            }
+        }
+
+        #endregion
+
         #region Cleanup
 
         /// <summary>
@@ -321,6 +435,7 @@ namespace Game.Services
             Log("[BaseManager] Cleaning up bases...");
 
             CleanupEventSubscriptions();
+            CleanupHealthEventSubscriptions();
 
             if (playerBase != null)
             {

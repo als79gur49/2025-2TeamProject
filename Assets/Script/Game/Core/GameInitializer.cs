@@ -24,7 +24,13 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
     [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
     [SerializeField] private GameUICoordinator gameUICoordinator; // 게임-UI 이벤트 중재 서비스 추가
-    
+
+    [Header("Damage Display Services")]
+    [SerializeField] private Game.Repositories.DamageDisplayRepository damageDisplayRepository; // 데미지 표시 Repository
+    [SerializeField] private Game.Services.DamageDisplayService damageDisplayService; // 데미지 표시 Service
+    [SerializeField] private DamageDisplayEventChannelSO damageDisplayEventChannel; // 데미지 표시 EventChannel
+    [SerializeField] private GameObject damagePopupPrefab; // 데미지 팝업 프리팹
+
     [Header("초기화 설정")]
     [SerializeField] private bool autoInitializeOnStart = true;
     [SerializeField] private bool logInitializationSteps = true;
@@ -140,6 +146,9 @@ public class GameInitializer : MonoBehaviour
 
         // Game Outcome Services 등록 - GameOutcomeManager를 통한 승/패 조건 관리
         RegisterGameOutcomeServices();
+
+        // Damage Display Services 등록 - Repository Pattern을 통한 데미지 표시 시스템
+        RegisterDamageDisplayServices();
     }
 
     /// <summary>
@@ -349,6 +358,40 @@ public class GameInitializer : MonoBehaviour
     }
 
     /// <summary>
+    /// Damage Display 서비스 등록 - Repository Pattern 기반 데미지 표시 시스템
+    /// </summary>
+    private void RegisterDamageDisplayServices()
+    {
+        Log("Registering Damage Display services...");
+
+        // DamageDisplayRepository 초기화 및 등록
+        if (damageDisplayRepository != null && damageDisplayEventChannel != null)
+        {
+            damageDisplayRepository.Initialize(damageDisplayEventChannel);
+            ServiceLocator.Register<Game.Repositories.IDamageDisplayRepository>(damageDisplayRepository);
+            Log("✅ DamageDisplayRepository initialized and registered");
+        }
+        else
+        {
+            LogError("❌ DamageDisplayRepository or EventChannel not assigned");
+        }
+
+        // DamageDisplayService 초기화 및 등록
+        if (damageDisplayService != null && damageDisplayEventChannel != null && damagePopupPrefab != null)
+        {
+            damageDisplayService.Initialize(damageDisplayEventChannel, damagePopupPrefab);
+            ServiceLocator.Register<Game.Services.IDamageDisplayService>(damageDisplayService);
+            Log("✅ DamageDisplayService initialized and registered");
+        }
+        else
+        {
+            LogError("❌ DamageDisplayService, EventChannel, or Popup Prefab not assigned");
+        }
+
+        Log("Damage Display services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -436,6 +479,17 @@ public class GameInitializer : MonoBehaviour
         if (!ServiceLocator.IsRegistered<IGameOutcomeManager>())
         {
             LogError("❌ Critical service missing: IGameOutcomeManager");
+        }
+
+        // Damage Display 서비스 확인
+        if (!ServiceLocator.IsRegistered<Game.Repositories.IDamageDisplayRepository>())
+        {
+            LogError("❌ Warning: IDamageDisplayRepository not registered");
+        }
+
+        if (!ServiceLocator.IsRegistered<Game.Services.IDamageDisplayService>())
+        {
+            LogError("❌ Warning: IDamageDisplayService not registered");
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

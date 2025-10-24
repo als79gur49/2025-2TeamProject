@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using Game.Core;
 using Game.Services;
 
@@ -13,7 +14,7 @@ namespace Game.Services
     {
         [Header("UI Elements")]
         [SerializeField] private Button endTurnButton;
-        [SerializeField] private Text turnStatusText;
+        [SerializeField] private TextMeshProUGUI turnStatusText;
         [SerializeField] private Canvas gameCanvas;
         
         // 💉 Injected Dependencies - No more ServiceLocator
@@ -269,12 +270,11 @@ namespace Game.Services
             
             GameObject textObj = new GameObject("ButtonText");
             textObj.transform.SetParent(buttonObj.transform);
-            
-            Text buttonText = textObj.AddComponent<Text>();
+
+            TextMeshProUGUI buttonText = textObj.AddComponent<TextMeshProUGUI>();
             buttonText.text = "End Turn";
-            buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             buttonText.fontSize = 18;
-            buttonText.alignment = TextAnchor.MiddleCenter;
+            buttonText.alignment = TextAlignmentOptions.Center;
             buttonText.color = Color.white;
             
             RectTransform textRect = textObj.GetComponent<RectTransform>();
@@ -291,11 +291,10 @@ namespace Game.Services
         {
             GameObject textObj = new GameObject("TurnStatusText");
             textObj.transform.SetParent(gameCanvas.transform);
-            
-            turnStatusText = textObj.AddComponent<Text>();
-            turnStatusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            turnStatusText = textObj.AddComponent<TextMeshProUGUI>();
             turnStatusText.fontSize = 24;
-            turnStatusText.alignment = TextAnchor.MiddleCenter;
+            turnStatusText.alignment = TextAlignmentOptions.Center;
             turnStatusText.color = Color.white;
             
             RectTransform textRect = textObj.GetComponent<RectTransform>();
@@ -362,8 +361,8 @@ namespace Game.Services
             string cycleInfo = $"Cycle {turnService.TurnCount + 1} | Phase {(int)turnService.CurrentPhase + 1}/6";
             turnStatusText.text = $"{cycleInfo}\n{phaseText}";
             
-            // Set color based on current phase
-            turnStatusText.color = GetPhaseColor(turnService.CurrentPhase);
+           // // Set color based on current phase
+           // turnStatusText.color = GetPhaseColor(turnService.CurrentPhase);
         }
         
         private string GetPhaseDisplayText(TurnPhase phase)
@@ -398,7 +397,7 @@ namespace Game.Services
         {
             if (endTurnButton == null || turnService == null) return;
 
-            Text buttonText = endTurnButton.GetComponentInChildren<Text>();
+            TextMeshProUGUI buttonText = endTurnButton.GetComponentInChildren<TextMeshProUGUI>();
             Image buttonImage = endTurnButton.GetComponent<Image>();
 
             string buttonLabel = GetPhaseButtonText(turnService.CurrentPhase);
@@ -500,6 +499,9 @@ namespace Game.Services
         /// </summary>
         private void HandleUnitProcessed(Unit unit, int currentIndex, int totalCount)
         {
+            // 유닛의 정보 불필요
+            return;
+
             if (turnStatusText != null && unitService != null)
             {
                 TurnPhase currentPhase = unitService.CurrentPhase ?? TurnPhase.TurnStart;

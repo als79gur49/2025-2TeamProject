@@ -5,6 +5,7 @@ using UnityEngine.Events;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
+using Game.Repositories;
 using System.ComponentModel;
 using Unity.Collections;
 
@@ -15,6 +16,8 @@ namespace Game.Components
     /// </summary>
     public class HealthComponent : MonoBehaviour, IAdvancedHealthComponent
     {
+        // ✅ 데미지 표시를 위한 Repository (ServiceLocator를 통해 주입)
+        private IDamageDisplayRepository damageDisplayRepository;
         [Header("기본 설정")]
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int startingHealth = -1; // -1이면 maxHealth로 시작
@@ -93,6 +96,14 @@ namespace Game.Components
         private void Start()
         {
             lastRegenerationTime = Time.time;
+
+            // ServiceLocator에서 DamageDisplayRepository 가져오기
+            damageDisplayRepository = ServiceLocator.Get<IDamageDisplayRepository>();
+
+            if (damageDisplayRepository == null)
+            {
+                Debug.LogWarning($"[HealthComponent] DamageDisplayRepository not found in ServiceLocator for {gameObject.name}");
+            }
         }
 
         private void Update()
@@ -358,6 +369,13 @@ namespace Game.Components
             {
                 currentHealth = Mathf.Max(0, currentHealth - finalDamage);
                 Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
+
+                // ✅ 데미지 표시 요청 (Repository를 통해 데이터 검증 및 EventChannel 발송)
+                damageDisplayRepository?.SendDamageDisplay(
+                    finalDamage,
+                    damageInfo.IsCritical,
+                    transform.position
+                );
 
                 OnDamageTaken?.Invoke(finalDamage, currentHealth);
                 OnHealthChanged?.Invoke(currentHealth);
