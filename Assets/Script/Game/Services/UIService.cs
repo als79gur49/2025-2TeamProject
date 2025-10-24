@@ -16,6 +16,12 @@ namespace Game.Services
         [SerializeField] private Button endTurnButton;
         [SerializeField] private TextMeshProUGUI turnStatusText;
         [SerializeField] private Canvas gameCanvas;
+
+        [Header("Phase Images")]
+        [SerializeField] private Image phaseImage;
+        [SerializeField] private Sprite turnPhaseSprite;    // TurnStart, TurnEnd
+        [SerializeField] private Sprite cardPhaseSprite;    // EnemySummon, AllySummon
+        [SerializeField] private Sprite actionPhaseSprite;  // EnemyAction, AllyAction
         
         // 💉 Injected Dependencies - No more ServiceLocator
         private ITurnService turnService;
@@ -212,6 +218,7 @@ namespace Game.Services
         private void HandlePhaseChanged(TurnPhase phase)
         {
             UpdateDisplay();
+            UpdatePhaseImage();
             Debug.Log($"[UIService] Phase changed to: {phase}");
         }
         
@@ -452,6 +459,52 @@ namespace Game.Services
                 TurnPhase.AllyAction => new Color(0.2f, 0.8f, 0.2f, 0.8f),   // Green
                 TurnPhase.TurnEnd => new Color(0.6f, 0.6f, 0.6f, 0.8f),      // Gray-ish
                 _ => new Color(0.5f, 0.5f, 0.5f, 0.8f)                       // Gray
+            };
+        }
+
+        /// <summary>
+        /// Updates the phase image based on the current phase
+        /// Maps phases to their corresponding sprites:
+        /// - TurnStart, TurnEnd → turnPhaseSprite
+        /// - EnemySummon, AllySummon → cardPhaseSprite
+        /// - EnemyAction, AllyAction → actionPhaseSprite
+        /// </summary>
+        private void UpdatePhaseImage()
+        {
+            if (phaseImage == null || turnService == null)
+            {
+                if (phaseImage == null)
+                    Debug.LogWarning("[UIService] phaseImage is not assigned in Inspector");
+                return;
+            }
+
+            Sprite targetSprite = GetPhaseSprite(turnService.CurrentPhase);
+            if (targetSprite != null)
+            {
+                phaseImage.sprite = targetSprite;
+            }
+            else
+            {
+                Debug.LogWarning($"[UIService] No sprite assigned for phase: {turnService.CurrentPhase}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the appropriate sprite for the given phase
+        /// </summary>
+        /// <param name="phase">The turn phase</param>
+        /// <returns>The sprite to display for this phase, or null if not assigned</returns>
+        private Sprite GetPhaseSprite(TurnPhase phase)
+        {
+            return phase switch
+            {
+                TurnPhase.TurnStart => turnPhaseSprite,
+                TurnPhase.TurnEnd => turnPhaseSprite,
+                TurnPhase.EnemySummon => cardPhaseSprite,
+                TurnPhase.AllySummon => cardPhaseSprite,
+                TurnPhase.EnemyAction => actionPhaseSprite,
+                TurnPhase.AllyAction => actionPhaseSprite,
+                _ => null
             };
         }
         

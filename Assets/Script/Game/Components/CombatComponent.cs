@@ -693,7 +693,7 @@ namespace Game.Components
                 return;
             }
 
-            string targetNames = string.Join(", ", targets.ConvertAll(t => t?.name ?? "null"));
+            string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
             Debug.Log($"[CombatComponent] {gameObject.name}: Attack animation started on [{targetNames}]");
 
             // OnAttackStarted 이벤트 발생 (외부 시스템에 알림)
@@ -740,7 +740,7 @@ namespace Game.Components
                 return;
             }
 
-            string targetNames = string.Join(", ", currentAttackTargets.ConvertAll(t => t?.name ?? "null"));
+            string targetNames = string.Join(", ", currentAttackTargets.ConvertAll(t => t ? t.name : "destroyed"));
             Debug.Log($"[CombatComponent] {gameObject.name}: Attack animation ended on [{targetNames}]");
 
             // 공격 상태 초기화

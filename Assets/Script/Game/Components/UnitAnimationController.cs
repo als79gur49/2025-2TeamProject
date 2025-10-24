@@ -224,7 +224,7 @@ namespace Game.Components
 
             if (logAnimationEvents)
             {
-                string targetNames = string.Join(", ", targets.ConvertAll(t => t?.name ?? "null"));
+                string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
                 Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation started on [{targetNames}]");
             }
         }
@@ -319,7 +319,7 @@ namespace Game.Components
 
             if (logAnimationEvents)
             {
-                string targetNames = string.Join(", ", currentTargets.ConvertAll(t => t?.name ?? "null"));
+                string targetNames = string.Join(", ", currentTargets.ConvertAll(t => t ? t.name : "destroyed"));
                 Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack hit on [{targetNames}]");
             }
         }
@@ -352,7 +352,7 @@ namespace Game.Components
             {
                 if(targets != null && targets.Count > 0)
                 {
-                    string targetNames = string.Join(", ", targets.ConvertAll(t => t?.name ?? "null"));
+                    string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
                     Debug.Log($"[UnitAnimationController] {gameObject?.name}: Attack animation ended on [{targetNames}]");
                 }
                 else

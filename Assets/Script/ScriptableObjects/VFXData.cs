@@ -27,6 +27,10 @@ namespace Game.VFX
         [Header("Playback Settings")]
         [SerializeField] [Range(0.1f, 3f)] private float playbackSpeed = 1.0f;
 
+        [Header("Position Settings")]
+        [Tooltip("VFX 생성 위치 오프셋 (시각적 위치 조정용)")]
+        [SerializeField] private Vector3 positionOffset = Vector3.zero;
+
         /// <summary>VFX 프리팹</summary>
         public GameObject VFXPrefab => vfxPrefab;
 
@@ -44,6 +48,9 @@ namespace Game.VFX
 
         /// <summary>VFX 재생 속도 배율 (0.1 ~ 3.0)</summary>
         public float PlaybackSpeed => playbackSpeed;
+
+        /// <summary>VFX 생성 위치 오프셋 (시각적 위치 조정용)</summary>
+        public Vector3 PositionOffset => positionOffset;
 
         /// <summary>
         /// 데이터 유효성 검증
@@ -63,7 +70,8 @@ namespace Game.VFX
         public override string ToString()
         {
             string durationInfo = useAutoDuration ? "Auto" : $"{manualDuration}s";
-            return $"VFXData[Prefab: {vfxPrefab?.name ?? "None"}, TriggerTime: {triggerNormalizedTime:F2}, Duration: {durationInfo}, Looping: {isLooping}]";
+            string offsetInfo = positionOffset != Vector3.zero ? $", Offset: {positionOffset}" : "";
+            return $"VFXData[Prefab: {vfxPrefab?.name ?? "None"}, TriggerTime: {triggerNormalizedTime:F2}, Duration: {durationInfo}, Looping: {isLooping}{offsetInfo}]";
         }
     }
 }

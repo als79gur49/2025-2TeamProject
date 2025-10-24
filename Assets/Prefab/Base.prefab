@@ -45,5 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   baseSize: {x: 30, y: 5}
-  maxHealth: 20
+  maxHealth: 500
   basePrefab: {fileID: 0}

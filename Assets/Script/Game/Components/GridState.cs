@@ -79,6 +79,17 @@ namespace Game.Components
         }
 
         /// <summary>
+        /// 해당 위치로 이동 가능한지 확인 (유닛 또는 Base가 있으면 이동 불가)
+        /// Movement와 Pathfinding에서 사용 - Summon과는 다른 의미
+        /// </summary>
+        public bool IsPositionWalkable(Vector2Int position)
+        {
+            return IsValidPosition(position) &&
+                   !positionUnits.ContainsKey(position) &&
+                   !positionToBase.ContainsKey(position);
+        }
+
+        /// <summary>
         /// 위치 차단 상태 확인
         /// </summary>
         public bool IsPositionBlocked(Vector2Int position)

@@ -399,6 +399,7 @@ public class GridManager : MonoBehaviour, IGridManager
     // 위치 검증 메서드들
     public bool IsValidPosition(Vector2Int gridPosition) => GetController()?.IsValidPosition(gridPosition) ?? false;
     public bool IsPositionOccupied(Vector2Int gridPosition) => GetController()?.IsPositionOccupied(gridPosition) ?? false;
+    public bool IsPositionWalkable(Vector2Int gridPosition) => GetController()?.IsPositionWalkable(gridPosition) ?? false;
     public bool IsPositionBlocked(Vector2Int gridPosition) => GetController()?.IsPositionBlocked(gridPosition) ?? false;
 
     // 유닛 위치 관리

@@ -265,7 +265,7 @@ namespace Game.Components
                 {
                     var pos = new Vector2Int(currentPosition.x, currentPosition.y + y);
 
-                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    if (gridManager.IsValidPosition(pos) && gridManager.IsPositionWalkable(pos))
                     {
                         validPositions.Add(pos);
 
@@ -275,7 +275,7 @@ namespace Game.Components
                     }
                     else
                     {
-                        break; // 유효하지 않거나 점유된 경우 더 이상 진행 불가
+                        break; // 유효하지 않거나 이동 불가능한 경우 더 이상 진행 불가
                     }
                 }
             }
@@ -286,7 +286,7 @@ namespace Game.Components
                 {
                     var pos = new Vector2Int(currentPosition.x, currentPosition.y - y);
 
-                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    if (gridManager.IsValidPosition(pos) && gridManager.IsPositionWalkable(pos))
                     {
                         validPositions.Add(pos);
 
@@ -296,7 +296,7 @@ namespace Game.Components
                     }
                     else
                     {
-                        break; // 유효하지 않거나 점유된 경우 더 이상 진행 불가
+                        break; // 유효하지 않거나 이동 불가능한 경우 더 이상 진행 불가
                     }
                 }
             }
@@ -308,7 +308,7 @@ namespace Game.Components
                 {
                     var pos = new Vector2Int(currentPosition.x, currentPosition.y + y);
 
-                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    if (gridManager.IsValidPosition(pos) && gridManager.IsPositionWalkable(pos))
                     {
                         validPositions.Add(pos);
 
@@ -326,7 +326,7 @@ namespace Game.Components
                 {
                     var pos = new Vector2Int(currentPosition.x, currentPosition.y - y);
 
-                    if (gridManager.IsValidPosition(pos) && !gridManager.IsPositionOccupied(pos))
+                    if (gridManager.IsValidPosition(pos) && gridManager.IsPositionWalkable(pos))
                     {
                         validPositions.Add(pos);
 
@@ -551,7 +551,7 @@ namespace Game.Components
             if (gridManager != null)
             {
                 var currentGridPos = gridManager.GetUnitPosition(gameObject);
-                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+                transform.position = gridManager.CalculateWorldPositionWithHeight(currentGridPos);
             }
 
             RefreshMovementPoints();
@@ -838,7 +838,7 @@ namespace Game.Components
             // 최종 위치 보장 (Grid 위치와 동기화)
             if (gridManager != null)
             {
-                transform.position = gridManager.GridToWorldPosition(targetPos);
+                transform.position = gridManager.CalculateWorldPositionWithHeight(targetPos);
             }
 
             if (currentTransformMoveCoroutine != null)
@@ -861,7 +861,7 @@ namespace Game.Components
             if (gridManager != null)
             {
                 var currentGridPos = gridManager.GetUnitPosition(gameObject);
-                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+                transform.position = gridManager.CalculateWorldPositionWithHeight(currentGridPos);
             }
 
             // Transform 이동 중단
@@ -1020,7 +1020,7 @@ namespace Game.Components
                 {
                     // 애니메이션 컨트롤러 없으면 즉시 Transform 이동
                     Debug.LogWarning($"[MovementComponent] {gameObject.name}: No AnimationController, moving transform immediately");
-                    transform.position = gridManager.GridToWorldPosition(to);
+                    transform.position = gridManager.CalculateWorldPositionWithHeight(to);
                 }
             }
             else
@@ -1053,7 +1053,7 @@ namespace Game.Components
             if (gridManager != null)
             {
                 var currentGridPos = gridManager.GetUnitPosition(gameObject);
-                transform.position = gridManager.GridToWorldPosition(currentGridPos);
+                transform.position = gridManager.CalculateWorldPositionWithHeight(currentGridPos);
                 Debug.Log($"[MovementComponent] {gameObject.name}: Snapped to grid position {currentGridPos}");
             }
         }

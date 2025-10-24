@@ -26,6 +26,7 @@ namespace Game.Interfaces
         // 위치 검증
         bool IsValidPosition(Vector2Int position);
         bool IsPositionOccupied(Vector2Int position);
+        bool IsPositionWalkable(Vector2Int position);
         bool IsPositionBlocked(Vector2Int position);
         
         // 유닛 조회
@@ -123,6 +124,7 @@ namespace Game.Interfaces
         // ✅ 위치 유효성 검증
         bool IsValidPosition(Vector2Int gridPosition);
         bool IsPositionOccupied(Vector2Int gridPosition);
+        bool IsPositionWalkable(Vector2Int gridPosition);
         bool IsPositionBlocked(Vector2Int gridPosition);
         
         // ✅ 유닛 위치 관리
@@ -209,6 +211,7 @@ namespace Game.Interfaces
         // 위치 검증 메서드들
         bool IsValidPosition(Vector2Int gridPosition);
         bool IsPositionOccupied(Vector2Int gridPosition);
+        bool IsPositionWalkable(Vector2Int gridPosition);
         bool IsPositionBlocked(Vector2Int gridPosition);
 
         // 유닛 위치 관리

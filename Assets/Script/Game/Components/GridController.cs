@@ -25,11 +25,11 @@ namespace Game.Components
         private bool useAdvancedPathfinding = true;
 
         [Header("유닛 배치 설정")]
-        [SerializeField] private Vector3 unitOffset = Vector3.up * 0.1f;
+        [SerializeField] private Vector3 unitOffset = Vector3.up * 0.0f;
 
         [Header("높이 설정 (Base/Ground 높이 차이)")]
         [SerializeField] private float baseHeight = 1.85f;    // Base 위치 높이
-        [SerializeField] private float groundHeight = 0.1f;  // Ground 기본 높이
+        [SerializeField] private float groundHeight = 0.25f;  // Ground 기본 높이
 
         // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
         private readonly Dictionary<(Vector2Int, Vector2Int), PathfindingResult> pathCache = 
@@ -102,6 +102,11 @@ namespace Game.Components
         public bool IsPositionOccupied(Vector2Int gridPosition)
         {
             return gridState?.IsPositionOccupied(gridPosition) ?? false;
+        }
+
+        public bool IsPositionWalkable(Vector2Int gridPosition)
+        {
+            return gridState?.IsPositionWalkable(gridPosition) ?? false;
         }
 
         public bool IsPositionBlocked(Vector2Int gridPosition)
@@ -889,6 +894,7 @@ namespace Game.Components
 
         /// <summary>
         /// 이동 가능한 위치인지 확인
+        /// Base 및 다른 유닛이 있는 위치는 이동 불가 (자기 자신 제외)
         /// </summary>
         private bool IsWalkable(Vector2Int position, GameObject movingUnit)
         {
@@ -898,8 +904,15 @@ namespace Game.Components
             if (IsPositionBlocked(position))
                 return false;
 
-            var unitAtPosition = GetUnitAtPosition(position);
-            return unitAtPosition == null || unitAtPosition == movingUnit;
+            // ✅ Check if position has Base or is occupied (movement obstacle)
+            if (!gridState.IsPositionWalkable(position))
+            {
+                // 자기 자신이 있는 위치는 허용 (이동 중 자기 위치 체크)
+                var unitAtPosition = GetUnitAtPosition(position);
+                return unitAtPosition == movingUnit;
+            }
+
+            return true;
         }
 
         /// <summary>

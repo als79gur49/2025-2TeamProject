@@ -123,6 +123,14 @@ namespace Game.VFX
                 // 기존: GridToWorldPosition() → Y=0 고정
                 // 변경: CalculateWorldPositionWithHeight() → Base/Ground 자동 구분
                 worldPos = context.GridController.CalculateWorldPositionWithHeight(targetPos);
+
+                // Apply visual position offset (does not affect logical target positions)
+                if (vfxData.PositionOffset != Vector3.zero)
+                {
+                    worldPos += vfxData.PositionOffset;
+                    Debug.Log($"[SpellEffectExecutor] Applied VFX offset: {vfxData.PositionOffset}, Final position: {worldPos}");
+                }
+
                 vfxInstance = Instantiate(vfxData.VFXPrefab, worldPos, Quaternion.identity);
 
                 // VFXEventTrigger 초기화 (리스트 콜백)
