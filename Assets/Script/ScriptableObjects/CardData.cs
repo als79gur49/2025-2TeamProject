@@ -518,7 +518,7 @@ namespace Game.Data
         {
             return rarity switch
             {
-                CardRarity.Common => Color.white,
+                CardRarity.Common => Color.gray,
                 CardRarity.Uncommon => Color.green,
                 CardRarity.Rare => Color.blue,
                 CardRarity.Epic => Color.magenta,
