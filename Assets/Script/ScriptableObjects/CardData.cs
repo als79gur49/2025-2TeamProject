@@ -38,6 +38,7 @@ namespace Game.Data
 
         // ✅ private 필드 + SerializeField로 Unity Inspector 지원하면서 캡슐화 유지
         [Header("기본 정보")]
+        [SerializeField] private string cardID = "";
         [SerializeField] private string cardName = "New Card";
         [SerializeField] private string description = "New Description";
         [SerializeField] private Sprite cardArt;
@@ -67,6 +68,7 @@ namespace Game.Data
 
 
         // ✅ 읽기 전용 속성으로 안전한 외부 접근
+        public string CardID => cardID;
         public string CardName => cardName;
         public string Description => description;
         public Sprite CardArt => cardArt;
@@ -762,6 +764,12 @@ namespace Game.Data
         #if UNITY_EDITOR
         private void OnValidate()
         {
+            // 카드 ID가 비어있으면 파일명으로 설정 (고유 식별자)
+            if (string.IsNullOrEmpty(cardID))
+            {
+                cardID = name;
+            }
+
             // 카드 이름이 비어있으면 파일명으로 설정
             if (string.IsNullOrEmpty(cardName))
             {
@@ -828,6 +836,7 @@ namespace Game.Data
         public static CardData CreateUnitCard(string name, int manaCost, UnitData unitData = null)
         {
             var card = CreateInstance<CardData>();
+            card.cardID = name;
             card.cardName = name;
             card.manaCost = manaCost;
 
@@ -854,6 +863,7 @@ namespace Game.Data
         public static CardData CreateDamageCard(string name, string desc, int manaCost, int damageValue, AffectedType affectedType = AffectedType.Enemy, int affectedRange = 0)
         {
             var card = CreateInstance<CardData>();
+            card.cardID = name;
             card.cardName = name;
             card.description = desc;
             card.manaCost = manaCost;
@@ -870,6 +880,7 @@ namespace Game.Data
         public static CardData CreateHealCard(string name, string desc, int manaCost, int healValue, AffectedType affectedType = AffectedType.Ally, int affectedRange = 0)
         {
             var card = CreateInstance<CardData>();
+            card.cardID = name;
             card.cardName = name;
             card.description = desc;
             card.manaCost = manaCost;
@@ -886,6 +897,7 @@ namespace Game.Data
         public static CardData CreateMultiEffectCard(string name, string desc, int manaCost, params EffectData[] effects)
         {
             var card = CreateInstance<CardData>();
+            card.cardID = name;
             card.cardName = name;
             card.description = desc;
             card.manaCost = manaCost;

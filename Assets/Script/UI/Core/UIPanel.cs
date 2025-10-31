@@ -47,7 +47,6 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
         // ✅ Start()는 모든 Awake()가 완료된 후 호출됨 (Unity 보장)
         // 이 시점에서 ServiceLocator.Get()을 호출하면
         // 모든 서비스가 이미 RegisterSingleton()으로 등록된 상태이므로 항상 안전
-
         if (initializeOnAwake && !isInitialized)
         {
             // 🎯 의존성 있는 초기화 (ServiceLocator 등 외부 서비스 필요)
@@ -56,7 +55,7 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
             // 완전한 초기화 완료 표시
             isInitialized = true;
             currentState = UIPanelState.Inactive;
-            Debug.Log($"UI Panel Initialized: {GetType().Name}");
+            Debug.Log($"[UIPanel] Initialized: {GetType().Name}");
         }
 
         if (hideOnStart)
@@ -79,7 +78,14 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
         if (isInitialized) return;
 
         currentState = UIPanelState.Initializing;
+
+        // ✅ 의존성 있는 초기화만 수행
+        // OnInitializeSelf()는 Awake()에서 이미 실행됨
+        OnInitializeWithDependencies();
+
+        // 하위 호환성을 위해 OnInitialize()도 호출
         OnInitialize();
+
         isInitialized = true;
         currentState = UIPanelState.Inactive;
 

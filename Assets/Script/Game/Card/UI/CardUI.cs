@@ -12,9 +12,13 @@ namespace Game.Card.UI
     /// <summary>
     /// 카드 UI 컴포넌트 - 드래그 앤 드롭 및 시각적 표현을 담당
     /// Phase 3: UI 및 상호작용 구현의 핵심 컴포넌트
+    /// 인벤토리 & 덱 빌딩 모드도 지원
     /// </summary>
-    public class CardUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class CardUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
+        [Header("Context Mode")]
+        [SerializeField] private CardUIMode mode = CardUIMode.InHand;
+
         [Header("카드 UI 설정")]
         [SerializeField] private Image cardImage;
         [SerializeField] private Image itemImage;
@@ -22,6 +26,10 @@ namespace Game.Card.UI
         [SerializeField] private TextMeshProUGUI costText;
         [SerializeField] private TextMeshProUGUI descriptionText;
         [SerializeField] private CanvasGroup canvasGroup;
+
+        [Header("Inventory/Deck Mode Settings")]
+        [SerializeField] private TextMeshProUGUI ownedCountText;
+        [SerializeField] private Button removeButton;
 
         [Header("Panel GameObjects - 드래그 시 활성화")]
         [SerializeField] private GameObject cardNamePanel;
@@ -47,8 +55,9 @@ namespace Game.Card.UI
         [SerializeField] private Color invalidDropColor = Color.red;
 
         [Header("Event Channels")]
-        [SerializeField] private CardInfoEventChannelSO cardDragStartChannel;
+        [SerializeField] private CardInfoEventChannelSO cardInfoChannel;
         [SerializeField] private CardDragEndEventChannelSO cardDragEndChannel;
+        [SerializeField] private Game.UI.Events.CardDragStartEventChannelSO cardDragStartChannel;
 
         // 드래그 상태 관리
         private Vector3 originalPosition;
@@ -62,6 +71,9 @@ namespace Game.Card.UI
         private CardData cardData;
         private bool isDraggable = false;
         private bool isDragging = false;
+
+        // 덱 모드용 참조
+        private Game.UI.Panels.DeckBuilderPanel deckPanel;
 
         // 서비스 참조
         private ICardSpawnService cardSpawnService;
@@ -94,9 +106,9 @@ namespace Game.Card.UI
         {
             // 서비스 의존성 주입
             InjectDependencies();
-            
-            // 초기 상태 설정
-            SetDraggable(false);
+
+            // Mode에 따른 초기 draggable 상태 설정
+            UpdateDraggableByMode();
         }
 
         #endregion
@@ -253,7 +265,7 @@ namespace Game.Card.UI
         {
             return manaCost switch
             {
-                <= 1 => Color.white,
+                <= 1 => Color.blue,
                 <= 3 => Color.yellow,
                 <= 5 => Color.cyan,
                 <= 7 => Color.magenta,
@@ -275,7 +287,9 @@ namespace Game.Card.UI
 
                 // 카드 이미지의 색조 조정 (미묘하게 적용)
                 var imageColor = cardImage.color;
-                imageColor = Color.Lerp(imageColor, rarityColor, 0.2f);
+                //imageColor = Color.Lerp(imageColor, rarityColor, 0.2f);
+                // 단색 조정
+                imageColor = Color.Lerp(Color.white, rarityColor, 0.2f);
                 cardImage.color = imageColor;
             }
 
@@ -312,7 +326,7 @@ namespace Game.Card.UI
         public void SetDraggable(bool draggable)
         {
             isDraggable = draggable;
-            
+
             // 시각적 피드백
             if (canvasGroup != null)
             {
@@ -323,6 +337,39 @@ namespace Game.Card.UI
             // 글로우 이펙트
             if (glowEffect != null)
                 glowEffect.SetActive(draggable);
+        }
+
+        /// <summary>
+        /// Mode에 따라 draggable 상태를 자동으로 설정
+        /// InHand: false (CardHandManager가 플레이어 턴에 활성화)
+        /// InInventory: true (기본적으로 드래그 가능)
+        /// InDeck: true (덱 빌더에서 드래그 가능)
+        /// </summary>
+        private void UpdateDraggableByMode()
+        {
+            switch (mode)
+            {
+                case CardUIMode.InHand:
+                    SetDraggable(false); // CardHandManager가 플레이어 턴에 활성화
+                    if (removeButton != null) removeButton.gameObject.SetActive(false);
+                    if (ownedCountText != null) ownedCountText.gameObject.SetActive(false);
+                    break;
+                case CardUIMode.InInventory:
+                    SetDraggable(true); // 인벤토리에서 기본적으로 드래그 가능
+                    if (removeButton != null) removeButton.gameObject.SetActive(false);
+                    if (ownedCountText != null) ownedCountText.gameObject.SetActive(true); // 소유 개수 표시
+                    break;
+                case CardUIMode.InDeck:
+                    SetDraggable(true); // 덱에서는 드래그 비활성화 (우클릭 제거만)
+                    if (removeButton != null) removeButton.gameObject.SetActive(true); // 제거 버튼 표시
+                    if (ownedCountText != null) ownedCountText.gameObject.SetActive(true); // 덱 내 개수 표시
+                    break;
+                default:
+                    SetDraggable(false);
+                    if (removeButton != null) removeButton.gameObject.SetActive(false);
+                    if (ownedCountText != null) ownedCountText.gameObject.SetActive(false);
+                    break;
+            }
         }
 
         /// <summary>
@@ -352,6 +399,58 @@ namespace Game.Card.UI
             if (attackParent != null) attackParent.SetActive(hasUnitStats);
             if (hpParent != null) hpParent.SetActive(hasUnitStats);
             if (movementParent != null) movementParent.SetActive(hasUnitStats);
+        }
+
+        #endregion
+
+        #region 클릭 이벤트 (InDeck 모드)
+
+        /// <summary>
+        /// 클릭 이벤트 핸들러 (우클릭으로 덱에서 제거)
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            // InDeck 모드에서만 우클릭 제거 활성화
+            if (mode != CardUIMode.InDeck)
+                return;
+
+            if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                // 우클릭: 1장 제거
+                RemoveFromDeck();
+            }
+            else if (eventData.button == PointerEventData.InputButton.Left)
+            {
+                // 좌클릭: 카드 정보 표시 (선택사항)
+                if (cardInfoChannel != null && cardData != null)
+                {
+                    cardInfoChannel.RaiseEvent(cardData);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 제거 버튼 클릭
+        /// </summary>
+        private void OnRemoveButtonClicked()
+        {
+            RemoveFromDeck();
+        }
+
+        /// <summary>
+        /// 덱에서 카드 제거
+        /// </summary>
+        private void RemoveFromDeck()
+        {
+            if (deckPanel != null && cardData != null)
+            {
+                deckPanel.RemoveCardFromDeck(cardData);
+                Debug.Log($"[CardUI] Removed {cardData.CardName} from deck");
+            }
+            else
+            {
+                Debug.LogWarning("[CardUI] Cannot remove card - deckPanel or cardData is null");
+            }
         }
 
         #endregion
@@ -398,13 +497,26 @@ namespace Game.Card.UI
             // 모든 패널 활성화
             SetPanelsActive(true);
 
-            // Raise card info event to display card information
+            // Raise card drag start event with context information
             if (cardDragStartChannel != null && cardData != null)
             {
-                cardDragStartChannel.RaiseEvent(cardData);
+                var dragData = new CardDragData
+                {
+                    cardData = cardData,
+                    mode = mode,
+                    sourceTransform = transform,
+                    sourceIndex = originalIndex
+                };
+                cardDragStartChannel.RaiseDragStart(dragData);
             }
 
-            Debug.Log($"[CardUI] Started dragging card: {cardData.CardName} (original index: {originalIndex})");
+            // Also raise card info event for UI display (if available)
+            if (cardInfoChannel != null && cardData != null)
+            {
+                cardInfoChannel.RaiseEvent(cardData);
+            }
+
+            Debug.Log($"[CardUI] Started dragging card: {cardData.CardName} (mode: {mode}, original index: {originalIndex})");
         }
 
         /// <summary>
@@ -433,8 +545,21 @@ namespace Game.Card.UI
             // ✅ 프리뷰 정리 추가 (드롭 처리 전)
             gridRenderer?.ClearCardPreview();
 
-            // 드롭 처리 (레이캐스팅이 비활성화된 상태에서 실행)
-            bool dropSuccess = HandleDrop(eventData);
+            bool dropSuccess = false;
+
+            // Mode에 따른 드롭 처리
+            if (mode == CardUIMode.InHand)
+            {
+                // InHand 모드: 기존 HandleDrop 로직 사용 (전투 중 필드 타일에 드롭)
+                dropSuccess = HandleDrop(eventData);
+            }
+            else if (mode == CardUIMode.InInventory || mode == CardUIMode.InDeck)
+            {
+                // InInventory/InDeck 모드: 이벤트를 발생시키고 Coordinator가 처리
+                // DeckInventoryCoordinator가 드롭 영역 판단 및 처리를 담당
+                // 여기서는 단순히 이벤트만 발생 (dropSuccess는 false로 유지하여 원래 위치로 복귀)
+                dropSuccess = false;
+            }
 
             // 레이캐스팅 재활성화 (드롭 처리 완료 후)
             if (canvasGroup != null)
@@ -458,7 +583,7 @@ namespace Game.Card.UI
                 cardDragEndChannel.RaiseEvent();
             }
 
-            Debug.Log($"[CardUI] Ended dragging card: {cardData.CardName}, Drop success: {dropSuccess}");
+            Debug.Log($"[CardUI] Ended dragging card: {cardData.CardName} (mode: {mode}), Drop success: {dropSuccess}");
         }
 
         #endregion
@@ -756,6 +881,120 @@ namespace Game.Card.UI
         public CardData GetCardData()
         {
             return cardData;
+        }
+
+        /// <summary>
+        /// 인벤토리 모드용 Setup (소유 개수 포함)
+        /// </summary>
+        public void SetupForInventory(CardData card, int count)
+        {
+            SetCardData(card); // 기존 Setup 로직 재사용
+
+            // 소유 개수 표시
+            if (ownedCountText != null)
+            {
+                ownedCountText.gameObject.SetActive(true);
+                ownedCountText.text = $"x{count}";
+            }
+
+            // SetInteractable 메서드를 사용하여 일관성 유지
+            SetInteractable(count > 0);
+        }
+
+        /// <summary>
+        /// 덱 모드용 Setup (덱 내 개수 포함)
+        /// </summary>
+        public void SetupForDeck(CardData card, int count, Game.UI.Panels.DeckBuilderPanel panel)
+        {
+            deckPanel = panel;
+            SetCardData(card);
+
+            // 덱 내 개수 표시
+            if (ownedCountText != null)
+            {
+                ownedCountText.gameObject.SetActive(true);
+                ownedCountText.text = $"x{count}";
+            }
+
+            // 제거 버튼 이벤트 연결
+            if (removeButton != null)
+            {
+                removeButton.onClick.RemoveAllListeners();
+                removeButton.onClick.AddListener(OnRemoveButtonClicked);
+            }
+
+            Debug.Log($"[CardUI] Setup for deck: {card.CardName} x{count}");
+        }
+
+        /// <summary>
+        /// 덱 내 개수 업데이트
+        /// </summary>
+        public void UpdateCount(int newCount)
+        {
+            if (ownedCountText != null)
+            {
+                ownedCountText.text = $"x{newCount}";
+            }
+        }
+
+        /// <summary>
+        /// 카드 상호작용 가능 여부 설정 (반투명 처리 포함)
+        /// 인벤토리에서 카드 개수가 0이 되면 비활성화 처리
+        /// </summary>
+        public void SetInteractable(bool interactable)
+        {
+            if (canvasGroup != null)
+            {
+                // 상호작용 불가능 시 반투명 처리 (alpha 0.5)
+                canvasGroup.alpha = interactable ? 1f : 0.5f;
+                canvasGroup.interactable = interactable;
+                canvasGroup.blocksRaycasts = interactable;
+            }
+
+            // 카드 이미지 색상 처리 - 레어리티 색상 고려
+            if (cardImage != null)
+            {
+                if (interactable)
+                {
+                    // 활성화 시 레어리티 색상 복원
+                    if (cardData != null)
+                    {
+                        var rarityColor = cardData.GetRarityColor();
+                        cardImage.color = Color.Lerp(Color.white, rarityColor, 0.2f);
+                    }
+                    else
+                    {
+                        cardImage.color = Color.white;
+                    }
+                }
+                else
+                {
+                    // 비활성화 시 회색조 처리
+                    cardImage.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+            }
+
+            // 드래그 가능 상태도 함께 업데이트
+            isDraggable = interactable;
+
+            Debug.Log($"[CardUI] SetInteractable({interactable}) - Alpha: {canvasGroup?.alpha}, Interactable: {canvasGroup?.interactable}, BlocksRaycasts: {canvasGroup?.blocksRaycasts}");
+        }
+
+        /// <summary>
+        /// 현재 모드 반환
+        /// </summary>
+        public CardUIMode GetMode()
+        {
+            return mode;
+        }
+
+        /// <summary>
+        /// 모드 설정 및 draggable 상태 자동 업데이트
+        /// </summary>
+        public void SetMode(CardUIMode newMode)
+        {
+            mode = newMode;
+            UpdateDraggableByMode();
         }
 
         #endregion
