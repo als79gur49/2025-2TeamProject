@@ -22,18 +22,14 @@ namespace Game.Card.UI
         [Header("카드 UI 설정")]
         [SerializeField] private Image cardImage;
         [SerializeField] private Image itemImage;
-        [SerializeField] private TextMeshProUGUI cardNameText;
+        
         [SerializeField] private TextMeshProUGUI costText;
-        [SerializeField] private TextMeshProUGUI descriptionText;
+        
         [SerializeField] private CanvasGroup canvasGroup;
 
         [Header("Inventory/Deck Mode Settings")]
         [SerializeField] private TextMeshProUGUI ownedCountText;
         [SerializeField] private Button removeButton;
-
-        [Header("Panel GameObjects - 드래그 시 활성화")]
-        [SerializeField] private GameObject cardNamePanel;
-        [SerializeField] private GameObject descriptionPanel;
 
         [Header("유닛 스탯 UI")]
         [SerializeField] private GameObject attackParent;
@@ -50,7 +46,7 @@ namespace Game.Card.UI
         [SerializeField] private float returnSpeed = 10f;
 
         [Header("시각적 피드백")]
-        [SerializeField] private GameObject glowEffect;
+        [SerializeField] private Image glowEffect;
         [SerializeField] private Color validDropColor = Color.green;
         [SerializeField] private Color invalidDropColor = Color.red;
 
@@ -168,10 +164,6 @@ namespace Game.Card.UI
         {
             if (cardData == null) return;
 
-            // 카드 기본 정보 표시
-            if (cardNameText != null)
-                cardNameText.text = cardData.CardName;
-
             // Phase 3.18: 비용 정보 - CardData.ManaCost 사용
             if (costText != null)
             {
@@ -196,12 +188,6 @@ namespace Game.Card.UI
                     if (movementText != null)
                         movementText.text = unitData.MovementRange.ToString();
                 }
-            }
-
-            // Phase 3.18: 설명 정보 - CardData.Description 사용
-            if (descriptionText != null)
-            {
-                descriptionText.text = cardData.Description;
             }
 
             // 카드 이미지 설정
@@ -280,28 +266,31 @@ namespace Game.Card.UI
         {
             if (cardData == null) return;
 
-            // 카드 테두리나 배경색 적용 (카드 이미지 컴포넌트 사용)
-            if (cardImage != null)
-            {
-                var rarityColor = cardData.GetRarityColor();
-
-                // 카드 이미지의 색조 조정 (미묘하게 적용)
-                var imageColor = cardImage.color;
-                //imageColor = Color.Lerp(imageColor, rarityColor, 0.2f);
-                // 단색 조정
-                imageColor = Color.Lerp(Color.white, rarityColor, 0.2f);
-                cardImage.color = imageColor;
-            }
+            //// 카드 테두리나 배경색 적용 (카드 이미지 컴포넌트 사용)
+            //if (cardImage != null)
+            //{
+            //    var rarityColor = cardData.GetRarityColor();
+            //
+            //    // 카드 이미지의 색조 조정 (미묘하게 적용)
+            //    var imageColor = cardImage.color;
+            //    //imageColor = Color.Lerp(imageColor, rarityColor, 0.2f);
+            //    // 단색 조정
+            //    imageColor = Color.Lerp(Color.white, rarityColor, 0.2f);
+            //    cardImage.color = imageColor;
+            //}
 
             // 글로우 효과가 있다면 레어리티 색상으로 조정
-            if (glowEffect != null)
+            if(glowEffect == null)
             {
-                var glowRenderer = glowEffect.GetComponent<Renderer>();
-                if (glowRenderer != null)
-                {
-                    glowRenderer.material.color = cardData.GetRarityColor();
-                }
+                Debug.LogWarning($"[CardUI] No GlowEffect");
+
+                return;
             }
+
+            glowEffect.color = cardData.GetRarityColor();
+
+            Debug.Log($"[CardUI] GlowEffect Color is Affected. Color: {cardData.GetRarityColor()}");
+
         }
 
         /// <summary>
@@ -334,9 +323,9 @@ namespace Game.Card.UI
                 canvasGroup.interactable = draggable;
             }
 
-            // 글로우 이펙트
-            if (glowEffect != null)
-                glowEffect.SetActive(draggable);
+           // // 글로우 이펙트
+           // if (glowEffect != null)
+           //     glowEffect.SetActive(draggable);
         }
 
         /// <summary>
@@ -388,10 +377,6 @@ namespace Game.Card.UI
         /// </summary>
         private void SetPanelsActive(bool active)
         {
-            // 기본 패널은 항상 활성화
-            if (cardNamePanel != null) cardNamePanel.SetActive(active);
-            if (descriptionPanel != null) descriptionPanel.SetActive(active);
-
             // 스탯 패널은 SummonEffect가 있을 때만 활성화
             bool hasUnitStats = active && cardData != null &&
                                 cardData.HasEffectType(Game.Card.Effects.EffectType.Summon);
@@ -676,9 +661,9 @@ namespace Game.Card.UI
         /// </summary>
         private void UpdateDropFeedback(bool isValid)
         {
-            if (cardImage != null)
+            if (glowEffect != null)
             {
-                cardImage.color = isValid ? validDropColor : invalidDropColor;
+                glowEffect.color = isValid ? validDropColor : invalidDropColor;
             }
         }
 
@@ -840,10 +825,6 @@ namespace Game.Card.UI
 
             transform.position = originalPosition;
             transform.localScale = originalScale;
-
-            // 색상 복원
-            if (cardImage != null)
-                cardImage.color = Color.white;
         }
 
         #endregion
@@ -949,29 +930,6 @@ namespace Game.Card.UI
                 canvasGroup.alpha = interactable ? 1f : 0.5f;
                 canvasGroup.interactable = interactable;
                 canvasGroup.blocksRaycasts = interactable;
-            }
-
-            // 카드 이미지 색상 처리 - 레어리티 색상 고려
-            if (cardImage != null)
-            {
-                if (interactable)
-                {
-                    // 활성화 시 레어리티 색상 복원
-                    if (cardData != null)
-                    {
-                        var rarityColor = cardData.GetRarityColor();
-                        cardImage.color = Color.Lerp(Color.white, rarityColor, 0.2f);
-                    }
-                    else
-                    {
-                        cardImage.color = Color.white;
-                    }
-                }
-                else
-                {
-                    // 비활성화 시 회색조 처리
-                    cardImage.color = new Color(0.5f, 0.5f, 0.5f, 1f);
-                }
             }
 
             // 드래그 가능 상태도 함께 업데이트
