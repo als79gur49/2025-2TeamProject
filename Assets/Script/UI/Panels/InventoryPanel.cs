@@ -7,6 +7,7 @@ using System.Linq;
 using Game.Data;
 using Game.Managers;
 using Game.Card.UI;
+using Game.Card.UI.Refactored;
 
 namespace Game.UI.Panels
 {
@@ -39,7 +40,7 @@ namespace Game.UI.Panels
         // 카드 컬렉션 데이터
         private List<CardData> allCards = new List<CardData>();
         private List<CardData> filteredCards = new List<CardData>();
-        private Dictionary<CardData, CardUI> cardSlots = new Dictionary<CardData, CardUI>();
+        private Dictionary<CardData, CardUIRefactored> cardSlots = new Dictionary<CardData, CardUIRefactored>();
 
         // 현재 필터/정렬 상태
         private CardData.CardRarity currentRarityFilter = CardData.CardRarity.Common;
@@ -47,17 +48,21 @@ namespace Game.UI.Panels
         private string currentSearchText = "";
         private SortCriteria currentSort = SortCriteria.Name;
 
-        // DeckBuilderPanel 참조 (가용성 계산용)
-        private DeckBuilderPanel deckBuilderPanel;
+        // Coordinator 참조 (중재자 패턴)
+        private Game.UI.Coordinators.DeckInventoryCoordinator coordinator;
 
         // 현재 드래그 중인 카드 (검증용)
         private CardData currentDraggedCard = null;
 
         #region Lifecycle
 
-        protected override void OnInitializeWithDependencies()
+        /// <summary>
+        /// 의존성 없는 초기화 (Awake에서 호출)
+        /// UI 컴포넌트 이벤트 설정 및 내부 상태 초기화
+        /// </summary>
+        protected override void OnInitializeSelf()
         {
-            base.OnInitializeWithDependencies();
+            base.OnInitializeSelf();
 
             // 필터 드롭다운 설정
             SetupFilters();
@@ -69,6 +74,17 @@ namespace Game.UI.Panels
             if (searchField != null)
                 searchField.onValueChanged.AddListener(OnSearchTextChanged);
 
+            Debug.Log("[InventoryPanel] Self-initialized successfully (Awake)");
+        }
+
+        /// <summary>
+        /// 의존성 있는 초기화 (Start에서 호출)
+        /// CollectionManager 싱글톤 의존성 처리
+        /// </summary>
+        protected override void OnInitializeWithDependencies()
+        {
+            base.OnInitializeWithDependencies();
+
             // 컬렉션 매니저 이벤트 구독
             if (CollectionManager.Instance != null)
             {
@@ -77,6 +93,8 @@ namespace Game.UI.Panels
 
             // 초기 카드 로드
             LoadCardsFromCollection();
+
+            Debug.Log("[InventoryPanel] Dependency initialization complete (Start)");
         }
 
         protected override void OnDestroy()
@@ -204,25 +222,20 @@ namespace Game.UI.Panels
             }
 
             GameObject slotObj = Instantiate(cardUIPrefab, cardGridContainer);
-            CardUI cardUI = slotObj.GetComponent<CardUI>();
+            CardUIRefactored cardUI = slotObj.GetComponent<CardUIRefactored>();
 
             if (cardUI != null)
             {
-                // 인벤토리 모드로 설정
-                cardUI.SetMode(Game.Card.CardUIMode.InInventory);
-
-                cardUI.SetCardData(card);
-
                 int ownedCount = CollectionManager.Instance.GetOwnedCount(card);
 
-                // 덱에 들어있는 개수를 빼서 가용성 계산
-                int inDeckCount = deckBuilderPanel != null ? deckBuilderPanel.GetDeckCardCount(card) : 0;
+                // 덱에 들어있는 개수를 빼서 가용성 계산 (Coordinator를 통해)
+                int inDeckCount = coordinator != null ? coordinator.GetDeckCardCount(card) : 0;
                 int availableCount = ownedCount - inDeckCount;
 
-                cardSlots[card] = cardUI;
+                // SetupForInventory를 사용하여 일관성 있는 초기화 (Coordinator 참조 전달)
+                cardUI.SetupForInventory(card, availableCount, coordinator);
 
-                // 생성 즉시 가용성 적용 (alpha 설정 포함)
-                UpdateCardAvailability(card, availableCount);
+                cardSlots[card] = cardUI;
 
                 Debug.Log($"[InventoryPanel] Created CardUI for {card.CardName}: owned={ownedCount}, inDeck={inDeckCount}, available={availableCount}");
             }
@@ -235,20 +248,11 @@ namespace Game.UI.Panels
         {
             if (cardSlots.TryGetValue(card, out var cardUI))
             {
-                // 사용 가능한 개수로 UI 업데이트
+                // UpdateCount가 내부적으로 SetOwnedCount → UpdateInteractability 호출
+                // 별도의 SetInteractable 호출 불필요
                 cardUI.UpdateCount(availableCount);
 
-                // 개수가 0 이하이면 반투명 처리 및 상호작용 비활성화
-                if (availableCount <= 0)
-                {
-                    cardUI.SetInteractable(false);
-                }
-                else
-                {
-                    cardUI.SetInteractable(true);
-                }
-
-                Debug.Log($"[InventoryPanel] Updated availability for {card.CardName}: {availableCount} available, Active: {availableCount > 0}, CardUI found: true");
+                Debug.Log($"[InventoryPanel] Updated availability for {card.CardName}: {availableCount} available, CardUI found: true");
             }
             else
             {
@@ -365,7 +369,8 @@ namespace Game.UI.Panels
         /// </summary>
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if (currentDraggedCard != null && dropZoneHighlight != null)
+            // 실제로 드래그 중인지 확인 (eventData.pointerDrag != null)
+            if (currentDraggedCard != null && dropZoneHighlight != null && eventData.pointerDrag != null)
             {
                 // 덱에서 인벤토리로 드래그하는 경우 항상 드롭 가능
                 dropZoneHighlight.color = validDropColor;
@@ -402,15 +407,15 @@ namespace Game.UI.Panels
 
             Debug.Log($"[InventoryPanel] Card dropped: {currentDraggedCard.CardName}");
 
-            // 덱에서 카드 제거
-            if (deckBuilderPanel != null)
+            // 덱에서 카드 제거 (Coordinator를 통해)
+            if (coordinator != null)
             {
-                deckBuilderPanel.RemoveCardFromDeck(currentDraggedCard);
-                Debug.Log($"[InventoryPanel] Removed {currentDraggedCard.CardName} from deck");
+                coordinator.RequestRemoveCardFromDeck(currentDraggedCard);
+                Debug.Log($"[InventoryPanel] Requested remove {currentDraggedCard.CardName} from deck via coordinator");
             }
             else
             {
-                Debug.LogWarning("[InventoryPanel] DeckBuilderPanel reference is null, cannot remove card from deck");
+                Debug.LogWarning("[InventoryPanel] Coordinator reference is null, cannot remove card from deck");
             }
 
             currentDraggedCard = null;
@@ -435,11 +440,11 @@ namespace Game.UI.Panels
         }
 
         /// <summary>
-        /// DeckBuilderPanel 참조 설정 (DeckInventoryCoordinator에서 호출)
+        /// Coordinator 참조 설정 (중재자 패턴)
         /// </summary>
-        public void SetDeckBuilderPanel(DeckBuilderPanel panel)
+        public void SetCoordinator(Game.UI.Coordinators.DeckInventoryCoordinator coord)
         {
-            deckBuilderPanel = panel;
+            coordinator = coord;
         }
 
         #endregion

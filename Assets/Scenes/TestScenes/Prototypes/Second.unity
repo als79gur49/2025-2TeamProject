@@ -1002,7 +1002,7 @@ MonoBehaviour:
   maxHandSize: 7
   enableLogging: 1
   handUIParent: {fileID: 603449451}
-  cardUIPrefab: {fileID: 7006624643073576995, guid: 79793fcfe68ae47408297fdce1c1c57e,
+  cardUIPrefab: {fileID: 3307020442703334768, guid: 7b003a152a650514bade2d671a552e93,
     type: 3}
   cardSpacing: 120
   arrangeCardsInArc: 0
@@ -1088,7 +1088,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyHandUIParent: {fileID: 317868661}
-  cardUIPrefab: {fileID: 7006624643073576995, guid: 79793fcfe68ae47408297fdce1c1c57e,
+  cardUIPrefab: {fileID: 3307020442703334768, guid: 7b003a152a650514bade2d671a552e93,
     type: 3}
   cardSpacing: 130
   enableLogging: 1

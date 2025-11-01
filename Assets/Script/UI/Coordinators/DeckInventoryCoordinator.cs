@@ -29,11 +29,17 @@ namespace Game.UI.Coordinators
 
         private void Start()
         {
-            // InventoryPanel에 DeckBuilderPanel 참조 설정
-            if (inventoryPanel != null && deckPanel != null)
+            // Panel들에 Coordinator 참조 설정 (중재자 패턴)
+            if (inventoryPanel != null)
             {
-                inventoryPanel.SetDeckBuilderPanel(deckPanel);
-                Debug.Log("[DeckInventoryCoordinator] DeckBuilderPanel reference set to InventoryPanel");
+                inventoryPanel.SetCoordinator(this);
+                Debug.Log("[DeckInventoryCoordinator] Coordinator reference set to InventoryPanel");
+            }
+
+            if (deckPanel != null)
+            {
+                deckPanel.SetCoordinator(this);
+                Debug.Log("[DeckInventoryCoordinator] Coordinator reference set to DeckBuilderPanel");
             }
         }
 
@@ -179,6 +185,65 @@ namespace Game.UI.Coordinators
                 deckPanel.RemoveCardFromDeck(card);
                 Debug.Log($"[DeckInventoryCoordinator] Card dropped to inventory: {card.CardName}");
             }
+        }
+
+        #endregion
+
+        #region Public API for Mediator Pattern
+
+        /// <summary>
+        /// 인벤토리에서 덱으로 카드 추가 요청 (중재자를 통한 통신)
+        /// </summary>
+        public void RequestAddCardToDeck(CardData card)
+        {
+            if (deckPanel != null && card != null)
+            {
+                if (deckPanel.CanAddCardToDeck(card))
+                {
+                    deckPanel.AddCardToDeck(card);
+                    Debug.Log($"[DeckInventoryCoordinator] Card added to deck via coordinator: {card.CardName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[DeckInventoryCoordinator] Cannot add {card.CardName} to deck (validation failed)");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 덱에서 인벤토리로 카드 제거 요청 (중재자를 통한 통신)
+        /// </summary>
+        public void RequestRemoveCardFromDeck(CardData card)
+        {
+            if (deckPanel != null && card != null)
+            {
+                deckPanel.RemoveCardFromDeck(card);
+                Debug.Log($"[DeckInventoryCoordinator] Card removed from deck via coordinator: {card.CardName}");
+            }
+        }
+
+        /// <summary>
+        /// 덱 내 특정 카드 개수 조회 (읽기 전용)
+        /// </summary>
+        public int GetDeckCardCount(CardData card)
+        {
+            if (deckPanel != null && card != null)
+            {
+                return deckPanel.GetDeckCardCount(card);
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// 덱에 카드 추가 가능 여부 확인 (읽기 전용)
+        /// </summary>
+        public bool CanAddCardToDeck(CardData card)
+        {
+            if (deckPanel != null && card != null)
+            {
+                return deckPanel.CanAddCardToDeck(card);
+            }
+            return false;
         }
 
         #endregion

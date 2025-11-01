@@ -5084,7 +5084,7 @@ MonoBehaviour:
   initializeOnAwake: 1
   hideOnStart: 0
   deckListContainer: {fileID: 1359432963}
-  cardUIPrefab: {fileID: 7006624643073576995, guid: 79793fcfe68ae47408297fdce1c1c57e,
+  cardUIPrefab: {fileID: 3307020442703334768, guid: 2c90c86dd5dbfc743a3b4b1fd13325e3,
     type: 3}
   deckScrollRect: {fileID: 1930580526}
   deckNameInput: {fileID: 0}
@@ -11442,7 +11442,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Inventory
+  m_text: 'Deck
+
+'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc2cc93475f76427c86a8262bee36b88, type: 2}
   m_sharedMaterial: {fileID: 2269793554123077917, guid: dc2cc93475f76427c86a8262bee36b88,
@@ -16913,7 +16915,7 @@ MonoBehaviour:
   initializeOnAwake: 1
   hideOnStart: 0
   cardGridContainer: {fileID: 8298598613919572269}
-  cardUIPrefab: {fileID: 7006624643073576995, guid: 79793fcfe68ae47408297fdce1c1c57e,
+  cardUIPrefab: {fileID: 3307020442703334768, guid: 1d64166015e0a2d4786a62b1a539e9b1,
     type: 3}
   scrollRect: {fileID: 8298598613760425052}
   rarityFilter: {fileID: 2012904826}
@@ -18188,7 +18190,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &8298598614057904922
 MonoBehaviour:
   m_ObjectHideFlags: 0

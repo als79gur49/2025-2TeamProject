@@ -6,6 +6,7 @@ using Game.Interfaces;
 using Game.Data;
 using static Game.Interfaces.ITeamComponent;
 using System.Collections;
+using Game.Card.UI.Refactored;
 
 namespace Game.Card.UI
 {
@@ -175,8 +176,8 @@ namespace Game.Card.UI
         {
             if (!isInteractable) return;
 
-            // 드래그된 오브젝트에서 CardUI 컴포넌트 찾기
-            var cardUI = eventData.pointerDrag?.GetComponent<CardUI>();
+            // 드래그된 오브젝트에서 CardUIRefactored 컴포넌트 찾기
+            var cardUI = eventData.pointerDrag?.GetComponent<CardUIRefactored>();
             if (cardUI != null)
             {
                 var cardData = cardUI.GetCardData();
@@ -191,10 +192,10 @@ namespace Game.Card.UI
         }
 
         /// <summary>
-        /// 카드 드롭 처리 (CardUI에서 직접 호출) - EffectData 기반 처리
+        /// 카드 드롭 처리 (CardUIRefactored에서 직접 호출) - EffectData 기반 처리
         /// ✅ 시각적 프리뷰 먼저 표시 → 실행 → 짧은 효과 후 정리
         /// </summary>
-        public bool HandleCardDrop(CardData cardData, CardUI cardUI)
+        public bool HandleCardDrop(CardData cardData, CardUIRefactored cardUI)
         {
             if (!isInteractable || cardData == null) return false;
 
@@ -247,7 +248,7 @@ namespace Game.Card.UI
         /// <summary>
         /// Unit 카드 드롭 처리
         /// </summary>
-        private bool HandleUnitCardDrop(CardData cardData, CardUI cardUI)
+        private bool HandleUnitCardDrop(CardData cardData, CardUIRefactored cardUI)
         {
             // 유닛 소환 유효성 검사
             if (spawnValidator == null || !spawnValidator.CanSpawnUnit(cardData, gridPosition))
@@ -286,7 +287,7 @@ namespace Game.Card.UI
         /// <summary>
         /// Spell 카드 드롭 처리
         /// </summary>
-        private bool HandleSpellCardDrop(CardData cardData, CardUI cardUI)
+        private bool HandleSpellCardDrop(CardData cardData, CardUIRefactored cardUI)
         {
             // 주문 사용 유효성 검사
             if (spawnValidator == null || !spawnValidator.CanUseSpell(cardData, gridPosition))
@@ -334,7 +335,7 @@ namespace Game.Card.UI
             if (!isInteractable) return;
 
             // 드래그 중인 카드가 있는지 확인
-            var cardUI = eventData.pointerDrag?.GetComponent<CardUI>();
+            var cardUI = eventData.pointerDrag?.GetComponent<CardUIRefactored>();
             if (cardUI != null && cardUI.IsDragging)
             {
                 var cardData = cardUI.GetCardData();

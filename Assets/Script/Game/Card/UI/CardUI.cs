@@ -648,8 +648,9 @@ namespace Game.Card.UI
                 var tileDropHandler = hit.collider.GetComponent<TileDropHandler>();
                 if (tileDropHandler != null)
                 {
+                    return false;
                     // 드롭 처리 위임
-                    return tileDropHandler.HandleCardDrop(cardData, this);
+                    //return tileDropHandler.HandleCardDrop(cardData, this);
                 }
             }
 
@@ -844,7 +845,7 @@ namespace Game.Card.UI
             if (cardHandManager != null && cardData != null)
             {
                 // this 참조를 함께 전달하여 정확한 UI 제거
-                cardHandManager.RemoveCardFromHand(cardData, this);
+               // cardHandManager.RemoveCardFromHand(cardData, this);
                 Debug.Log($"[CardUI] Requested card removal with UI reference - layout will update automatically");
             }
             else

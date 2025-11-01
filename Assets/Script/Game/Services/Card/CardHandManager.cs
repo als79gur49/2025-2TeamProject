@@ -6,6 +6,7 @@ using Game.Interfaces;
 using Game.Card.UI;
 using Game.Data;
 using Game.Card.Effects;
+using Game.Card.UI.Refactored;
 
 namespace Game.Services
 {
@@ -37,7 +38,7 @@ namespace Game.Services
 
         // 핸드 상태
         private List<CardData> handCards = new List<CardData>();
-        private List<CardUI> cardUIComponents = new List<CardUI>();
+        private List<CardUIRefactored> cardUIComponents = new List<CardUIRefactored>();
         private bool isInitialized = false;
         private bool isPlayerSummonMode = false;
 
@@ -415,10 +416,10 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 핸드에서 카드 제거 (CardUI 참조와 함께)
-        /// CardUI 객체를 직접 받아서 정확하게 제거 - 드래그 중 부모 변경 문제 해결
+        /// 핸드에서 카드 제거 (CardUIRefactored 참조와 함께)
+        /// CardUIRefactored 객체를 직접 받아서 정확하게 제거 - 드래그 중 부모 변경 문제 해결
         /// </summary>
-        public bool RemoveCardFromHand(CardData cardData, CardUI cardUI)
+        public bool RemoveCardFromHand(CardData cardData, CardUIRefactored cardUI)
         {
             if (!isInitialized || cardData == null || cardUI == null)
                 return false;
@@ -434,16 +435,16 @@ namespace Game.Services
                 LogError($"⚠️ CardData {cardData.CardName} not found in handCards");
             }
 
-            // UI 제거 - 정확한 CardUI 객체를 직접 제거
+            // UI 제거 - 정확한 CardUIRefactored 객체를 직접 제거
             if (cardUIComponents.Contains(cardUI))
             {
                 cardUIComponents.Remove(cardUI);
                 Destroy(cardUI.gameObject);
-                Log($"🗑️ Destroyed CardUI for {cardData.CardName}");
+                Log($"🗑️ Destroyed CardUIRefactored for {cardData.CardName}");
             }
             else
             {
-                LogError($"⚠️ CardUI not found in cardUIComponents for {cardData.CardName}");
+                LogError($"⚠️ CardUIRefactored not found in cardUIComponents for {cardData.CardName}");
                 // 그래도 파괴는 시도
                 Destroy(cardUI.gameObject);
             }
@@ -454,6 +455,7 @@ namespace Game.Services
             Log($"✅ Removed {cardData.CardName} from hand ({handCards.Count}/{maxHandSize})");
             return true;
         }
+
 
         /// <summary>
         /// 카드 UI 생성
@@ -466,9 +468,9 @@ namespace Game.Services
                 return;
             }
 
-            // CardUI 인스턴스 생성
+            // CardUIRefactored 인스턴스 생성
             var cardUIObject = Instantiate(cardUIPrefab, handUIParent);
-            var cardUI = cardUIObject.GetComponent<CardUI>();
+            var cardUI = cardUIObject.GetComponent<CardUIRefactored>();
 
             if (cardUI != null)
             {
@@ -481,11 +483,11 @@ namespace Game.Services
                 // 리스트에 추가
                 cardUIComponents.Add(cardUI);
 
-                Log($"🎴 Created CardUI for {cardData.CardName}");
+                Log($"🎴 Created CardUIRefactored for {cardData.CardName}");
             }
             else
             {
-                LogError($"CardUI component not found on prefab for {cardData.CardName}");
+                LogError($"CardUIRefactored component not found on prefab for {cardData.CardName}");
                 Destroy(cardUIObject);
             }
         }

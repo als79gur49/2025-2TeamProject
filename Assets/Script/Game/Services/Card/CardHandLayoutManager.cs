@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Game.Card.UI;
+using Game.Card.UI.Refactored;
 
 namespace Game.Services
 {
@@ -18,7 +19,7 @@ namespace Game.Services
         /// </summary>
         /// <param name="cards">정렬할 카드 UI 리스트</param>
         /// <param name="spacing">카드 간 간격 (픽셀)</param>
-        public static void ArrangeVerticalCentered(List<CardUI> cards, float spacing)
+        public static void ArrangeVerticalCentered(List<CardUIRefactored> cards, float spacing)
         {
             int cardCount = cards.Count;
             if (cardCount == 0) return;
@@ -47,7 +48,7 @@ namespace Game.Services
         /// </summary>
         /// <param name="cards">정렬할 카드 UI 리스트</param>
         /// <param name="arcRadius">호의 반지름</param>
-        public static void ArrangeInArc(List<CardUI> cards, float arcRadius)
+        public static void ArrangeInArc(List<CardUIRefactored> cards, float arcRadius)
         {
             int cardCount = cards.Count;
             if (cardCount == 0) return;
@@ -82,7 +83,7 @@ namespace Game.Services
         /// </summary>
         /// <param name="cards">정렬할 카드 UI 리스트</param>
         /// <param name="spacing">카드 간 간격 (픽셀)</param>
-        public static void ArrangeInLine(List<CardUI> cards, float spacing)
+        public static void ArrangeInLine(List<CardUIRefactored> cards, float spacing)
         {
             int cardCount = cards.Count;
             if (cardCount == 0) return;

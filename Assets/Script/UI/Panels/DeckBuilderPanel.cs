@@ -8,6 +8,7 @@ using System;
 using Game.Data;
 using Game.Validators;
 using Game.Systems;
+using Game.Card.UI.Refactored;
 
 namespace Game.UI.Panels
 {
@@ -55,6 +56,9 @@ namespace Game.UI.Panels
         // 현재 드래그 중인 카드 (검증용)
         private CardData currentDraggedCard = null;
 
+        // Coordinator 참조 (중재자 패턴)
+        private Game.UI.Coordinators.DeckInventoryCoordinator coordinator;
+
         // 이벤트
         public event Action<CardData> OnCardAddedToDeck;
         public event Action<CardData> OnCardRemovedFromDeck;
@@ -62,9 +66,13 @@ namespace Game.UI.Panels
 
         #region Lifecycle
 
-        protected override void OnInitializeWithDependencies()
+        /// <summary>
+        /// 의존성 없는 초기화 (Awake에서 호출)
+        /// UI 컴포넌트 이벤트 설정 및 내부 상태 초기화
+        /// </summary>
+        protected override void OnInitializeSelf()
         {
-            base.OnInitializeWithDependencies();
+            base.OnInitializeSelf();
 
             // 버튼 이벤트 설정
             if (saveDeckButton != null)
@@ -82,6 +90,19 @@ namespace Game.UI.Panels
             InitializeManaCurve();
 
             UpdateDeckDisplay();
+
+            Debug.Log("[DeckBuilderPanel] Self-initialized successfully (Awake)");
+        }
+
+        /// <summary>
+        /// 의존성 있는 초기화 (Start에서 호출)
+        /// 현재 ServiceLocator 의존성 없음
+        /// </summary>
+        protected override void OnInitializeWithDependencies()
+        {
+            base.OnInitializeWithDependencies();
+
+            Debug.Log("[DeckBuilderPanel] Dependency initialization complete (Start)");
         }
 
         protected override void OnShowPanel()
@@ -176,17 +197,13 @@ namespace Game.UI.Panels
 
             GameObject slotObj = Instantiate(cardUIPrefab, deckListContainer);
 
-            // CardUI 컴포넌트 가져와서 Setup 호출
-            var cardUI = slotObj.GetComponent<Game.Card.UI.CardUI>();
+            // CardUIRefactored 컴포넌트 가져와서 Setup 호출
+            var cardUI = slotObj.GetComponent<CardUIRefactored>();
             if (cardUI != null)
             {
-                cardUI.SetMode(Game.Card.CardUIMode.InDeck);
-                cardUI.SetupForDeck(card, deckCards[card], this);
+                //cardUI.SetMode(Game.Card.CardUIMode.InDeck);
+                cardUI.SetupForDeck(card, deckCards[card], coordinator);
                 Debug.Log($"[DeckBuilder] Created new CardUI for {card.CardName} with count {deckCards[card]}");
-            }
-            else
-            {
-                Debug.LogError("[DeckBuilder] CardUI component not found on prefab!");
             }
 
             deckSlots.Add(slotObj);
@@ -203,7 +220,7 @@ namespace Game.UI.Panels
             // 해당 카드의 슬롯을 찾아서 개수 업데이트
             foreach (var slotObj in deckSlots)
             {
-                var cardUI = slotObj.GetComponent<Game.Card.UI.CardUI>();
+                var cardUI = slotObj.GetComponent<CardUIRefactored>();
                 if (cardUI != null && cardUI.GetCardData() == card)
                 {
                     cardUI.UpdateCount(deckCards[card]);
@@ -223,7 +240,7 @@ namespace Game.UI.Panels
             // 해당 카드의 슬롯을 찾아서 제거
             for (int i = 0; i < deckSlots.Count; i++)
             {
-                var cardUI = deckSlots[i].GetComponent<Game.Card.UI.CardUI>();
+                var cardUI = deckSlots[i].GetComponent<CardUIRefactored>();
                 if (cardUI != null && cardUI.GetCardData() == card)
                 {
                     Destroy(deckSlots[i]);
@@ -277,7 +294,8 @@ namespace Game.UI.Panels
         /// </summary>
         public void OnPointerEnter(PointerEventData eventData)
         {
-            if (currentDraggedCard != null && dropZoneHighlight != null)
+            // 실제로 드래그 중인지 확인 (eventData.pointerDrag != null)
+            if (currentDraggedCard != null && dropZoneHighlight != null && eventData.pointerDrag != null)
             {
                 // 드롭 가능 여부에 따라 색상 변경
                 bool canDrop = CanAddCardToDeck(currentDraggedCard);
@@ -576,6 +594,14 @@ namespace Game.UI.Panels
             }
 
             Debug.Log($"[DeckBuilder] Deck '{deckName}' loaded successfully!");
+        }
+
+        /// <summary>
+        /// Coordinator 참조 설정 (중재자 패턴)
+        /// </summary>
+        public void SetCoordinator(Game.UI.Coordinators.DeckInventoryCoordinator coord)
+        {
+            coordinator = coord;
         }
 
         #endregion

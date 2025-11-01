@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.AI;
 using Game.Interfaces;
 using Game.Card.UI;
+using Game.Card.UI.Refactored;
 using Game.Data;
 
 namespace Game.Services
@@ -23,7 +24,7 @@ namespace Game.Services
         private EnemyAIController enemyAIController;
 
         // 카드 UI 관리
-        private List<CardUI> enemyCardUIComponents = new List<CardUI>();
+        private List<CardUIRefactored> enemyCardUIComponents = new List<CardUIRefactored>();
         private bool isInitialized = false;
 
         /// <summary>초기화 완료 여부</summary>
@@ -184,9 +185,9 @@ namespace Game.Services
                 return;
             }
 
-            // CardUI 인스턴스 생성
+            // CardUIRefactored 인스턴스 생성
             var cardUIObject = Instantiate(cardUIPrefab, enemyHandUIParent);
-            var cardUI = cardUIObject.GetComponent<CardUI>();
+            var cardUI = cardUIObject.GetComponent<CardUIRefactored>();
 
             if (cardUI != null)
             {
@@ -207,11 +208,11 @@ namespace Game.Services
                 // 리스트에 추가
                 enemyCardUIComponents.Add(cardUI);
 
-                Log($"🃏 Created enemy CardUI #{cardIndex}: {cardData.CardName} (View Only with Data)");
+                Log($"🃏 Created enemy CardUIRefactored #{cardIndex}: {cardData.CardName} (View Only with Data)");
             }
             else
             {
-                LogError($"CardUI component not found on prefab for enemy card #{cardIndex}");
+                LogError($"CardUIRefactored component not found on prefab for enemy card #{cardIndex}");
                 DestroyImmediate(cardUIObject);
             }
         }
