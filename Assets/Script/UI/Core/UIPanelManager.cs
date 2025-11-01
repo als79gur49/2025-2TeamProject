@@ -130,6 +130,19 @@ public class UIPanelManager : MonoBehaviour
             }
         }
 
+        // IDualClosePanel 자동 버튼 바인딩
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null)
+            {
+                dualClosePanel.PrimaryCloseButton.onClick.AddListener(panel.OnHide);
+            }
+            if (dualClosePanel.SecondaryCloseButton != null)
+            {
+                dualClosePanel.SecondaryCloseButton.onClick.AddListener(panel.OnHide);
+            }
+        }
+
         OnPanelRegistered?.Invoke(panel);
 
         if (debugMode)
@@ -155,6 +168,13 @@ public class UIPanelManager : MonoBehaviour
         {
             if (resultPanel.PrimaryActionButton != null) resultPanel.PrimaryActionButton.onClick.RemoveListener(resultPanel.OnPrimaryAction);
             if (resultPanel.SecondaryActionButton != null) resultPanel.SecondaryActionButton.onClick.RemoveListener(resultPanel.OnSecondaryAction);
+        }
+
+        // IDualClosePanel 버튼 이벤트 해제
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null) dualClosePanel.PrimaryCloseButton.onClick.RemoveListener(panel.OnHide);
+            if (dualClosePanel.SecondaryCloseButton != null) dualClosePanel.SecondaryCloseButton.onClick.RemoveListener(panel.OnHide);
         }
 
         panel.OnPanelShown -= OnPanelShownHandler;

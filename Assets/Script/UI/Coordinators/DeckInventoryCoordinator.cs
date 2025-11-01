@@ -27,20 +27,33 @@ namespace Game.UI.Coordinators
 
         #region Lifecycle
 
-        private void Start()
+        /// <summary>
+        /// SceneInitializer에서 호출 - 모든 패널 초기화 완료 후 실행 보장
+        /// </summary>
+        public void Initialize(InventoryPanel inventory, DeckBuilderPanel deck)
         {
-            // Panel들에 Coordinator 참조 설정 (중재자 패턴)
-            if (inventoryPanel != null)
+            // 명시적 의존성 주입
+            inventoryPanel = inventory;
+            deckPanel = deck;
+
+            // Null 체크
+            if (inventoryPanel == null)
             {
-                inventoryPanel.SetCoordinator(this);
-                Debug.Log("[DeckInventoryCoordinator] Coordinator reference set to InventoryPanel");
+                Debug.LogError("[DeckInventoryCoordinator] InventoryPanel is null!");
+                return;
             }
 
-            if (deckPanel != null)
+            if (deckPanel == null)
             {
-                deckPanel.SetCoordinator(this);
-                Debug.Log("[DeckInventoryCoordinator] Coordinator reference set to DeckBuilderPanel");
+                Debug.LogError("[DeckInventoryCoordinator] DeckBuilderPanel is null!");
+                return;
             }
+
+            // Panel들에 Coordinator 참조 설정 (중재자 패턴)
+            inventoryPanel.SetCoordinator(this);
+            deckPanel.SetCoordinator(this);
+
+            Debug.Log("[DeckInventoryCoordinator] Initialized with validated panels");
         }
 
         private void OnEnable()

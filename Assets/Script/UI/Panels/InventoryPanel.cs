@@ -97,6 +97,26 @@ namespace Game.UI.Panels
             Debug.Log("[InventoryPanel] Dependency initialization complete (Start)");
         }
 
+        /// <summary>
+        /// SceneInitializer에서 호출 - 의존성 주입
+        /// </summary>
+        public void Initialize(CollectionManager collectionManager)
+        {
+            if (collectionManager == null)
+            {
+                Debug.LogError("[InventoryPanel] CollectionManager is null!");
+                return;
+            }
+
+            // 컬렉션 매니저 이벤트 구독
+            collectionManager.OnCollectionChanged += OnCollectionChanged;
+
+            // 초기 카드 로드
+            LoadCardsFromCollection();
+
+            Debug.Log("[InventoryPanel] Initialized with CollectionManager");
+        }
+
         protected override void OnDestroy()
         {
             base.OnDestroy();

@@ -139,6 +139,16 @@ public class GlobalUIPanelManager : MonoBehaviour, IGlobalService
                 resultPanel.SecondaryActionButton.onClick.AddListener(resultPanel.OnSecondaryAction);
         }
 
+        // IDualClosePanel 자동 버튼 바인딩
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null)
+                dualClosePanel.PrimaryCloseButton.onClick.AddListener(panel.OnHide);
+
+            if (dualClosePanel.SecondaryCloseButton != null)
+                dualClosePanel.SecondaryCloseButton.onClick.AddListener(panel.OnHide);
+        }
+
         OnGlobalPanelRegistered?.Invoke(panel);
 
         if (debugMode)
@@ -174,6 +184,16 @@ public class GlobalUIPanelManager : MonoBehaviour, IGlobalService
 
             if (resultPanel.SecondaryActionButton != null)
                 resultPanel.SecondaryActionButton.onClick.RemoveListener(resultPanel.OnSecondaryAction);
+        }
+
+        // IDualClosePanel 버튼 이벤트 해제
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null)
+                dualClosePanel.PrimaryCloseButton.onClick.RemoveListener(panel.OnHide);
+
+            if (dualClosePanel.SecondaryCloseButton != null)
+                dualClosePanel.SecondaryCloseButton.onClick.RemoveListener(panel.OnHide);
         }
 
         // 이벤트 구독 해제

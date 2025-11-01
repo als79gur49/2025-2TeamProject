@@ -55,10 +55,9 @@ public class LocalUIPanelManager : MonoBehaviour
         }
     }
 
-    private void Start()
-    {
-        InitializeAllPanels();
-    }
+    // ✅ Start() 제거 - SceneInitializer가 초기화를 담당
+    // LocalUIPanelManager는 Awake에서 패널 등록만 수행
+    // 패널 초기화는 각 씬의 SceneInitializer에서 명시적으로 호출됨
 
     private void OnDestroy()
     {
@@ -150,6 +149,16 @@ public class LocalUIPanelManager : MonoBehaviour
                 resultPanel.SecondaryActionButton.onClick.AddListener(resultPanel.OnSecondaryAction);
         }
 
+        // IDualClosePanel 자동 버튼 바인딩
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null)
+                dualClosePanel.PrimaryCloseButton.onClick.AddListener(panel.OnHide);
+
+            if (dualClosePanel.SecondaryCloseButton != null)
+                dualClosePanel.SecondaryCloseButton.onClick.AddListener(panel.OnHide);
+        }
+
         OnLocalPanelRegistered?.Invoke(panel);
 
         if (debugMode)
@@ -185,6 +194,16 @@ public class LocalUIPanelManager : MonoBehaviour
 
             if (resultPanel.SecondaryActionButton != null)
                 resultPanel.SecondaryActionButton.onClick.RemoveListener(resultPanel.OnSecondaryAction);
+        }
+
+        // IDualClosePanel 버튼 이벤트 해제
+        if (panel is IDualClosePanel dualClosePanel)
+        {
+            if (dualClosePanel.PrimaryCloseButton != null)
+                dualClosePanel.PrimaryCloseButton.onClick.RemoveListener(panel.OnHide);
+
+            if (dualClosePanel.SecondaryCloseButton != null)
+                dualClosePanel.SecondaryCloseButton.onClick.RemoveListener(panel.OnHide);
         }
 
         // 이벤트 구독 해제

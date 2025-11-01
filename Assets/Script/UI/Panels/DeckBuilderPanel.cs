@@ -105,6 +105,18 @@ namespace Game.UI.Panels
             Debug.Log("[DeckBuilderPanel] Dependency initialization complete (Start)");
         }
 
+        /// <summary>
+        /// SceneInitializer에서 호출 - 의존성 주입
+        /// DeckBuilderPanel은 현재 외부 의존성이 없지만 일관성을 위해 메서드 제공
+        /// </summary>
+        public void Initialize()
+        {
+            // 덱 표시 업데이트
+            UpdateDeckDisplay();
+
+            Debug.Log("[DeckBuilderPanel] Initialized");
+        }
+
         protected override void OnShowPanel()
         {
             base.OnShowPanel();

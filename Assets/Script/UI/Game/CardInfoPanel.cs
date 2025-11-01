@@ -12,31 +12,35 @@ using Game.Data;
 /// - Subscribes to CardInfoEventChannelSO for card drag start events
 /// - Subscribes to CardDragEndEventChannelSO for card drag end events
 /// - Displays card information in three text areas:
-///   1. Essential Info: CardName, TargetType, TargetRange
-///   2. Description: Card description text
-///   3. Effect Info: All EffectData details (Type, Value, AffectedType, AffectedRange)
-///                   + Summoned Unit info if UnitToSummon exists
 /// - Automatically hides when dragging ends
+/// - Implements IDualClosePanel for manual close button support
 /// </summary>
-public class CardInfoPanel : UIPanel
+public class CardInfoPanel : UIPanel, IDualClosePanel
 {
     [Header("Event Channels")]
     [SerializeField] private CardInfoEventChannelSO cardDragStartChannel;
     [SerializeField] private CardDragEndEventChannelSO cardDragEndChannel;
 
+    // 반드시 자기 자신이 아닌 하위 패널 넣기. 스스로 비활성화된 상태에서 이벤트 전달 받지를 못 함.
     [Header("Panel GameObjects")]
-    [SerializeField] private GameObject essentialInfoPanel;
-    [SerializeField] private GameObject descriptionPanel;
-    [SerializeField] private GameObject effectInfoPanel;
+    [SerializeField] private GameObject infoPanel;
+    [SerializeField] private GameObject dim; // 필요한 경우 사용
+    [Header("Close Buttons")]
+    [SerializeField] private Button primaryCloseButton;
+    [SerializeField] private Button secondaryCloseButton;
+
+    // IDualClosePanel 구현
+    public Button PrimaryCloseButton => primaryCloseButton;
+    public Button SecondaryCloseButton => secondaryCloseButton;
 
     [Header("UI Elements")]
-    [SerializeField] private TextMeshProUGUI essentialInfoText;
-    [SerializeField] private TextMeshProUGUI descriptionText;
-    [SerializeField] private TextMeshProUGUI effectInfoText;
-
-    #region Initialization
 
     /// <summary>
+    [SerializeField] private TextMeshProUGUI nameText;
+    [SerializeField] private TextMeshProUGUI descriptionText;
+    [SerializeField] private TextMeshProUGUI effectText;
+
+    #region Initialization
     /// 의존성 없는 초기화 (Awake에서 호출됨)
     /// UI 컴포넌트 검증 및 초기 상태 설정
     /// </summary>
@@ -46,10 +50,8 @@ public class CardInfoPanel : UIPanel
         ValidateReferences();
 
         // 초기 상태: 모든 자식 패널 비활성화
-        if (essentialInfoPanel != null) essentialInfoPanel.SetActive(false);
-        if (descriptionPanel != null) descriptionPanel.SetActive(false);
-        if (effectInfoPanel != null) effectInfoPanel.SetActive(false);
-
+        if (infoPanel != null) infoPanel.SetActive(false);
+        if(dim != null) dim.SetActive(false);
         Debug.Log("[CardInfoPanel] Self-initialized successfully");
     }
 
@@ -64,23 +66,8 @@ public class CardInfoPanel : UIPanel
         if (cardDragEndChannel == null)
             Debug.LogWarning("[CardInfoPanel] CardDragEndChannel not assigned!");
 
-        if (essentialInfoPanel == null)
-            Debug.LogWarning("[CardInfoPanel] EssentialInfoPanel not assigned!");
-
-        if (descriptionPanel == null)
-            Debug.LogWarning("[CardInfoPanel] DescriptionPanel not assigned!");
-
-        if (effectInfoPanel == null)
-            Debug.LogWarning("[CardInfoPanel] EffectInfoPanel not assigned!");
-
-        if (essentialInfoText == null)
-            Debug.LogWarning("[CardInfoPanel] EssentialInfoText not assigned!");
-
-        if (descriptionText == null)
-            Debug.LogWarning("[CardInfoPanel] DescriptionText not assigned!");
-
-        if (effectInfoText == null)
-            Debug.LogWarning("[CardInfoPanel] EffectInfoText not assigned!");
+        if (infoPanel == null)
+            Debug.LogWarning("[CardInfoPanel] InfoPanel not assigned!");
     }
 
     #endregion
@@ -151,10 +138,8 @@ public class CardInfoPanel : UIPanel
 
         currentState = UIPanelState.Showing;
 
-        // 자식 패널들만 활성화
-        if (essentialInfoPanel != null) essentialInfoPanel.SetActive(true);
-        if (descriptionPanel != null) descriptionPanel.SetActive(true);
-        if (effectInfoPanel != null) effectInfoPanel.SetActive(true);
+        if(infoPanel != null) infoPanel.SetActive(true);
+        if (dim != null) dim.SetActive(true);
 
         OnShowPanel();
         currentState = UIPanelState.Active;
@@ -174,10 +159,8 @@ public class CardInfoPanel : UIPanel
         currentState = UIPanelState.Hiding;
         OnHidePanel();
 
-        // 자식 패널들만 비활성화
-        if (essentialInfoPanel != null) essentialInfoPanel.SetActive(false);
-        if (descriptionPanel != null) descriptionPanel.SetActive(false);
-        if (effectInfoPanel != null) effectInfoPanel.SetActive(false);
+        if (infoPanel != null) infoPanel.SetActive(false);
+        if (dim != null) dim.SetActive(false);
 
         currentState = UIPanelState.Inactive;
         RaiseOnPanelHidden();
@@ -203,11 +186,11 @@ public class CardInfoPanel : UIPanel
         }
 
         // 1. 필수 정보 (카드 이름, TargetType, TargetRange)
-        if (essentialInfoText != null)
+        if (nameText != null)
         {
             string essentialInfo = $" {cardData.CardName}\n" +
                                   $"Target: {cardData.Target} / Range: {FormatTargetRange(cardData.TargetRange)}";
-            essentialInfoText.text = essentialInfo;
+            nameText.text = essentialInfo;
         }
 
         // 2. 설명 텍스트
@@ -217,7 +200,7 @@ public class CardInfoPanel : UIPanel
         }
 
         // 3. 효과 정보
-        if (effectInfoText != null)
+        if (effectText != null)
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
@@ -253,7 +236,7 @@ public class CardInfoPanel : UIPanel
                 }
             }
 
-            effectInfoText.text = sb.ToString();
+            effectText.text = sb.ToString();
         }
 
         // Show the panel

@@ -3760,6 +3760,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c740c59e80c54eb42908844c5efcda28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  autoInitializeOnStart: 1
+  logInitializationSteps: 1
+  panelManager: {fileID: 586043563}
   globalStateManager: {fileID: 1059477988}
   gridManager: {fileID: 587330867}
   gameServiceManager: {fileID: 933723240}
@@ -3776,8 +3779,6 @@ MonoBehaviour:
     type: 2}
   damagePopupPrefab: {fileID: 5711241224786816405, guid: 1e678a7b361fb114ba4ce9f720c06f40,
     type: 3}
-  autoInitializeOnStart: 1
-  logInitializationSteps: 1
   showDebugInfo: 1
 --- !u!4 &1257143627
 Transform:

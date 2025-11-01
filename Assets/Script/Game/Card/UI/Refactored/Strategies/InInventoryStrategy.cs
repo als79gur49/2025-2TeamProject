@@ -49,7 +49,7 @@ namespace Game.Card.UI.Refactored
         protected override void OnDragStartInternal(PointerEventData eventData)
         {
             RaiseDragStartEvent(CardUIMode.InInventory);
-            RaiseCardInfoEvent();
+            //RaiseCardInfoEvent();
 
             Debug.Log($"[InInventoryStrategy] Started dragging: {context.CardData.CardName} (x{ownedCount})");
         }

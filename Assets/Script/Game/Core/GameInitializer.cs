@@ -4,14 +4,20 @@ using Game.Interfaces;
 using Game.Components;
 using Game.Services;
 using Game.Coordinators;
+using Game.Initialization;
 using PlasticPipe.PlasticProtocol.Messages;
 using Game;
 
 
 /// <summary>
 /// 게임 초기화 매니저 - 모든 서비스 등록 및 의존성 주입 설정
+/// PrototypeTestScene (게임 씬) 전용 초기화 클래스
+///
+/// Template Method 패턴을 사용하여 SceneInitializer 상속
+/// - 서비스 초기화는 기존 로직 유지
+/// - UI 패널/Coordinator 초기화는 SceneInitializer 워크플로우 따름
 /// </summary>
-public class GameInitializer : MonoBehaviour
+public class GameInitializer : SceneInitializer
 {
     [Header("서비스 참조")]
     [SerializeField] private GlobalStateManager globalStateManager; // 전역 상태 관리 서비스 (최우선 초기화)
@@ -31,23 +37,23 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private DamageDisplayEventChannelSO damageDisplayEventChannel; // 데미지 표시 EventChannel
     [SerializeField] private GameObject damagePopupPrefab; // 데미지 팝업 프리팹
 
-    [Header("초기화 설정")]
-    [SerializeField] private bool autoInitializeOnStart = true;
-    [SerializeField] private bool logInitializationSteps = true;
+    // ✅ autoInitializeOnStart, logInitializationSteps는 SceneInitializer에서 상속
 
 
-    private void Awake()
-    {
-        //if (autoInitializeOnStart)
-        //{
-        //    InitializeGame();
-        //}
-    }
-    private void Start()
+    // ✅ Awake는 제거 - 서비스 초기화는 Start()에서 수행
+
+    /// <summary>
+    /// Start 오버라이드 - 서비스 초기화 후 SceneInitializer 워크플로우 실행
+    /// </summary>
+    protected override void Start()
     {
         if (autoInitializeOnStart)
         {
+            // 1. 게임 서비스 초기화 (기존 로직 유지)
             InitializeGame();
+
+            // 2. SceneInitializer 워크플로우 실행 (UI 패널/Coordinator 초기화)
+            base.Start();
         }
     }
 
@@ -627,6 +633,38 @@ public class GameInitializer : MonoBehaviour
         ServiceLocator.ValidateServices();
     }
 #endif
+
+    #region SceneInitializer Abstract Methods Implementation
+
+    /// <summary>
+    /// Phase 3: UI 패널 초기화
+    /// PrototypeTestScene (게임 씬)에는 덱 빌더 UI가 없으므로 최소한만 초기화
+    /// </summary>
+    protected override void InitializeUIPanels()
+    {
+        Log("[Phase 3] Initializing PrototypeTestScene UI Panels...");
+
+        // PrototypeTestScene은 게임 씬이므로 인벤토리/덱 빌더 패널이 없음
+        // 게임 결과 패널 등 게임 씬 전용 UI만 존재
+
+        Log("✅ PrototypeTestScene UI Panels initialized (minimal)");
+    }
+
+    /// <summary>
+    /// Phase 4: Coordinator 초기화
+    /// GameUICoordinator는 이미 RegisterGameOutcomeServices()에서 초기화됨
+    /// </summary>
+    protected override void InitializeCoordinators()
+    {
+        Log("[Phase 4] Initializing PrototypeTestScene Coordinators...");
+
+        // GameUICoordinator는 이미 RegisterGameOutcomeServices()에서 Init() 호출됨
+        // DeckInventoryCoordinator는 이 씬에 없음
+
+        Log("✅ PrototypeTestScene Coordinators initialized (GameUICoordinator already initialized)");
+    }
+
+    #endregion
 }
 
 /// <summary>

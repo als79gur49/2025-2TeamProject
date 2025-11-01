@@ -18,7 +18,7 @@ MonoBehaviour:
   cardArt: {fileID: 21300000, guid: fe1f9659d4ce4074e88413ef3b94d5d5, type: 3}
   iconSprite: {fileID: 0}
   rarity: 3
-  manaCost: 1
+  manaCost: 5
   targetType: 1
   targetRange: -1
   keywords: []

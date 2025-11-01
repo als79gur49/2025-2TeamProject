@@ -2187,7 +2187,7 @@ MonoBehaviour:
   mode: 1
   cardImage: {fileID: 8190791339853212570}
   itemImage: {fileID: 6814021653386137932}
-  costText: {fileID: 0}
+  costText: {fileID: 7674699039221518974}
   canvasGroup: {fileID: 275569819925827612}
   ownedCountText: {fileID: 4884953545800694880}
   removeButton: {fileID: 0}
