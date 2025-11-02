@@ -177,6 +177,9 @@ namespace Game.Card.UI.Refactored
             {
                 currentStrategy.Initialize(currentContext);
                 UpdateDraggableByMode();
+
+                 // ✅ 추가: 전략 초기화 후 즉시 상호작용 상태 동기화
+                currentStrategy.UpdateInteractability(isDraggable);
                 Debug.Log($"[CardUIRefactored] Mode changed to: {mode}");
             }
             else

@@ -79,6 +79,10 @@ namespace Game.Card.UI.Refactored
             // 프리뷰 정리
             battleContext?.GridRenderer?.ClearCardPreview();
             CardUIAnimator.RestoreDragVisuals(context);
+
+            // ✅ GlowEffect 초기화 추가
+            CardUIColorProvider.ClearDropFeedback(context);
+
             // 패널 비활성화
             CardUIPanelHelper.UpdateUnitStatPanels(context.ViewData, context.CardData, false);
 
@@ -216,6 +220,13 @@ namespace Game.Card.UI.Refactored
                 if (tile != null)
                 {
                     var gridPosition = tile.GetGridPosition();
+
+                    // ✅ 유효성 검사 먼저 수행
+                    if (!ValidateDropPosition(gridPosition))
+                    {
+                        Debug.Log($"Invalid drop position: {gridPosition}");
+                        return false;
+                    }
 
                     if (battleContext?.CardSpawnService != null)
                     {
