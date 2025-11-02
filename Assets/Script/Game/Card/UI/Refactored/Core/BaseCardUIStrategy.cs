@@ -27,6 +27,8 @@ namespace Game.Card.UI.Refactored
             isDragging = true;
             context.DragState.IsDragging = true;
 
+            Debug.Log($"[BaseCardUIStrategy] ===== OnDragStart ===== Card: {context.CardData?.CardName}, Time: {Time.frameCount}");
+
             // 드래그 상태 저장
             CardUIAnimator.SaveDragState(context);
 
@@ -39,7 +41,17 @@ namespace Game.Card.UI.Refactored
 
         public virtual void OnDragging(PointerEventData eventData)
         {
-            if (!isDragging) return;
+            if (!isDragging)
+            {
+                Debug.LogWarning($"[BaseCardUIStrategy] OnDragging called but isDragging=false! Time: {Time.frameCount}");
+                return;
+            }
+
+            // 매 프레임 로그는 너무 많으므로 10프레임마다만
+            if (Time.frameCount % 10 == 0)
+            {
+                Debug.Log($"[BaseCardUIStrategy] OnDragging... isDragging={isDragging}, Pos={eventData.position}, Time: {Time.frameCount}");
+            }
 
             context.Transform.position = eventData.position;
 
@@ -49,7 +61,14 @@ namespace Game.Card.UI.Refactored
 
         public virtual bool OnDragEnd(PointerEventData eventData)
         {
-            if (!isDragging) return false;
+            Debug.Log($"[BaseCardUIStrategy] ===== OnDragEnd ===== isDragging={isDragging}, Time: {Time.frameCount}, StackTrace:");
+            Debug.Log(System.Environment.StackTrace);
+
+            if (!isDragging)
+            {
+                Debug.LogError($"[BaseCardUIStrategy] OnDragEnd called but isDragging=false! EARLY RETURN!");
+                return false;
+            }
 
             isDragging = false;
             context.DragState.IsDragging = false;
@@ -60,9 +79,12 @@ namespace Game.Card.UI.Refactored
             // 전략별 드롭 처리
             bool dropSuccess = OnDragEndInternal(eventData);
 
+            Debug.Log($"[BaseCardUIStrategy] OnDragEnd dropSuccess={dropSuccess}, ReturnToOriginal={context.Settings.ReturnToOriginalPosition}");
+
             // 실패 시 원위치 복귀
             if (!dropSuccess && context.Settings.ReturnToOriginalPosition)
             {
+                Debug.LogWarning($"[BaseCardUIStrategy] ⚠️ DROP FAILED - Starting ReturnToOriginalPosition animation!");
                 returnCoroutine = context.MonoBehaviour.StartCoroutine(
                     CardUIAnimator.ReturnToOriginalPosition(context, OnReturnComplete)
                 );

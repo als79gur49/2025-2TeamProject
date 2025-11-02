@@ -314,10 +314,16 @@ namespace Game.Card.UI.Refactored
         /// </summary>
         public void SetDraggable(bool draggable)
         {
+            Debug.Log($"[CardUIRefactored] SetDraggable({draggable}) - Previous: {isDraggable}, IsDragging: {IsDragging}, Time: {Time.frameCount}");
+            if (IsDragging && !draggable)
+            {
+                Debug.LogError($"[CardUIRefactored] ⚠️⚠️⚠️ SetDraggable(false) called WHILE DRAGGING! This will cause OnEndDrag!");
+                Debug.LogError($"[CardUIRefactored] StackTrace:");
+                Debug.LogError(System.Environment.StackTrace);
+            }
+
             isDraggable = draggable;
             currentStrategy?.UpdateInteractability(draggable);
-
-            Debug.Log($"[CardUIRefactored] SetDraggable({draggable})");
         }
 
         /// <summary>
@@ -423,11 +429,11 @@ namespace Game.Card.UI.Refactored
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            Debug.Log($"[CardUIRefactored] OnBeginDrag");
+            Debug.Log($"[CardUIRefactored] ===== OnBeginDrag ===== Card: {cardData?.CardName}, isDraggable={isDraggable}, Time: {Time.frameCount}");
 
             if (!isDraggable || currentStrategy == null || cardData == null)
             {
-                Debug.Log($"[CardUIRefactored] OnBeginDrag {!isDraggable} | {currentStrategy == null} | {cardData == null}");
+                Debug.LogWarning($"[CardUIRefactored] OnBeginDrag BLOCKED! isDraggable={isDraggable}, strategy={currentStrategy != null}, cardData={cardData != null}");
                 return;
             }
 
@@ -436,13 +442,26 @@ namespace Game.Card.UI.Refactored
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (!isDraggable || currentStrategy == null) return;
+            if (!isDraggable || currentStrategy == null)
+            {
+                Debug.LogError($"[CardUIRefactored] OnDrag called but BLOCKED! isDraggable={isDraggable}, strategy={currentStrategy != null}, Time: {Time.frameCount}");
+                return;
+            }
             currentStrategy.OnDragging(eventData);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (!isDraggable || currentStrategy == null) return;
+            Debug.Log($"[CardUIRefactored] ===== OnEndDrag ===== Card: {cardData?.CardName}, isDraggable={isDraggable}, Time: {Time.frameCount}");
+            Debug.Log($"[CardUIRefactored] OnEndDrag StackTrace:");
+            Debug.Log(System.Environment.StackTrace);
+
+            if (!isDraggable || currentStrategy == null)
+            {
+                Debug.LogError($"[CardUIRefactored] OnEndDrag BLOCKED! isDraggable={isDraggable}, strategy={currentStrategy != null}");
+                return;
+            }
+
             currentStrategy.OnDragEnd(eventData);
         }
 

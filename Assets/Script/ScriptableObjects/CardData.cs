@@ -130,7 +130,7 @@ namespace Game.Data
             if (targetRange >= 0)
             {
                 //int distance = GridPositionHelper.CalculateYDistance(casterPosition, targetPosition);
-                int distance = GridPositionHelper.CalculateXDistance(casterPosition, targetPosition);
+                int distance = GridPositionHelper.CalculateYDistance(casterPosition, targetPosition);
                 Debug.Log($"distance{distance} | targetRange{targetRange} casterPosition{casterPosition} | targetPosition{targetPosition} ");
                 if (distance > targetRange)
                 {

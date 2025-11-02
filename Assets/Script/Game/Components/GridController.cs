@@ -489,7 +489,8 @@ namespace Game.Components
             var gridSize = GridSize;
 
             // 가장 왼쪽 열을 고정 기준점으로 사용 (Y 좌표는 X축 거리 계산에 영향 없음)
-            Vector2Int basePosition = new Vector2Int(gridSize.x / 2, 0);
+            //Vector2Int basePosition = new Vector2Int(gridSize.x / 2, 0);
+            Vector2Int basePosition = new Vector2Int(gridSize.x/2, 0);
             Debug.Log($"[GridController] Player base position (fixed leftmost column): {basePosition}");
             return basePosition;
         }
@@ -503,10 +504,10 @@ namespace Game.Components
         public Vector2Int GetEnemyBasePosition()
         {
             var gridSize = GridSize;
-            int rightmostColumn = gridSize.x - 1;
+            int rightmostColumn = gridSize.y - 1;  // y축(좌우)의 최대값 = 오른쪽
 
-            // 가장 오른쪽 열을 고정 기준점으로 사용 (Y 좌표는 X축 거리 계산에 영향 없음)
-            Vector2Int basePosition = new Vector2Int(rightmostColumn, gridSize.y / 2);
+            // 가장 오른쪽 열을 고정 기준점으로 사용 (x축은 중간값, y축은 최대값)
+            Vector2Int basePosition = new Vector2Int(gridSize.x / 2, rightmostColumn);
             Debug.Log($"[GridController] Enemy base position (fixed rightmost column): {basePosition}");
             return basePosition;
         }

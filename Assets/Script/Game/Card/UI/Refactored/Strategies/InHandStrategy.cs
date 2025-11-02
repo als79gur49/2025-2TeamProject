@@ -58,9 +58,49 @@ namespace Game.Card.UI.Refactored
 
         protected override void OnDragStartInternal(PointerEventData eventData)
         {
+            // ✅ 1. 이전에 실행 중인 ReturnToOriginalPosition 코루틴 중단
+            if (context.MonoBehaviour != null)
+            {
+                context.MonoBehaviour.StopAllCoroutines();
+            }
+
+            // ✅ 2. 코루틴 중단 후 시각적 상태 및 위치 즉시 복원
+            // 코루틴이 중단되면서 position/scale/alpha가 중간값으로 남아있을 수 있음
+            var rectTransform = context.Transform as RectTransform;
+            if (rectTransform != null)
+            {
+                // 위치 복원
+                if (context.DragState.OriginalPosition != Vector3.zero)
+                {
+                    rectTransform.anchoredPosition = context.DragState.OriginalPosition;
+                    Debug.Log($"[InHandStrategy] Restored position from DragState: {context.DragState.OriginalPosition}");
+                }
+
+                // 스케일 복원
+                if (context.DragState.OriginalScale != Vector3.zero)
+                {
+                    rectTransform.localScale = context.DragState.OriginalScale;
+                    Debug.Log($"[InHandStrategy] Restored scale from DragState: {context.DragState.OriginalScale}");
+                }
+                else
+                {
+                    rectTransform.localScale = Vector3.one;
+                    Debug.Log($"[InHandStrategy] Restored scale to default: Vector3.one");
+                }
+            }
+
+            // 알파값도 복원
+            if (context.ViewData.CanvasGroup != null)
+            {
+                context.ViewData.CanvasGroup.alpha = 1f;
+                context.ViewData.CanvasGroup.blocksRaycasts = true;
+            }
+
             // 유닛 스탯 패널 활성화
             CardUIPanelHelper.UpdateUnitStatPanels(context.ViewData, context.CardData, true);
-            CardUIAnimator.ApplyDragVisuals(context);
+
+            // ✅ 3. 드래그 시각 효과는 BaseCardUIStrategy.OnDragStart에서 이미 호출됨
+            // CardUIAnimator.ApplyDragVisuals(context); // 중복 제거!
 
             // 이벤트 발생
             RaiseDragStartEvent(CardUIMode.InHand);

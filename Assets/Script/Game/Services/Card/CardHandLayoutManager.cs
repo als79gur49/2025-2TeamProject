@@ -1,7 +1,8 @@
-using UnityEngine;
-using System.Collections.Generic;
 using Game.Card.UI;
 using Game.Card.UI.Refactored;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace Game.Services
 {
@@ -21,17 +22,39 @@ namespace Game.Services
         /// <param name="spacing">카드 간 간격 (픽셀)</param>
         public static void ArrangeVerticalCentered(List<CardUIRefactored> cards, float spacing)
         {
+
+            // 드래그 중이지 않은 카드만 필터링
+            //var nonDraggingCards = cards.Where(c => c != null && !c.IsDragging).ToList();
+            //int cardCount = nonDraggingCards.Count;
+            //if (cardCount == 0) return;
+            //
+            //// 전체 높이 계산 및 중앙 기준 시작점 설정
+            //float totalHeight = (cardCount - 1) * spacing;
+            //float startY = totalHeight * 0.5f; // 중앙 기준 시작
+            //
+            //for (int i = 0; i < cardCount; i++)
+            //{
+            //    if (nonDraggingCards[i] == null) continue;
+            //    var rectTransform = nonDraggingCards[i].GetComponent<RectTransform>();
+            //    if (rectTransform != null)
+            //    {
+            //        // 수직 배치 (X는 중앙, Y는 중앙 기준 위아래)
+            //        rectTransform.anchoredPosition = new Vector2(0, startY - i * spacing);
+            //        rectTransform.rotation = Quaternion.identity;
+            //    }
+            //}
+
             int cardCount = cards.Count;
             if (cardCount == 0) return;
-
+            
             // 전체 높이 계산 및 중앙 기준 시작점 설정
             float totalHeight = (cardCount - 1) * spacing;
             float startY = totalHeight * 0.5f;  // 중앙 기준 시작
-
+            
             for (int i = 0; i < cardCount; i++)
             {
                 if (cards[i] == null) continue;
-
+            
                 var rectTransform = cards[i].GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {

@@ -498,6 +498,24 @@ namespace Game.Services
         {
             if (cardUIComponents.Count == 0) return;
 
+            Debug.Log($"[CardHandManager] UpdateHandLayout called - CardCount: {cardUIComponents.Count}, Time: {Time.frameCount}");
+            Debug.Log($"[CardHandManager] UpdateHandLayout StackTrace:");
+            Debug.Log(System.Environment.StackTrace);
+
+            // 드래그 중인 카드가 있는지 확인
+            var draggingCards = cardUIComponents.Where(c => c != null && c.IsDragging).ToList();
+            if (draggingCards.Count > 0)
+            {
+                Debug.LogError($"[CardHandManager] ⚠️⚠️⚠️ UpdateHandLayout called while {draggingCards.Count} card(s) are DRAGGING!");
+                foreach (var card in draggingCards)
+                {
+                    Debug.LogError($"  - Dragging card: {card.GetCardData()?.CardName}");
+                }
+
+                // 드레그 중이기에 정렬 강제 종료
+                //return;
+            }
+
             if (arrangeCardsInArc)
             {
                 ArrangeCardsInArc();
