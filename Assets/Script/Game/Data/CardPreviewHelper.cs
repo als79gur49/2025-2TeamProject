@@ -113,7 +113,8 @@ namespace Game.Data
                 CardData cardData,
                 Vector2Int centerPos,
                 IGridManager gridManager,
-                ISpawnValidator validator)
+                ISpawnValidator validator,
+                bool isPlayerUnit)
         {
             var valid = new List<Vector2Int>();
             var invalid = new List<Vector2Int>();
@@ -132,16 +133,7 @@ namespace Game.Data
             {
                 bool isValid = false;
 
-                // 효과 타입에 따른 유효성 검사
-                if (cardData.HasEffectType(EffectType.Summon))
-                {
-                    isValid = validator.CanSpawnUnit(cardData, pos);
-                }
-                else if (cardData.HasEffectType(EffectType.Damage) ||
-                         cardData.HasEffectType(EffectType.Heal))
-                {
-                    isValid = validator.CanUseSpell(cardData, pos);
-                }
+                isValid = validator.CanUseCard(cardData, pos, true);
 
                 if (isValid)
                     valid.Add(pos);

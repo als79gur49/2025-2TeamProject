@@ -129,7 +129,8 @@ namespace Game.Data
             // -1이면 거리 제한 없음, 0+면 해당 거리까지만 가능
             if (targetRange >= 0)
             {
-                int distance = GridPositionHelper.CalculateYDistance(casterPosition, targetPosition);
+                //int distance = GridPositionHelper.CalculateYDistance(casterPosition, targetPosition);
+                int distance = GridPositionHelper.CalculateXDistance(casterPosition, targetPosition);
                 Debug.Log($"distance{distance} | targetRange{targetRange} casterPosition{casterPosition} | targetPosition{targetPosition} ");
                 if (distance > targetRange)
                 {

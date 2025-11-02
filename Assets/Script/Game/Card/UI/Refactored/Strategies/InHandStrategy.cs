@@ -189,7 +189,8 @@ namespace Game.Card.UI.Refactored
                             context.CardData,
                             gridPosition.Value,
                             battleContext.GridManager,
-                            battleContext.SpawnValidator
+                            battleContext.SpawnValidator,
+                            true
                         );
 
                         // 유효/무효 위치를 색상으로 구분하여 표시
@@ -230,6 +231,7 @@ namespace Game.Card.UI.Refactored
             if (camera == null)
             {
                 Debug.Log($"[InHandStrategy.HandleDrop] Camera is null");
+                PlayDropSound(false);
                 return false;
             }
 
@@ -255,6 +257,7 @@ namespace Game.Card.UI.Refactored
                     if (!ValidateDropPosition(gridPosition))
                     {
                         Debug.Log($"[InHandStrategy.HandleDrop] Invalid drop position: {gridPosition}");
+                        PlayDropSound(false);
                         return false;
                     }
 
@@ -263,6 +266,7 @@ namespace Game.Card.UI.Refactored
                         Debug.Log($"[InHandStrategy.HandleDrop] Calling TryExecuteCard at {gridPosition}");
                         bool result = battleContext.CardSpawnService.TryExecuteCard(context.CardData, gridPosition, TeamType.Player);
                         Debug.Log($"[InHandStrategy.HandleDrop] TryExecuteCard result: {result}");
+                        PlayDropSound(result);
                         return result;
                     }
                     break;
@@ -270,6 +274,7 @@ namespace Game.Card.UI.Refactored
             }
 
             Debug.Log($"[InHandStrategy.HandleDrop] No valid tile found, returning false");
+            PlayDropSound(false);
             return false;
         }
 
@@ -308,6 +313,33 @@ namespace Game.Card.UI.Refactored
                     if (viewData.MovementText != null)
                         viewData.MovementText.text = unitData.MovementRange.ToString();
                 }
+            }
+        }
+
+        /// <summary>
+        /// 드롭 성공/실패 사운드 재생
+        /// </summary>
+        /// <param name="success">드롭 성공 여부</param>
+        private void PlayDropSound(bool success)
+        {
+            if (battleContext?.SoundEventChannel == null)
+            {
+                Debug.LogWarning("[InHandStrategy] SoundEventChannel is null, cannot play drop sound");
+                return;
+            }
+
+            AudioData soundData = success
+                ? battleContext.DropSuccessSound
+                : battleContext.DropFailSound;
+
+            if (soundData != null)
+            {
+                battleContext.SoundEventChannel.RaiseSoundEvent(soundData, this);
+                Debug.Log($"[InHandStrategy] Played drop sound: {soundData.name} (success={success})");
+            }
+            else
+            {
+                Debug.LogWarning($"[InHandStrategy] Drop sound data is null (success={success})");
             }
         }
     }

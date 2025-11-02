@@ -52,6 +52,11 @@ namespace Game.Card.UI.Refactored
         [SerializeField] private CardInfoEventChannelSO cardInfoChannel;
         [SerializeField] private CardDragEndEventChannelSO cardDragEndChannel;
         [SerializeField] private Game.UI.Events.CardDragStartEventChannelSO cardDragStartChannel;
+        [SerializeField] private SoundEventChannelSO soundEventChannel;
+
+        [Header("Drop Feedback Sounds")]
+        [SerializeField] private AudioData dropSuccessSoundData;
+        [SerializeField] private AudioData dropFailSoundData;
 
         // 전략 패턴
         private ICardUIStrategy currentStrategy;
@@ -212,6 +217,11 @@ namespace Game.Card.UI.Refactored
                             battleContext.GridRenderer = gridManager.GetGridRenderer();
                         }
                     }
+
+                    // 드롭 사운드 설정
+                    battleContext.DropSuccessSound = dropSuccessSoundData;
+                    battleContext.DropFailSound = dropFailSoundData;
+                    battleContext.SoundEventChannel = soundEventChannel;
 
                     context = battleContext;
                     break;

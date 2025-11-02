@@ -190,6 +190,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8026267482048740331, guid: a396c039d737c2a48843110f6a0789b5,
         type: 3}
+      propertyPath: dropFailSoundData
+      value: 
+      objectReference: {fileID: 11400000, guid: 8be7d8bea41e64740b5818df613533d3,
+        type: 2}
+    - target: {fileID: 8026267482048740331, guid: a396c039d737c2a48843110f6a0789b5,
+        type: 3}
+      propertyPath: soundEventChannel
+      value: 
+      objectReference: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00,
+        type: 2}
+    - target: {fileID: 8026267482048740331, guid: a396c039d737c2a48843110f6a0789b5,
+        type: 3}
       propertyPath: returnToOriginalPosition
       value: 1
       objectReference: {fileID: 0}

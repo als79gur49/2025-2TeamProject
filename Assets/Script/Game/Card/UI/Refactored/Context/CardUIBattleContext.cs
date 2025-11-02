@@ -12,5 +12,10 @@ namespace Game.Card.UI.Refactored
         public ICardHandManager CardHandManager { get; set; }
         public IGridRenderer GridRenderer { get; set; }
         public IGridManager GridManager { get; set; }
+
+        // 드롭 피드백 사운드
+        public AudioData DropSuccessSound { get; set; }
+        public AudioData DropFailSound { get; set; }
+        public SoundEventChannelSO SoundEventChannel { get; set; }
     }
 }
