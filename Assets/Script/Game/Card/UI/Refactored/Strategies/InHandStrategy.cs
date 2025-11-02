@@ -76,6 +76,8 @@ namespace Game.Card.UI.Refactored
 
         protected override bool OnDragEndInternal(PointerEventData eventData)
         {
+            Debug.Log($"[InHandStrategy] ===== OnDragEndInternal START =====");
+
             // 프리뷰 정리
             battleContext?.GridRenderer?.ClearCardPreview();
             CardUIAnimator.RestoreDragVisuals(context);
@@ -86,9 +88,28 @@ namespace Game.Card.UI.Refactored
             // 패널 비활성화
             CardUIPanelHelper.UpdateUnitStatPanels(context.ViewData, context.CardData, false);
 
-            // 드롭 처리
-            bool dropSuccess = HandleDrop(eventData);
 
+            // 드롭 처리
+            bool dropSuccess = false;
+            try
+            {
+                Debug.Log($"[InHandStrategy] Calling HandleDrop...");
+                dropSuccess = HandleDrop(eventData);
+                Debug.Log($"[InHandStrategy] HandleDrop completed: {dropSuccess}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[InHandStrategy] HandleDrop exception: {ex.Message}\n{ex.StackTrace}");
+                dropSuccess = false;
+            }
+
+            // 드롭 처리
+            //bool dropSuccess = HandleDrop(eventData);
+
+            // 라인 92 (새로 추가)
+            Debug.Log($"[InHandStrategy] About to call RaiseDragEndEvent - dropSuccess: {dropSuccess}");
+            Debug.Log($"[InHandStrategy] context.Events: {context.Events != null}");
+            Debug.Log($"[InHandStrategy] CardDragEndChannel: {context.Events?.CardDragEndChannel?.name ?? "NULL"}");
             // 이벤트 발생
             RaiseDragEndEvent();
 
@@ -203,11 +224,19 @@ namespace Game.Card.UI.Refactored
 
         private bool HandleDrop(PointerEventData eventData)
         {
+            Debug.Log($"[InHandStrategy.HandleDrop] START");
+
             Camera camera = Camera.main;
-            if (camera == null) return false;
+            if (camera == null)
+            {
+                Debug.Log($"[InHandStrategy.HandleDrop] Camera is null");
+                return false;
+            }
 
             Ray ray = camera.ScreenPointToRay(eventData.position);
             RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity);
+
+            Debug.Log($"[InHandStrategy.HandleDrop] Raycast hits: {hits.Length}");
 
             if (hits.Length > 1)
             {
@@ -220,22 +249,27 @@ namespace Game.Card.UI.Refactored
                 if (tile != null)
                 {
                     var gridPosition = tile.GetGridPosition();
+                    Debug.Log($"[InHandStrategy.HandleDrop] Found tile at: {gridPosition}");
 
                     // ✅ 유효성 검사 먼저 수행
                     if (!ValidateDropPosition(gridPosition))
                     {
-                        Debug.Log($"Invalid drop position: {gridPosition}");
+                        Debug.Log($"[InHandStrategy.HandleDrop] Invalid drop position: {gridPosition}");
                         return false;
                     }
 
                     if (battleContext?.CardSpawnService != null)
                     {
-                        return battleContext.CardSpawnService.TryExecuteCard(context.CardData, gridPosition, TeamType.Player);
+                        Debug.Log($"[InHandStrategy.HandleDrop] Calling TryExecuteCard at {gridPosition}");
+                        bool result = battleContext.CardSpawnService.TryExecuteCard(context.CardData, gridPosition, TeamType.Player);
+                        Debug.Log($"[InHandStrategy.HandleDrop] TryExecuteCard result: {result}");
+                        return result;
                     }
                     break;
                 }
             }
 
+            Debug.Log($"[InHandStrategy.HandleDrop] No valid tile found, returning false");
             return false;
         }
 

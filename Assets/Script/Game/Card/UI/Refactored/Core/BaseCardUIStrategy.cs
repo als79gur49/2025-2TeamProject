@@ -145,7 +145,20 @@ namespace Game.Card.UI.Refactored
 
         protected void RaiseDragEndEvent()
         {
-            context.Events?.CardDragEndChannel?.RaiseEvent();
+            Debug.Log($"[BaseCardUIStrategy] RaiseDragEndEvent called");
+            Debug.Log($"[BaseCardUIStrategy] Events: {context.Events != null}, Channel: {context.Events?.CardDragEndChannel != null}");
+    
+            if (context.Events?.CardDragEndChannel != null)
+            {
+                Debug.Log($"[BaseCardUIStrategy] Calling RaiseEvent on {context.Events.CardDragEndChannel.name}");
+                context.Events.CardDragEndChannel.RaiseEvent();
+            }
+            else
+            {
+                Debug.LogError("[BaseCardUIStrategy] CardDragEndChannel is NULL!");
+            }
+            
+            //context.Events?.CardDragEndChannel?.RaiseEvent();
         }
 
         protected void UpdateBasicUI()

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Core;
 using Game.Interfaces;
-using Game.Card.UI;
 using Game.Data;
 using Game.Card.Effects;
 using Game.Card.UI.Refactored;

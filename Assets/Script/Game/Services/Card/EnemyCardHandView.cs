@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using Game.AI;
 using Game.Interfaces;
-using Game.Card.UI;
 using Game.Card.UI.Refactored;
 using Game.Data;
 
