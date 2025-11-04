@@ -31,7 +31,7 @@ namespace Game.Interfaces
     /// </summary>
     public struct ActionDecision
     {
-        public ActionType Type;              // 행동 타입
+        public UnitActionType Type;              // 행동 타입
         public IHealthComponent TargetHealth; // 공격 대상 (IHealthComponent) - Legacy
         public GameObject TargetObject;      // 타겟의 GameObject - Legacy/Fallback
         public Tile TargetTile;              // 공격 대상 타일 (Tile-based targeting)
@@ -42,7 +42,7 @@ namespace Game.Interfaces
         {
             return new ActionDecision
             {
-                Type = ActionType.Attack,
+                Type = UnitActionType.Attack,
                 TargetTile = targetTile,
                 TargetObject = null,
                 TargetHealth = null
@@ -54,7 +54,7 @@ namespace Game.Interfaces
         {
             return new ActionDecision
             {
-                Type = ActionType.Attack,
+                Type = UnitActionType.Attack,
                 TargetHealth = target,
                 TargetObject = (target as Component)?.gameObject,
                 TargetTile = null
@@ -66,7 +66,7 @@ namespace Game.Interfaces
         {
             return new ActionDecision
             {
-                Type = ActionType.Move,
+                Type = UnitActionType.Move,
                 MovePosition = position
             };
         }
@@ -74,12 +74,12 @@ namespace Game.Interfaces
         /// <summary>대기 행동 생성</summary>
         public static ActionDecision Idle()
         {
-            return new ActionDecision { Type = ActionType.Idle };
+            return new ActionDecision { Type = UnitActionType.Idle };
         }
     }
 
     /// <summary>행동 타입</summary>
-    public enum ActionType
+    public enum UnitActionType
     {
         Idle,    // 대기
         Attack,  // 공격

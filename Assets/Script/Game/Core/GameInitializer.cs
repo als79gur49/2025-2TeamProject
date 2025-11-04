@@ -412,22 +412,6 @@ public class GameInitializer : SceneInitializer
             Log($"✅ HealthComponent dependencies injected: {health.gameObject.name}");
         }
 
-        // ActionHandler 컴포넌트들 의존성 주입
-        var actionHandlers = FindObjectsOfType<ActionHandler>();
-        foreach (var handler in actionHandlers)
-        {
-            handler.InjectDependencies();
-            Log($"✅ ActionHandler dependencies injected: {handler.gameObject.name}");
-        }
-
-        // ActionValidator 컴포넌트들 의존성 주입
-        var actionValidators = FindObjectsOfType<ActionValidator>();
-        foreach (var validator in actionValidators)
-        {
-            validator.InjectDependencies();
-            Log($"✅ ActionValidator dependencies injected: {validator.gameObject.name}");
-        }
-
     }
 
     /// <summary>

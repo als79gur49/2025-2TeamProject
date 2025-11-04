@@ -743,7 +743,6 @@ namespace Game.Services
         [Header("에디터 디버깅 도구")]
         [SerializeField] private bool showHandDebugInfo = false;
         [SerializeField] private CardData testCardData;
-        [SerializeField] private bool generateTestCards = false;
 
         private void OnGUI()
         {

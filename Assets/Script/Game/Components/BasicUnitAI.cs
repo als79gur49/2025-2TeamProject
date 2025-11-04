@@ -240,13 +240,13 @@ namespace Game.Components
 
             switch (decision.Type)
             {
-                case ActionType.Attack:
+                case UnitActionType.Attack:
                     Debug.Log($"Target: {decision.TargetObject?.name ?? "NULL"}");
                     break;
-                case ActionType.Move:
+                case UnitActionType.Move:
                     Debug.Log($"Move Position: {decision.MovePosition}");
                     break;
-                case ActionType.Idle:
+                case UnitActionType.Idle:
                     Debug.Log("Idle - no valid actions");
                     break;
             }

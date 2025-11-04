@@ -55,7 +55,6 @@ namespace Game.Interfaces
         // ✅ 이벤트
         event Action<GameObject, CombatResult> OnAttackPerformed;
         event Action<List<GameObject>> OnAttackStarted;
-        event Action<GameObject> OnAttackMissed;
         event Action OnCombatStateChanged;
         event Action<int> OnAttackPowerChanged;
     }

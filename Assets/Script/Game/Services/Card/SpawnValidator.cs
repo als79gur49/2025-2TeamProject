@@ -14,7 +14,6 @@ namespace Game.Services
     {
         [Header("검증 설정")]
         [SerializeField] private bool enableLogging = true;
-        [SerializeField] private bool strictValidation = true;
 
         // ServiceLocator를 통해 주입받을 의존성들
         private IGridController gridController;

@@ -103,7 +103,6 @@ namespace Game.Services
                 unitService.OnPhaseStarted += HandlePhaseStarted;
                 unitService.OnPhaseCompleted += HandlePhaseCompleted;
                 unitService.OnPhaseCancelled += HandlePhaseCancelled;
-                unitService.OnUnitProcessed += HandleUnitProcessed;
             }
 
             // Subscribe to GlobalStateManager for VFX blocking visual feedback
@@ -348,7 +347,6 @@ namespace Game.Services
                 unitService.OnPhaseStarted -= HandlePhaseStarted;
                 unitService.OnPhaseCompleted -= HandlePhaseCompleted;
                 unitService.OnPhaseCancelled -= HandlePhaseCancelled;
-                unitService.OnUnitProcessed -= HandleUnitProcessed;
             }
 
             // Unsubscribe from GlobalStateManager
@@ -545,24 +543,6 @@ namespace Game.Services
             Debug.Log($"[UIService] Phase {phase} cancelled - re-enabling end turn button");
             UpdateEndTurnButton(); // This will now enable the button since IsPhaseExecuting is false
             UpdateTurnStatusText(); // Restore normal status display
-        }
-        
-        /// <summary>
-        /// Handles individual unit processing events - updates progress display
-        /// </summary>
-        private void HandleUnitProcessed(Unit unit, int currentIndex, int totalCount)
-        {
-            // 유닛의 정보 불필요
-            return;
-
-            if (turnStatusText != null && unitService != null)
-            {
-                TurnPhase currentPhase = unitService.CurrentPhase ?? TurnPhase.TurnStart;
-                string phaseText = GetPhaseDisplayText(currentPhase);
-                string cycleInfo = turnService != null ? $"Cycle {turnService.TurnCount + 1} | Phase {(int)currentPhase + 1}/6" : "Processing...";
-                string progressInfo = $"Processing {unit?.name}: {currentIndex}/{totalCount}";
-                turnStatusText.text = $"{cycleInfo}\n{phaseText}\n{progressInfo}";
-            }
         }
         
         // Phase 4: Additional UI helper methods for better phase state management

@@ -466,7 +466,6 @@ namespace Game.Components
 
         public event Action<GameObject, CombatResult> OnAttackPerformed;
         public event Action<List<GameObject>> OnAttackStarted;
-        public event Action<GameObject> OnAttackMissed;
         public event Action OnCombatStateChanged;
         public event Action<int> OnAttackPowerChanged;
         public event Action<GameObject, CombatResult> OnCriticalAttack;

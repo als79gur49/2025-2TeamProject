@@ -37,27 +37,10 @@ namespace Game.Components
                                   currentTeamSettings?.teamColor ?? Color.white;
         
         public event Action<TeamType, TeamType> OnTeamChanged;
-        
+
         private void Awake()
         {
             RefreshTeamSettings();
-        }
-        
-        // 팀 매니저 캐싱
-        private static TeamManager cachedTeamManager;
-        
-        private void Start()
-        {
-            // 팀 매니저에 등록 (있다면) - 캐싱으로 성능 개선
-            if (cachedTeamManager == null)
-                cachedTeamManager = FindObjectOfType<TeamManager>();
-            cachedTeamManager?.RegisterTeamMember(this);
-        }
-        
-        private void OnDestroy()
-        {
-            // 팀 매니저에서 해제 (있다면)
-            cachedTeamManager?.UnregisterTeamMember(this);
         }
         
         /// <summary>

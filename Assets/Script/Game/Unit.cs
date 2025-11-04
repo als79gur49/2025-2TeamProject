@@ -485,7 +485,7 @@ public class Unit : MonoBehaviour
     {
         switch (decision.Type)
         {
-            case ActionType.Attack:
+            case UnitActionType.Attack:
                 // Prioritize Tile-based attack (new system)
                 if (decision.TargetTile != null)
                 {
@@ -531,7 +531,7 @@ public class Unit : MonoBehaviour
                 }
                 break;
 
-            case ActionType.Move:
+            case UnitActionType.Move:
                 Debug.Log($"[Unit] AI Decision: Move to {decision.MovePosition}");
 
                 if (useComponentSystem && movementComponent != null)
@@ -548,7 +548,7 @@ public class Unit : MonoBehaviour
                 }
                 break;
 
-            case ActionType.Idle:
+            case UnitActionType.Idle:
                 Debug.Log($"[Unit] AI Decision: Idle (no valid actions)");
                 break;
         }
