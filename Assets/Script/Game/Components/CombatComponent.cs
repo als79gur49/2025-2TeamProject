@@ -52,6 +52,11 @@ namespace Game.Components
         private bool isSpecialAttackActive = false;
         private bool isForceCritical = false;
 
+        // 새로운 Action System 필드
+        private List<IAttackEffect> attackEffects = new List<IAttackEffect>();
+        private ActionResult currentAttackResult;
+        private ActionContext currentAttackContext;
+
         // 캐시된 컴포넌트
         private IGridManager gridManager;
         private ITeamComponent teamComponent;
@@ -196,7 +201,7 @@ namespace Game.Components
             if (animationController != null)
             {
                 Debug.Log($"[CombatComponent] Attack animation started");
-                animationController.PlayAttackAnimation(targets);
+                animationController.PlayAttackAnimation();
 
                 // 임시 결과 반환 (실제 결과는 OnAnimationAttackHit 이벤트로 전달)
                 return CombatResult.Hit(0, target, attackType, false, "Attack animation started");
@@ -386,7 +391,7 @@ namespace Game.Components
             // BlendTree 애니메이션 재생
             if (animationController != null)
             {
-                animationController.PlayAttackAnimation(targets);
+                animationController.PlayAttackAnimation();
                 return CombatResult.Hit(0, target, attackType, false, "Special attack animation started");
             }
             else
@@ -684,40 +689,43 @@ namespace Game.Components
         /// BlendTree 공격 시작 핸들러
         /// UnitAnimationController.OnAttackStart 이벤트 구독
         /// </summary>
-        private void OnAnimationAttackStart(List<GameObject> targets)
+        private void OnAnimationAttackStart()
         {
-            if (targets == null || targets.Count == 0)
+            if (currentAttackTargets == null || currentAttackTargets.Count == 0)
             {
                 Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack start but no targets");
                 return;
             }
 
-            string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
+            string targetNames = string.Join(", ", currentAttackTargets.ConvertAll(t => t ? t.name : "destroyed"));
             Debug.Log($"[CombatComponent] {gameObject.name}: Attack animation started on [{targetNames}]");
 
             // OnAttackStarted 이벤트 발생 (외부 시스템에 알림)
-            OnAttackStarted?.Invoke(targets);
+            OnAttackStarted?.Invoke(currentAttackTargets);
         }
 
         /// <summary>
         /// BlendTree 공격 타격 핸들러 (데미지 적용 시점)
         /// UnitAnimationController.OnAttackHit 이벤트 구독
         /// 공격 진행도 60% 지점에서 호출됨
-        /// List 기반으로 단일/다중 타겟 모두 처리
+        /// 새로운 Action System도 지원
         /// </summary>
-        private void OnAnimationAttackHit(List<GameObject> targets)
+        private void OnAnimationAttackHit()
         {
-            // currentAttackTargets 검증
+            // 새로운 Action System 사용 중인지 확인
+            if (currentAttackResult != null)
+            {
+                ApplyCurrentAttackDamage();
+                Debug.Log($"[CombatComponent] {gameObject.name}: Damage applied by new Action System");
+
+                return;
+            }
+
+            // 기존 시스템: currentAttackTargets 검증
             if (currentAttackTargets == null || currentAttackTargets.Count == 0)
             {
                 Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack hit but no current targets");
                 return;
-            }
-
-            // 타겟 일치 확인 (선택적 검증)
-            if (targets != currentAttackTargets)
-            {
-                Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack hit targets mismatch!");
             }
 
             // 실제 데미지 적용 (여러 타겟 처리)
@@ -730,9 +738,18 @@ namespace Game.Components
         /// <summary>
         /// BlendTree 공격 완료 핸들러
         /// UnitAnimationController.OnAttackEnd 이벤트 구독
+        /// 새로운 Action System도 지원
         /// </summary>
-        private void OnAnimationAttackEnd(List<GameObject> targets)
+        private void OnAnimationAttackEnd()
         {
+            // 새로운 Action System 사용 중인지 확인
+            if (currentAttackResult != null)
+            {
+                OnAttackCompleted();
+                return;
+            }
+
+            // 기존 시스템
             if (currentAttackTargets == null || currentAttackTargets.Count == 0)
             {
                 Debug.LogWarning($"[CombatComponent] {gameObject.name}: Attack end but no current targets");
@@ -922,7 +939,7 @@ namespace Game.Components
             if (animationController != null)
             {
                 Debug.Log($"[CombatComponent] AttackTiles animation started with {validTargets.Count} targets");
-                animationController.PlayAttackAnimation(validTargets);
+                animationController.PlayAttackAnimation();
                 return validTargets.Count;
             }
             else
@@ -936,6 +953,110 @@ namespace Game.Components
                 Debug.Log($"[CombatComponent] AttackTiles: {targetTiles.Count}개 타일 중 {affectedCount}개 고유 타겟에게 피해 적용");
                 return affectedCount;
             }
+        }
+
+        #endregion
+
+        #region New Action System Integration
+
+        /// <summary>
+        /// 공격 효과 추가 (새로운 Action System용)
+        /// </summary>
+        public void AddAttackEffect(IAttackEffect effect)
+        {
+            if (effect == null) return;
+            attackEffects.Add(effect);
+            attackEffects.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        }
+
+        /// <summary>
+        /// ActionResult를 사용한 공격 실행 (새로운 Action System용)
+        /// </summary>
+        public void ExecuteAttackWithResult(ActionResult result, ActionContext context)
+        {
+            if (isAttacking || result == null) return;
+
+            isAttacking = true;
+            currentAttackResult = result;
+            currentAttackContext = context;
+
+            if (animationController != null)
+                animationController.PlayAttackAnimation();
+            else
+            {
+                ApplyCurrentAttackDamage();
+                OnAttackCompleted();
+            }
+        }
+
+        /// <summary>
+        /// 현재 ActionResult 기반 데미지 적용
+        /// </summary>
+        private void ApplyCurrentAttackDamage()
+        {
+            if (currentAttackResult == null || currentAttackResult.SelectedModifier == null)
+                return;
+
+            var attackModifier = currentAttackResult.SelectedModifier as IAttackModifier;
+            if (attackModifier == null) return;
+
+            int modifierDamage = attackModifier.CalculateDamage(currentAttackContext);
+
+            foreach (var tile in currentAttackResult.ValidTiles)
+            {
+                if (tile == null) continue;
+
+                var targetHealth = tile.GetDamageableTarget();
+                if (targetHealth != null && targetHealth.IsAlive)
+                    ApplyDamageToTarget(targetHealth.gameObject, modifierDamage);
+            }
+
+            ApplyAttackEffects();
+        }
+
+        /// <summary>
+        /// 단일 타겟에 데미지 적용 (새 시스템용)
+        /// </summary>
+        private void ApplyDamageToTarget(GameObject target, int baseDamage)
+        {
+            var targetHealth = target.GetComponent<IHealthComponent>();
+            if (targetHealth == null) return;
+
+            bool isCritical = this.RollCritical();
+            int finalDamage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
+
+            targetHealth.TakeDamage(finalDamage);
+
+            var result = CombatResult.Hit(finalDamage, target, attackType, isCritical, "Ability");
+            OnAttackPerformed?.Invoke(target, result);
+
+            if (isCritical)
+                OnCriticalAttack?.Invoke(target, result);
+        }
+
+        /// <summary>
+        /// 공격 효과 적용 (Splash, Stun 등)
+        /// </summary>
+        private void ApplyAttackEffects()
+        {
+            if (attackEffects.Count == 0 || currentAttackResult == null) return;
+
+            foreach (IAttackEffect effect in attackEffects)
+                effect.ApplyEffectToTiles(currentAttackResult.ValidTiles, currentAttackContext);
+        }
+
+        /// <summary>
+        /// 공격 완료 처리 (새 시스템용)
+        /// </summary>
+        private void OnAttackCompleted()
+        {
+            isAttacking = false;
+            var unit = GetComponent<Unit>();
+            if (unit != null)
+                unit.OnActionCompleted();
+
+            currentAttackResult = null;
+            currentAttackContext = null;
         }
 
         #endregion

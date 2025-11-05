@@ -510,7 +510,9 @@ namespace Game.Services
         private void DisconnectServiceEvents()
         {
             // TurnService 이벤트 구독 해제
-            var turnService = ServiceLocator.Get<ITurnService>();
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+            var turnService = gameServiceManager?.GetTurnService();
+
             if (turnService != null)
             {
                 turnService.OnPhaseChanged -= HandlePhaseChanged;

@@ -183,7 +183,7 @@ namespace Game.Editor
             {
                 if (Application.isPlaying)
                 {
-                    controller.PlayAttackAnimation(controller.gameObject);
+                    controller.PlayAttackAnimation();
                     Debug.Log("[Inspector] Triggered Attack Animation");
                 }
                 else

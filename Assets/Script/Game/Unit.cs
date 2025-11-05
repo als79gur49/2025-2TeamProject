@@ -1,11 +1,13 @@
-using UnityEngine;
-using System.Collections.Generic;
-using Game.Interfaces;
-using Game.Components;
-using Game.Data;
-using Game.Core;
 using Game;
+using Game.Components;
+using Game.Components.Abilities;
+using Game.Core;
+using Game.Data;
+using Game.Interfaces;
 using Game.Services;
+using System.Collections.Generic;
+using UnityEngine;
+using static UnityEngine.UI.CanvasScaler;
 public class Unit : MonoBehaviour
 {
     [Header("Legacy Configuration (for Inspector compatibility)")]
@@ -35,7 +37,15 @@ public class Unit : MonoBehaviour
     private ITeamComponent teamComponent;
     private IAnimationController animationController;
     private IUnitAI unitAI;
-    
+
+    // 새로운 Action System 필드
+    private ActionEvaluator actionEvaluator;
+    private ActionExecutorRegistry executorRegistry;
+    private bool isExecutingAction = false;
+    private ActionResult currentActionResult;
+    private ActionContext currentActionContext;
+    private int stunTurns = 0;
+
     // Legacy system support
     private int legacyMaxHealth;
     
@@ -69,9 +79,25 @@ public class Unit : MonoBehaviour
     {
         // Initialize component system
         InitializeComponents();
-        
+
+        // Initialize new Action System
+        InitializeActionSystem();
+
         // Legacy system fallback
         legacyMaxHealth = health;
+    }
+
+    private void InitializeActionSystem()
+    {
+        actionEvaluator = new ActionEvaluator();
+
+        executorRegistry = new ActionExecutorRegistry();
+        executorRegistry.RegisterExecutor(new Game.Core.Executors.AttackActionExecutor());
+        executorRegistry.RegisterExecutor(new Game.Core.Executors.MovementActionExecutor());
+
+        AddActionModifier(new RangedModifier(this, range: 1, priority: 90));
+        AddActionModifier(new MeleeModifier(this, priority: 80));
+        AddActionModifier(new NormalMoveModifier(this, moveRange: 1, priority: 10));
     }
     
     /// <summary>
@@ -471,7 +497,11 @@ public class Unit : MonoBehaviour
     public void Act()
     {
         // AI 컴포넌트가 있으면 AI에게 위임
-        if (useComponentSystem && unitAI != null)
+        if(true)
+        {
+            ExecuteAITurn();
+        }
+        else if (useComponentSystem && unitAI != null)
         {
             var decision = unitAI.DecideAction();
             ExecuteDecision(decision);
@@ -761,4 +791,117 @@ public class Unit : MonoBehaviour
             UpdateComponentSystemStatus();
         }
     }
+
+    #region New Action System Integration
+
+    /// <summary>
+    /// 행동 수정자 추가 (새로운 Action System용)
+    /// </summary>
+    public void AddActionModifier(IActionModifier modifier)
+    {
+        if (modifier == null) return;
+        actionEvaluator.AddModifier(modifier);
+    }
+
+    /// <summary>
+    /// AI 턴 실행 (새로운 Action System 버전)
+    /// </summary>
+    public void ExecuteAITurn()
+    {
+        if (stunTurns > 0)
+        {
+            stunTurns--;
+            Debug.Log($"[Unit] {gameObject.name} is stunned, turns remaining: {stunTurns}");
+            return;
+        }
+
+        if (gridManager == null)
+        {
+            Debug.LogError($"[Unit] {gameObject.name} cannot execute AI turn - gridManager is null");
+            return;
+        }
+
+        var myPosition = gridManager.GetUnitPosition(gameObject);
+        currentActionContext = new ActionContext(myPosition);
+
+        isExecutingAction = true;
+        actionEvaluator.Reset();
+
+        Debug.Log($"[Unit] {gameObject.name} ExecuteAITurn");
+
+        EvaluateAndExecuteNextAction();
+    }
+
+    /// <summary>
+    /// 다음 행동 평가 및 실행
+    /// </summary>
+    private void EvaluateAndExecuteNextAction()
+    {
+        ActionResult result = actionEvaluator.EvaluateNextAction(currentActionContext);
+
+        if (result.IsSuccess)
+        {
+            currentActionResult = result;
+            currentActionContext.ExecutedActions.Add(result.SelectedModifier);
+
+            bool executed = executorRegistry.TryExecute(result, currentActionContext, this);
+
+            if (!executed)
+            {
+                result.SelectedModifier.Execute(currentActionContext);
+                OnActionCompleted();
+            }
+        }
+        else
+        {
+            OnAllActionsCompleted();
+        }
+    }
+
+    /// <summary>
+    /// 행동 완료 콜백 (CombatComponent, MovementComponent에서 호출)
+    /// </summary>
+    public void OnActionCompleted()
+    {
+        if (currentActionResult == null)
+        {
+            OnAllActionsCompleted();
+            return;
+        }
+
+        if (currentActionResult.ShouldContinueChain())
+        {
+            actionEvaluator.MoveToNextModifier();
+            currentActionResult = null;
+            EvaluateAndExecuteNextAction();
+        }
+        else
+        {
+            OnAllActionsCompleted();
+        }
+    }
+
+    /// <summary>
+    /// 모든 행동 완료 처리
+    /// </summary>
+    private void OnAllActionsCompleted()
+    {
+        isExecutingAction = false;
+        currentActionResult = null;
+        currentActionContext = null;
+        actionEvaluator.Reset();
+
+        Debug.Log($"[Unit] {gameObject.name} completed all actions");
+    }
+
+    /// <summary>
+    /// 스턴 효과 추가
+    /// </summary>
+    public void AddStun(int turns)
+    {
+        stunTurns = Mathf.Max(stunTurns, turns);
+        Debug.Log($"[Unit] {gameObject.name} stunned for {stunTurns} turns");
+    }
+
+    #endregion
 }

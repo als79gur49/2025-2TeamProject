@@ -110,6 +110,10 @@ namespace Game.Components
         private Coroutine sequentialMovementCoroutine;
         private bool isSequentialMoving = false; // 순차 이동 진행 상태
 
+        // 새로운 Action System 필드
+        private ActionResult currentMoveResult;
+        private ActionContext currentMoveContext;
+
         // 캐시된 컴포넌트
         private IGridManager gridManager;
         private IHealthComponent healthComponent;
@@ -1056,6 +1060,53 @@ namespace Game.Components
                 transform.position = gridManager.CalculateWorldPositionWithHeight(currentGridPos);
                 Debug.Log($"[MovementComponent] {gameObject.name}: Snapped to grid position {currentGridPos}");
             }
+        }
+
+        #endregion
+
+        #region New Action System Integration
+
+        /// <summary>
+        /// ActionResult를 사용한 이동 실행 (새로운 Action System용)
+        /// </summary>
+        public void ExecuteMoveWithResult(ActionResult result, ActionContext context)
+        {
+            if (isMoving || !result.MoveDestination.HasValue)
+            {
+                OnMoveCompleted();
+                return;
+            }
+
+            isMoving = true;
+            currentMoveResult = result;
+            currentMoveContext = context;
+
+            var moveModifier = result.SelectedModifier as IMovementModifier;
+            Vector2Int finalDestination = result.MoveDestination.Value;
+
+            if (moveModifier != null)
+                finalDestination = moveModifier.CalculateFinalDestination(result.MoveDestination.Value, context);
+
+            currentMoveContext.TargetMovePosition = finalDestination;
+            MoveTo(finalDestination);
+        }
+
+        /// <summary>
+        /// 이동 완료 처리 (새 시스템용)
+        /// </summary>
+        private void OnMoveCompleted()
+        {
+            isMoving = false;
+
+            if (currentMoveContext?.TargetMovePosition.HasValue == true)
+                OnMovementCompleted?.Invoke(currentMoveContext.ActorPosition, currentMoveContext.TargetMovePosition.Value);
+
+            var unit = GetComponent<Unit>();
+            if (unit != null)
+                unit.OnActionCompleted();
+
+            currentMoveResult = null;
+            currentMoveContext = null;
         }
 
         #endregion

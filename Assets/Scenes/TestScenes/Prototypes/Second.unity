@@ -1070,7 +1070,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableLogging: 1
-  strictValidation: 1
 --- !u!114 &430737602
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1119,7 +1118,6 @@ MonoBehaviour:
   enablePlayerInteraction: 1
   showHandDebugInfo: 1
   testCardData: {fileID: 0}
-  generateTestCards: 1
 --- !u!114 &430737604
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4025,7 +4023,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 251.7317, y: -84.8776}
+  m_AnchoredPosition: {x: 251.7317, y: -84.877686}
   m_SizeDelta: {x: 503.4634, y: 169.7552}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1162940797

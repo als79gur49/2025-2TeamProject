@@ -50,7 +50,6 @@ namespace Game.Components
 
         private bool isAnimationPlaying;
         private float currentAnimationProgress;
-        private List<GameObject> currentTargets;
 
         #endregion
 
@@ -67,14 +66,14 @@ namespace Game.Components
         public event Action<Vector2Int> OnMoveEnd;
 
         /// <summary>
-        /// 공격 시작 이벤트 (targets)
+        /// 공격 시작 이벤트
         /// </summary>
-        public event Action<List<GameObject>> OnAttackStart;
+        public event Action OnAttackStart;
 
         /// <summary>
-        /// 공격 종료 이벤트 (targets)
+        /// 공격 종료 이벤트
         /// </summary>
-        public event Action<List<GameObject>> OnAttackEnd;
+        public event Action OnAttackEnd;
 
         /// <summary>
         /// 애니메이션 중단 이벤트
@@ -83,19 +82,9 @@ namespace Game.Components
 
         /// <summary>
         /// 공격 타격 순간 이벤트 (공격 진행도 60% 지점)
-        /// List 기반으로 단일/다중 타겟 모두 지원
+        /// 애니메이션 타이밍 전달용, CombatComponent가 구독하여 데미지 적용
         /// </summary>
-        public event Action<List<GameObject>> OnAttackHit;
-
-        /// <summary>
-        /// VFX 효과 요청 이벤트 (효과 타입, 위치, 방향)
-        /// </summary>
-        public event Action<string, Vector3, Vector3> OnVFXRequested;
-
-        /// <summary>
-        /// SFX 사운드 요청 이벤트 (사운드 타입, 위치)
-        /// </summary>
-        public event Action<string, Vector3> OnSFXRequested;
+        public event Action OnAttackHit;
 
         #endregion
 
@@ -103,7 +92,6 @@ namespace Game.Components
 
         public bool IsAnimationPlaying => isAnimationPlaying;
         public float CurrentAnimationProgress => currentAnimationProgress;
-        public GameObject CurrentTarget => currentTargets != null && currentTargets.Count > 0 ? currentTargets[0] : null;
 
         #endregion
 
@@ -146,18 +134,6 @@ namespace Game.Components
             Vector3 startWorldPos = gridManager.GridToWorldPosition(from);
             Vector3 targetWorldPos = gridManager.GridToWorldPosition(to);
 
-            // VFX/SFX 요청
-            if (GameSettings.EnableVFX)
-            {
-                Vector3 direction = (targetWorldPos - startWorldPos).normalized;
-                OnVFXRequested?.Invoke("Move_Trail", startWorldPos, direction);
-            }
-
-            if (GameSettings.EnableSFX)
-            {
-                OnSFXRequested?.Invoke("Footstep", transform.position);
-            }
-
             // BlendTree 이동 시작 (이벤트는 BlendTreeAnimationController에서 발생)
             blendTreeController.StartBlendTreeMove(startWorldPos, targetWorldPos, isFirstStep, isLastStep);
 
@@ -169,25 +145,17 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// Animation Event 기반 공격 애니메이션 재생 (List 기반 통합)
+        /// Animation Event 기반 공격 애니메이션 재생
         /// Animator의 Attack Trigger를 통해 애니메이션 시작
         /// 실제 타격은 Animation Event에서 AttackHit() 호출로 처리
-        /// 단일/다중 타겟 모두 지원
+        /// 타겟 정보는 CombatComponent가 관리하며, 애니메이션 컨트롤러는 애니메이션만 재생
         /// </summary>
-        public void PlayAttackAnimation(List<GameObject> targets)
+        public void PlayAttackAnimation()
         {
-            if (targets == null || targets.Count == 0)
-            {
-                Debug.LogWarning($"[UnitAnimationController] {gameObject.name}: No targets provided!");
-                return;
-            }
-
             if (skipAnimations)
             {
-                currentTargets = targets;
-                OnAttackHit?.Invoke(targets);
-                OnAttackEnd?.Invoke(targets);
-                currentTargets = null;
+                OnAttackHit?.Invoke();
+                OnAttackEnd?.Invoke();
                 return;
             }
 
@@ -200,50 +168,22 @@ namespace Game.Components
             // 공격 상태 시작
             isAnimationPlaying = true;
             currentAnimationProgress = 0f;
-            currentTargets = targets;
 
             // 공격 시작 이벤트 발생
-            OnAttackStart?.Invoke(targets);
-
-            // VFX/SFX 요청
-            if (GameSettings.EnableVFX)
-            {
-                Vector3 pos = transform.position;
-                Vector3 direction = targets[0] != null ? (targets[0].transform.position - pos).normalized : transform.forward;
-                OnVFXRequested?.Invoke("Attack_Swing", pos, direction);
-            }
-
-            if (GameSettings.EnableSFX)
-            {
-                Vector3 pos = transform.position;
-                OnSFXRequested?.Invoke("Attack_Swing", pos);
-            }
+            OnAttackStart?.Invoke();
 
             // Animator Attack Trigger 실행
             animator.SetTrigger(ATTACK_TRIGGER);
 
             if (logAnimationEvents)
             {
-                string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation started on [{targetNames}]");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack animation started");
             }
-        }
-
-        /// <summary>
-        /// 단일 타겟 공격 애니메이션 (하위 호환성)
-        /// 내부적으로 List로 변환하여 처리
-        /// </summary>
-        public void PlayAttackAnimation(GameObject target)
-        {
-            List<GameObject> targets = new List<GameObject> { target };
-            PlayAttackAnimation(targets);
         }
 
         public void StopCurrentAnimation()
         {
             isAnimationPlaying = false;
-            currentTargets = null;
-
             OnAnimationInterrupted?.Invoke();
         }
 
@@ -288,39 +228,15 @@ namespace Game.Components
         /// <summary>
         /// Animation Event에서 호출되는 공격 타격 이벤트
         /// 공격 애니메이션의 타격 프레임에서 Unity Animation Event로 호출됨
-        /// List 기반으로 다중 타겟 지원
         /// </summary>
         public void AttackHit()
         {
-            if (currentTargets == null || currentTargets.Count == 0)
-            {
-                if (logAnimationEvents)
-                    Debug.LogWarning($"[UnitAnimationController] {gameObject.name}: AttackHit called but no targets");
-                return;
-            }
-
-            // 공격 타격 이벤트 발생 (List 전체 전달)
-            OnAttackHit?.Invoke(currentTargets);
-
-            // VFX/SFX 효과 (첫번째 타겟 기준)
-            GameObject primaryTarget = currentTargets[0];
-            if (GameSettings.EnableVFX && primaryTarget != null)
-            {
-                Vector3 hitPos = primaryTarget.transform.position;
-                Vector3 direction = (hitPos - transform.position).normalized;
-                OnVFXRequested?.Invoke("Attack_Hit", hitPos, direction);
-            }
-
-            if (GameSettings.EnableSFX && primaryTarget != null)
-            {
-                Vector3 hitPos = primaryTarget.transform.position;
-                OnSFXRequested?.Invoke("Attack_Hit", hitPos);
-            }
+            // 공격 타격 이벤트 발생
+            OnAttackHit?.Invoke();
 
             if (logAnimationEvents)
             {
-                string targetNames = string.Join(", ", currentTargets.ConvertAll(t => t ? t.name : "destroyed"));
-                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack hit on [{targetNames}]");
+                Debug.Log($"[UnitAnimationController] {gameObject.name}: Attack hit");
             }
         }
 
@@ -335,30 +251,16 @@ namespace Game.Components
         /// </summary>
         public void AttackEnd()
         {
-            List<GameObject> targets = currentTargets;
-
             // 상태 초기화
             isAnimationPlaying = false;
             currentAnimationProgress = 1f;
-            currentTargets = null;
 
             // 공격 종료 이벤트 발생
-            if (targets != null && targets.Count > 0)
-            {
-                OnAttackEnd?.Invoke(targets);
-            }
+            OnAttackEnd?.Invoke();
 
             if (logAnimationEvents)
             {
-                if(targets != null && targets.Count > 0)
-                {
-                    string targetNames = string.Join(", ", targets.ConvertAll(t => t ? t.name : "destroyed"));
-                    Debug.Log($"[UnitAnimationController] {gameObject?.name}: Attack animation ended on [{targetNames}]");
-                }
-                else
-                {
-                    Debug.Log($"[UnitAnimationController] {gameObject?.name}: Attack animation ended");
-                }
+                Debug.Log($"[UnitAnimationController] {gameObject?.name}: Attack animation ended");
             }
         }
 
@@ -477,7 +379,7 @@ namespace Game.Components
             }
 
             // 공격 애니메이션 진행도는 Animator의 현재 상태 기반으로 업데이트
-            if (isAnimationPlaying && animator != null && currentTargets != null && currentTargets.Count > 0)
+            if (isAnimationPlaying && animator != null)
             {
                 AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
                 if (stateInfo.IsTag("Attack"))

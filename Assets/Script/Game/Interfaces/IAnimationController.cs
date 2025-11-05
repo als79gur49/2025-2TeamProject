@@ -25,12 +25,6 @@ namespace Game.Interfaces
         /// </summary>
         float CurrentAnimationProgress { get; }
 
-        /// <summary>
-        /// 현재 공격 대상 GameObject
-        /// 공격 애니메이션 재생 중 타겟 추적용
-        /// </summary>
-        GameObject CurrentTarget { get; }
-
         // ========================================
         // Animation Methods
         // ========================================
@@ -46,15 +40,9 @@ namespace Game.Interfaces
 
         /// <summary>
         /// BlendTree 기반 공격 애니메이션 재생
+        /// 타겟 정보는 애니메이션 컨트롤러의 책임이 아니므로 파라미터 없음
         /// </summary>
-        /// <param name="target">공격 대상 GameObject</param>
-        void PlayAttackAnimation(GameObject target);
-
-        /// <summary>
-        /// BlendTree 기반 공격 애니메이션 재생 (다중 타겟)
-        /// </summary>
-        /// <param name="targets">공격 대상 GameObject 리스트</param>
-        void PlayAttackAnimation(List<GameObject> targets);
+        void PlayAttackAnimation();
 
         /// <summary>
         /// 현재 재생 중인 애니메이션 중단
@@ -84,16 +72,16 @@ namespace Game.Interfaces
         event Action<Vector2Int> OnMoveEnd;
 
         /// <summary>
-        /// 공격 시작 이벤트 (targets)
-        /// BlendTreeAnimationController.OnBlendTreeAttackStart에서 전달
+        /// 공격 시작 이벤트
+        /// 애니메이션 타이밍 전달용 (타겟 정보는 CombatComponent가 관리)
         /// </summary>
-        event Action<List<GameObject>> OnAttackStart;
+        event Action OnAttackStart;
 
         /// <summary>
-        /// 공격 종료 이벤트 (targets)
-        /// BlendTreeAnimationController.OnBlendTreeAttackEnd에서 전달
+        /// 공격 종료 이벤트
+        /// 애니메이션 타이밍 전달용 (타겟 정보는 CombatComponent가 관리)
         /// </summary>
-        event Action<List<GameObject>> OnAttackEnd;
+        event Action OnAttackEnd;
 
         /// <summary>
         /// 애니메이션 중단 이벤트
@@ -103,23 +91,9 @@ namespace Game.Interfaces
 
         /// <summary>
         /// 공격 타격 순간 이벤트 (공격 진행도 60% 지점)
-        /// List 기반으로 단일/다중 타겟 모두 지원
-        /// CombatComponent가 이 이벤트를 구독하여 데미지 적용
+        /// 애니메이션 타이밍 전달용, CombatComponent가 구독하여 데미지 적용
+        /// 타겟 정보는 CombatComponent가 관리
         /// </summary>
-        event Action<List<GameObject>> OnAttackHit;
-
-        // ========================================
-        // VFX/SFX Events
-        // ========================================
-
-        /// <summary>
-        /// VFX 효과 요청 이벤트 (효과 타입, 위치, 방향)
-        /// </summary>
-        event Action<string, Vector3, Vector3> OnVFXRequested;
-
-        /// <summary>
-        /// SFX 사운드 요청 이벤트 (사운드 타입, 위치)
-        /// </summary>
-        event Action<string, Vector3> OnSFXRequested;
+        event Action OnAttackHit;
     }
 }
