@@ -16,7 +16,10 @@ namespace Game.Services
         // Phase 1: Sequential Processing System - State Management
         private PhaseExecutionContext currentContext;
         private float unitActionInterval = 0.14f; // 기본 1초 간격
-        
+
+        // GlobalStateManager integration for action chain management
+        private IGlobalStateManager globalStateManager;
+
         public int ActiveUnitCount => allUnits.Count(u => u != null && u.IsAlive);
         
         // 기존 이벤트
@@ -50,6 +53,13 @@ namespace Game.Services
         /// </summary>
         public void Init()
         {
+            // Get GlobalStateManager from ServiceLocator
+            globalStateManager = ServiceLocator.Get<IGlobalStateManager>();
+            if (globalStateManager == null)
+            {
+                Debug.LogWarning("[UnitService] GlobalStateManager not found - turn control may not work properly");
+            }
+
             // Periodic cleanup of dead units
             InvokeRepeating(nameof(CleanupDeadUnits), 1f, 2f);
             Debug.Log("[UnitService] Initialized - Cleanup routine started");
@@ -402,38 +412,42 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 애니메이션 완료를 대기하는 별도 코루틴
+        /// 액션 체인 완료를 대기하는 코루틴
+        /// GlobalStateManager의 GameFlowLock을 체크하여 전체 체인(Attack → Movement)을 추적
         /// </summary>
         private IEnumerator WaitForAnimationComplete(IAnimationController animController, Unit unit)
         {
-            Debug.Log($"[UnitService] Waiting for {unit.name} animation to complete...");
+            Debug.Log($"[UnitService] Waiting for {unit.name} action chain to complete...");
 
-            float timeout = 5f; // 5초 타임아웃 (안전장치)
+            float timeout = 20f; // 20초 타임아웃 (전체 액션 체인 대응)
             float elapsed = 0f;
 
-            // IsAnimationPlaying이 false가 될 때까지 대기
-            while (animController != null && animController.IsAnimationPlaying && elapsed < timeout)
+            // GlobalStateManager의 GameFlowLock을 체크하여 전체 액션 체인 대기
+            // Attack → Movement 전체를 하나의 단위로 추적
+            while (globalStateManager != null &&
+                   globalStateManager.IsBusy(BusyType.GameFlowLock) &&
+                   elapsed < timeout)
             {
-                yield return null; // 다음 프레임까지 대기
+                yield return null;
                 elapsed += Time.deltaTime;
             }
 
-            // 유닛이 애니메이션 중 파괴되었는지 확인
-            if (animController == null)
+            // Unit destroyed check
+            if (unit == null)
             {
-                Debug.Log($"[UnitService] Unit {unit?.name} was destroyed during animation");
+                Debug.Log($"[UnitService] Unit was destroyed during action chain");
                 yield break;
             }
 
-            // 타임아웃 처리
+            // Timeout handling
             if (elapsed >= timeout)
             {
-                Debug.LogWarning($"[UnitService] Animation timeout for {unit.name}, forcing completion");
-                animController.StopCurrentAnimation();
+                Debug.LogWarning($"[UnitService] Action chain timeout for {unit.name}, forcing completion");
+                // Note: GlobalStateManager has auto-timeout at 15s, this is extra safety
             }
             else
             {
-                Debug.Log($"[UnitService] Animation completed for {unit.name}");
+                Debug.Log($"[UnitService] Action chain completed for {unit.name}");
             }
         }
     }

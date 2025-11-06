@@ -5298,15 +5298,8 @@ MonoBehaviour:
   playerUnitData: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
   playerStartPositions:
-  - {x: 1, y: 1}
-  - {x: 2, y: 2}
-  - {x: 3, y: 2}
-  - {x: 4, y: 1}
-  enemyStartPositions:
-  - {x: 0, y: 5}
-  - {x: 1, y: 4}
-  - {x: 3, y: 5}
-  - {x: 4, y: 5}
+  - {x: 0, y: 6}
+  enemyStartPositions: []
 --- !u!1001 &1925692108
 PrefabInstance:
   m_ObjectHideFlags: 0

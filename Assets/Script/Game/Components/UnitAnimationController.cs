@@ -127,8 +127,10 @@ namespace Game.Components
                 return;
             }
 
-            // 상태 관리는 HandleBlendTreeMoveStart에서 처리
-            // isAnimationPlaying과 currentAnimationProgress는 Handler가 관리
+            // 애니메이션 상태 즉시 설정 (Attack과 동일 패턴)
+            // UnitService가 unit.Act() 반환 직후 체크하므로 동기적으로 설정 필요
+            isAnimationPlaying = true;
+            currentAnimationProgress = 0f;
 
             // Grid 좌표를 World 좌표로 변환 (GridManager 사용)
             Vector3 startWorldPos = gridManager.GridToWorldPosition(from);
@@ -271,14 +273,11 @@ namespace Game.Components
         /// <summary>
         /// BlendTree 이동 시작 핸들러
         /// BlendTreeAnimationController.OnBlendTreeMoveStart 이벤트를 구독
-        /// 이벤트 기반으로 애니메이션 상태 관리
+        /// 이벤트 기반 이동 시작 처리
+        /// 애니메이션 상태는 PlayMoveAnimation()에서 이미 설정됨
         /// </summary>
         private void HandleBlendTreeMoveStart(Vector3 startPos, Vector3 targetPos)
         {
-            // 애니메이션 상태 시작
-            isAnimationPlaying = true;
-            currentAnimationProgress = 0f;
-
             if (gridManager == null)
             {
                 Debug.LogError($"[UnitAnimationController] {gameObject.name}: GridManager is null in HandleBlendTreeMoveStart!");

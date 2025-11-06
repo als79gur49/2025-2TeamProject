@@ -1051,12 +1051,15 @@ namespace Game.Components
         private void OnAttackCompleted()
         {
             isAttacking = false;
+
+            // 먼저 현재 공격 데이터 클리어 (다음 행동 시작 전)
+            currentAttackResult = null;
+            currentAttackContext = null;
+
+            // 그 다음 다음 행동 트리거 (새 currentAttackResult 설정 가능)
             var unit = GetComponent<Unit>();
             if (unit != null)
                 unit.OnActionCompleted();
-
-            currentAttackResult = null;
-            currentAttackContext = null;
         }
 
         #endregion

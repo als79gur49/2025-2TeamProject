@@ -998,6 +998,9 @@ namespace Game.Components
             Vector2Int finalPosition = path[path.Count - 1];
             OnMovementCompleted?.Invoke(startPosition, finalPosition);
 
+            // Trigger callback chain: Unit.OnActionCompleted() → OnAllActionsCompleted() → SetIdle()
+            OnMoveCompleted();
+
             Debug.Log($"[MovementComponent] {gameObject.name}: Sequential movement completed at {finalPosition} - CanMove: {CanMove}");
         }
 
@@ -1083,9 +1086,10 @@ namespace Game.Components
 
             var moveModifier = result.SelectedModifier as IMovementModifier;
             Vector2Int finalDestination = result.MoveDestination.Value;
-
+            Debug.Log($"OriginDestination: {finalDestination}");
             if (moveModifier != null)
                 finalDestination = moveModifier.CalculateFinalDestination(result.MoveDestination.Value, context);
+            Debug.Log($"FinalDestination: {finalDestination}");
 
             currentMoveContext.TargetMovePosition = finalDestination;
             MoveTo(finalDestination);

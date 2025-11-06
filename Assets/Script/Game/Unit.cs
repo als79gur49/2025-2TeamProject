@@ -49,8 +49,9 @@ public class Unit : MonoBehaviour
     // Legacy system support
     private int legacyMaxHealth;
     
-    // Phase 3: Clean Architecture - ServiceLocator pattern  
+    // Phase 3: Clean Architecture - ServiceLocator pattern
     private IGridManager gridManager;
+    private IGlobalStateManager globalStateManager;
 
     [SerializeField]
     private Tile currentTile;
@@ -156,6 +157,13 @@ public class Unit : MonoBehaviour
         else
         {
             Debug.LogWarning($"[Unit] {gameObject.name} could not get GridManager from ServiceLocator");
+        }
+
+        // GlobalStateManager 초기화
+        globalStateManager = ServiceLocator.Get<IGlobalStateManager>();
+        if (globalStateManager == null)
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} could not get GlobalStateManager from ServiceLocator");
         }
 
         isInitialized = true;
@@ -758,6 +766,9 @@ public class Unit : MonoBehaviour
     /// </summary>
     private void OnDestroy()
     {
+        // Force release GameFlowLock if Unit destroyed mid-action
+        globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
+
         CleanupEventSubscriptions();
     }
     
@@ -821,6 +832,10 @@ public class Unit : MonoBehaviour
             return;
         }
 
+        // Set GameFlowLock before action chain starts
+        globalStateManager?.SetBusy(this, BusyType.GameFlowLock, timeout: 15f);
+        Debug.Log($"[Unit] {gameObject.name} set GameFlowLock for action chain execution");
+
         var myPosition = gridManager.GetUnitPosition(gameObject);
         currentActionContext = new ActionContext(myPosition);
 
@@ -863,17 +878,22 @@ public class Unit : MonoBehaviour
     /// </summary>
     public void OnActionCompleted()
     {
-        if (currentActionResult == null)
+        // 로컬 복사본 생성 (다음 행동 시작 전에 현재 결과 보존)
+        var result = currentActionResult;
+
+        // 즉시 클리어 (다음 행동이 새 currentActionResult를 설정할 수 있도록)
+        currentActionResult = null;
+
+        if (result == null)
         {
             OnAllActionsCompleted();
             return;
         }
 
-        if (currentActionResult.ShouldContinueChain())
+        if (result.ShouldContinueChain())
         {
             actionEvaluator.MoveToNextModifier();
-            currentActionResult = null;
-            EvaluateAndExecuteNextAction();
+            EvaluateAndExecuteNextAction();  // 새 currentActionResult 설정 가능
         }
         else
         {
@@ -891,7 +911,10 @@ public class Unit : MonoBehaviour
         currentActionContext = null;
         actionEvaluator.Reset();
 
-        Debug.Log($"[Unit] {gameObject.name} completed all actions");
+        // Release GameFlowLock after action chain completes
+        globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
+
+        Debug.Log($"[Unit] {gameObject.name} completed all actions and released GameFlowLock");
     }
 
     /// <summary>

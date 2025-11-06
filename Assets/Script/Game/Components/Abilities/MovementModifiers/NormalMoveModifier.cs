@@ -15,6 +15,8 @@ namespace Game.Components.Abilities
 
         private IActionModifier nextModifier;
         private IGridManager gridManager;
+        private ITeamComponent teamComponent;
+        private IMovementSystem movementSystem;
 
         public NormalMoveModifier(Unit owner, int moveRange = 1, int priority = 10)
         {
@@ -22,6 +24,8 @@ namespace Game.Components.Abilities
             MaxMoveRange = moveRange;
             Priority = priority;
             gridManager = ServiceLocator.Get<IGridManager>();
+            teamComponent = owner.GetComponent<ITeamComponent>();
+            movementSystem = owner.GetComponent<IMovementSystem>();
         }
 
         public void SetNext(IActionModifier next) => nextModifier = next;
@@ -34,7 +38,6 @@ namespace Game.Components.Abilities
                 ChainBehavior = this.ChainBehavior
             };
 
-            context.MoveRange = MaxMoveRange;
             Vector2Int? moveTarget = FindMoveTarget(context.ActorPosition);
 
             if (moveTarget.HasValue)
@@ -58,22 +61,39 @@ namespace Game.Components.Abilities
 
         private Vector2Int? FindMoveTarget(Vector2Int currentPos)
         {
-            Vector2Int forward = new Vector2Int(currentPos.x, currentPos.y + 1);
-            if (gridManager.IsValidPosition(forward) && !gridManager.IsPositionWalkable(forward))
-                return forward;
-
-            Vector2Int[] directions = new Vector2Int[]
+            // Validate dependencies
+            if (movementSystem == null || gridManager == null)
             {
-                new Vector2Int(currentPos.x + 1, currentPos.y),
-                new Vector2Int(currentPos.x - 1, currentPos.y),
-                new Vector2Int(currentPos.x, currentPos.y - 1),
-            };
+                Debug.LogWarning($"[NormalMoveModifier] Missing dependencies for {Owner?.name}");
+                return null;
+            }
 
-            foreach (var dir in directions)
-                if (gridManager.IsValidPosition(dir) && !gridManager.IsPositionWalkable(dir))
-                    return dir;
+            // Get all valid positions within current movement range
+            var validPositions = movementSystem.GetValidMovePositions();
 
-            return null;
+            if (validPositions.Count == 0)
+            {
+                return null;
+            }
+
+            // Determine team-based direction (Player: +Y, Enemy: -Y)
+            int direction = teamComponent?.Team == TeamType.Player ? 1 : -1;
+
+            // Find the furthest forward position (same logic as BasicUnitAI.GetForwardMovePosition)
+            Vector2Int? bestPosition = null;
+            int maxDistance = 0;
+
+            foreach (var pos in validPositions)
+            {
+                int distance = (pos.y - currentPos.y) * direction;
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                    bestPosition = pos;
+                }
+            }
+
+            return bestPosition;
         }
     }
 }

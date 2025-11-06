@@ -15,12 +15,16 @@ namespace Game.Components.Abilities
 
         private IActionModifier nextModifier;
         private IGridManager gridManager;
+        private ITeamComponent teamComponent;
+        private IMovementSystem movementSystem;
 
         public BoosterModifier(Unit owner, int priority = 20)
         {
             Owner = owner;
             Priority = priority;
             gridManager = ServiceLocator.Get<IGridManager>();
+            teamComponent = owner.GetComponent<ITeamComponent>();
+            movementSystem = owner.GetComponent<IMovementSystem>();
         }
 
         public void SetNext(IActionModifier next) => nextModifier = next;
@@ -78,8 +82,39 @@ namespace Game.Components.Abilities
 
         private Vector2Int? FindMoveTarget(Vector2Int currentPos)
         {
-            Vector2Int forward = new Vector2Int(currentPos.x, currentPos.y + 1);
-            return gridManager.IsValidPosition(forward) ? forward : (Vector2Int?)null;
+            // Validate dependencies
+            if (movementSystem == null || gridManager == null)
+            {
+                Debug.LogWarning($"[BoosterModifier] Missing dependencies for {Owner?.name}");
+                return null;
+            }
+
+            // Get all valid positions within current movement range
+            var validPositions = movementSystem.GetValidMovePositions();
+
+            if (validPositions.Count == 0)
+            {
+                return null;
+            }
+
+            // Determine team-based direction (Player: +Y, Enemy: -Y)
+            int direction = teamComponent?.Team == TeamType.Player ? 1 : -1;
+
+            // Find the furthest forward position (same logic as BasicUnitAI.GetForwardMovePosition)
+            Vector2Int? bestPosition = null;
+            int maxDistance = 0;
+
+            foreach (var pos in validPositions)
+            {
+                int distance = (pos.y - currentPos.y) * direction;
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                    bestPosition = pos;
+                }
+            }
+
+            return bestPosition;
         }
     }
 }
