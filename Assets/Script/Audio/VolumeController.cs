@@ -38,7 +38,10 @@ public class VolumeController : MonoBehaviour, IVolumeController
     private float masterVolumeBeforeMute;
     private float bgmVolumeBeforeMute;
     private float effectVolumeBeforeMute;
-    
+
+    // 초기화 상태 플래그 (중복 초기화 방지)
+    private bool isVolumeInitialized = false;
+
     // AudioMixer 파라미터 이름
     private const string MASTER_VOLUME_PARAM = "MasterVolume";
     private const string BGM_VOLUME_PARAM = "BGMVolume";
@@ -219,7 +222,7 @@ public class VolumeController : MonoBehaviour, IVolumeController
         {
             Debug.LogError("VolumeController: AudioMixer가 설정되지 않았습니다.");
         }
-        InitializeVolume();
+        //InitializeVolume();
     }
     
     /// <summary>
@@ -242,15 +245,38 @@ public class VolumeController : MonoBehaviour, IVolumeController
     #region IVolumeController 구현
     
     /// <summary>
-    /// 볼륨 초기화
-    /// Unity Start에서 호출되어 저장된 설정 로드
+    /// 볼륨 초기화 - 기본값 설정
+    /// 실제 저장된 설정은 SaveDataAdapter가 자동으로 로드합니다.
+    /// 중복 호출 시 자동으로 건너뜁니다 (멱등성 보장).
     /// </summary>
     public void InitializeVolume()
     {
+        // 이미 초기화되었으면 건너뛰기 (중복 초기화 방지)
+        if (isVolumeInitialized)
+        {
+            Debug.Log("VolumeController 이미 초기화됨 - 기본값 설정 건너뜀");
+            Debug.Log("실제 설정은 SaveDataAdapter에서 로드된 상태입니다.");
+            return;
+        }
+
         try
         {
-            LoadVolumeSettings();
-            Debug.Log("VolumeController 초기화 완료");
+            // 기본값으로 초기화 (SaveDataAdapter가 나중에 실제 값을 로드함)
+            currentMasterVolume = defaultMasterVolume;
+            currentBGMVolume = defaultBGMVolume;
+            currentEffectVolume = defaultEffectVolume;
+
+            isMasterMuted = false;
+            isBGMMuted = false;
+            isEffectMuted = false;
+
+            // AudioMixer에 기본값 적용
+            ApplyAllVolumesToMixer();
+
+            isVolumeInitialized = true;  // 초기화 완료 플래그 설정
+
+            Debug.Log($"VolumeController 기본값 초기화 완료 - Master: {currentMasterVolume:F1}dB, BGM: {currentBGMVolume:F1}dB, Effect: {currentEffectVolume:F1}dB");
+            Debug.Log("실제 설정은 SaveDataAdapter에서 자동으로 로드됩니다.");
         }
         catch (Exception ex)
         {
@@ -262,41 +288,47 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// <summary>
     /// UI 슬라이더용 정규화된 마스터 볼륨 설정 (0~1)
     /// Unity UI Slider.value와 직접 연동 가능
+    /// 로그 스케일 변환: 인간의 청각 특성 반영
     /// </summary>
     public void SetMasterVolumeNormalized(float normalizedValue)
     {
         normalizedValue = Mathf.Clamp01(normalizedValue);
         // 0~1 범위를 -80~20 dB로 변환 (로그 스케일)
-        float dbValue = normalizedValue > 0.01f ? 
-            Mathf.Lerp(-80f, 20f, normalizedValue) : 
-            -80f; // 완전히 0이면 -80dB로 설정
-            
+        // 공식: dB = 20 * log10(value)
+        float dbValue = normalizedValue > 0.0001f ?
+            20f * Mathf.Log10(normalizedValue) :
+            -80f; // 매우 작은 값이면 -80dB로 설정
+
         MasterVolume = dbValue;
     }
     
     /// <summary>
     /// UI 슬라이더용 정규화된 BGM 볼륨 설정 (0~1)
+    /// 로그 스케일 변환: 인간의 청각 특성 반영
     /// </summary>
     public void SetBGMVolumeNormalized(float normalizedValue)
     {
         normalizedValue = Mathf.Clamp01(normalizedValue);
-        float dbValue = normalizedValue > 0.01f ? 
-            Mathf.Lerp(-80f, 20f, normalizedValue) : 
+        // 로그 스케일 변환
+        float dbValue = normalizedValue > 0.0001f ?
+            20f * Mathf.Log10(normalizedValue) :
             -80f;
-            
+
         BGMVolume = dbValue;
     }
     
     /// <summary>
     /// UI 슬라이더용 정규화된 효과음 볼륨 설정 (0~1)
+    /// 로그 스케일 변환: 인간의 청각 특성 반영
     /// </summary>
     public void SetEffectVolumeNormalized(float normalizedValue)
     {
         normalizedValue = Mathf.Clamp01(normalizedValue);
-        float dbValue = normalizedValue > 0.01f ? 
-            Mathf.Lerp(-80f, 20f, normalizedValue) : 
+        // 로그 스케일 변환
+        float dbValue = normalizedValue > 0.0001f ?
+            20f * Mathf.Log10(normalizedValue) :
             -80f;
-            
+
         EffectVolume = dbValue;
     }
     
@@ -336,62 +368,6 @@ public class VolumeController : MonoBehaviour, IVolumeController
     }
     
     /// <summary>
-    /// 볼륨 설정 저장
-    /// Unity PlayerPrefs 사용한 영구 저장
-    /// </summary>
-    public void SaveVolumeSettings()
-    {
-        try
-        {
-            PlayerPrefs.SetFloat(masterVolumeKey, currentMasterVolume);
-            PlayerPrefs.SetFloat(bgmVolumeKey, currentBGMVolume);
-            PlayerPrefs.SetFloat(effectVolumeKey, currentEffectVolume);
-            
-            PlayerPrefs.SetInt(masterMuteKey, isMasterMuted ? 1 : 0);
-            PlayerPrefs.SetInt(bgmMuteKey, isBGMMuted ? 1 : 0);
-            PlayerPrefs.SetInt(effectMuteKey, isEffectMuted ? 1 : 0);
-            
-            PlayerPrefs.Save(); // Unity PlayerPrefs 강제 저장
-            
-            Debug.Log("볼륨 설정 저장 완료");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"볼륨 설정 저장 실패: {ex.Message}");
-        }
-    }
-    
-    /// <summary>
-    /// 볼륨 설정 로드
-    /// Unity PlayerPrefs에서 저장된 설정 복원
-    /// </summary>
-    public void LoadVolumeSettings()
-    {
-        try
-        {
-            // 볼륨 값 로드 (기본값 사용)
-            currentMasterVolume = PlayerPrefs.GetFloat(masterVolumeKey, defaultMasterVolume);
-            currentBGMVolume = PlayerPrefs.GetFloat(bgmVolumeKey, defaultBGMVolume);
-            currentEffectVolume = PlayerPrefs.GetFloat(effectVolumeKey, defaultEffectVolume);
-            
-            // 음소거 상태 로드
-            isMasterMuted = PlayerPrefs.GetInt(masterMuteKey, 0) == 1;
-            isBGMMuted = PlayerPrefs.GetInt(bgmMuteKey, 0) == 1;
-            isEffectMuted = PlayerPrefs.GetInt(effectMuteKey, 0) == 1;
-            
-            // AudioMixer에 적용
-            ApplyAllVolumesToMixer();
-            
-            Debug.Log($"볼륨 설정 로드 완료 - Master: {currentMasterVolume:F1}dB, BGM: {currentBGMVolume:F1}dB, Effect: {currentEffectVolume:F1}dB");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"볼륨 설정 로드 실패: {ex.Message}");
-            ResetToDefault();
-        }
-    }
-    
-    /// <summary>
     /// 볼륨 설정이 기본값인지 확인
     /// </summary>
     public bool IsDefaultSettings()
@@ -408,22 +384,25 @@ public class VolumeController : MonoBehaviour, IVolumeController
     public void ResetToDefault()
     {
         Debug.Log("볼륨 설정을 기본값으로 초기화");
-        
+
         currentMasterVolume = defaultMasterVolume;
         currentBGMVolume = defaultBGMVolume;
         currentEffectVolume = defaultEffectVolume;
-        
+
         isMasterMuted = false;
         isBGMMuted = false;
         isEffectMuted = false;
-        
+
         ApplyAllVolumesToMixer();
-        
+
+        // 리셋 후에도 초기화된 것으로 표시 (중복 초기화 방지)
+        isVolumeInitialized = true;
+
         // 이벤트 알림
         OnVolumeChanged?.Invoke(VolumeType.Master, currentMasterVolume);
         OnVolumeChanged?.Invoke(VolumeType.BGM, currentBGMVolume);
         OnVolumeChanged?.Invoke(VolumeType.Effect, currentEffectVolume);
-        
+
         OnMuteChanged?.Invoke(VolumeType.Master, isMasterMuted);
         OnMuteChanged?.Invoke(VolumeType.BGM, isBGMMuted);
         OnMuteChanged?.Invoke(VolumeType.Effect, isEffectMuted);
@@ -474,14 +453,14 @@ public class VolumeController : MonoBehaviour, IVolumeController
     
     /// <summary>
     /// dB 값을 정규화된 값(0~1)으로 변환
-    /// UI 표시용
+    /// UI 표시용 (로그 스케일 역변환)
     /// </summary>
     private float DbToNormalized(float dbValue)
     {
         if (dbValue <= -79f) return 0f; // 거의 무음
-        
-        // -80~20 dB 범위를 0~1로 정규화
-        return Mathf.InverseLerp(-80f, 20f, dbValue);
+
+        // 로그 스케일 역변환: 10^(dB/20)
+        return Mathf.Pow(10f, dbValue / 20f);
     }
     
     #endregion

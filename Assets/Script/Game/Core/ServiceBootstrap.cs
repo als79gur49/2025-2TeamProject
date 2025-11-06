@@ -228,7 +228,7 @@ namespace Game.Core
             // ✅ RegisterSingleton 사용 (ServiceCleanup 자동 부착)
             // AudioServiceContainer의 Awake()에서 DontDestroyOnLoad 호출됨
             // ServiceCleanup은 게임 종료 시에만 OnDestroy()에서 자동 Unregister
-            ServiceLocator.RegisterSingleton<AudioServiceContainer, AudioServiceContainer>(container);
+            ServiceLocator.RegisterSingleton<IAudioServiceContainer, AudioServiceContainer>(container);
 
             // ✅ FIX: Initialize services immediately before trying to access them
             // AudioServiceContainer.Start() would be too late - we need services NOW
@@ -312,7 +312,19 @@ namespace Game.Core
                 adapterGO.AddComponent<ServiceCleanup>();
             }
 
-            Log("  ✓ Save System initialization complete");
+            // 6. 게임 시작 시 오디오 설정 자동 로드
+            try
+            {
+                saveAdapter.LoadSpecific(SaveFileType.AudioSettings);
+                Log("  ✓ Audio settings loaded from save file");
+            }
+            catch (System.Exception ex)
+            {
+                Log($"  ⚠ Failed to load audio settings: {ex.Message}");
+                Log("  ℹ Using default audio settings");
+            }
+
+            Log("  ✓ Save System initialization complete with audio settings loaded");
         }
 
         /// <summary>
@@ -414,7 +426,7 @@ namespace Game.Core
             allValid &= ValidateService<ISceneLoaderService>("SceneLoaderService");
 
             // Validate Audio Services
-            allValid &= ValidateService<AudioServiceContainer>("AudioServiceContainer");
+            allValid &= ValidateService<IAudioServiceContainer>("AudioServiceContainer");
             allValid &= ValidateAudioService<IBGMAudioService>("BGMAudioService");
             allValid &= ValidateAudioService<IEffectAudioService>("EffectAudioService");
             allValid &= ValidateAudioService<IVolumeController>("VolumeController");

@@ -237,13 +237,10 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
             
             effectSvc?.Cleanup();
             bgmSvc?.Cleanup();
-            
-            // 볼륨 설정 저장
-            if (volumeCtrl != null)
-            {
-                volumeCtrl.SaveVolumeSettings();
-            }
-            
+
+            // 볼륨 설정은 SettingsCoordinator를 통해 이미 저장됨 (SaveDataAdapter 사용)
+            // 게임 종료 시 별도의 저장 불필요
+
             // 서비스 참조 제거 (백워드 호환성용 필드들)
             bgmService = null;
             effectService = null;

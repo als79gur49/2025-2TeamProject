@@ -258,12 +258,11 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     private void OnMasterVolumeChanged(float value)
     {
         if (volumeController == null) return;
-        
+
         volumeController.SetMasterVolumeNormalized(value);
         UpdateVolumeText(masterVolumeText, value);
-        
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     /// <summary>
@@ -272,12 +271,11 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     private void OnBGMVolumeChanged(float value)
     {
         if (volumeController == null) return;
-        
+
         volumeController.SetBGMVolumeNormalized(value);
         UpdateVolumeText(bgmVolumeText, value);
-        
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     /// <summary>
@@ -286,12 +284,11 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     private void OnEffectVolumeChanged(float value)
     {
         if (volumeController == null) return;
-        
+
         volumeController.SetEffectVolumeNormalized(value);
         UpdateVolumeText(effectVolumeText, value);
-        
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     /// <summary>
@@ -308,8 +305,7 @@ public class SettingsPanel : UIPanel, IOpenablePanel
             masterMuteToggleText.text = isOn ? ON : OFF;
         }
 
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     /// <summary>
@@ -326,8 +322,7 @@ public class SettingsPanel : UIPanel, IOpenablePanel
             bgmMuteToggleText.text = isOn ? ON : OFF;
         }
 
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     /// <summary>
@@ -344,8 +339,7 @@ public class SettingsPanel : UIPanel, IOpenablePanel
             effectMuteToggleText.text = isOn ? ON : OFF;
         }
 
-        if (autoApplyChanges)
-            volumeController.SaveVolumeSettings();
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     #endregion
@@ -465,12 +459,10 @@ public class SettingsPanel : UIPanel, IOpenablePanel
     private void OnApplyClicked()
     {
         if (volumeController == null) return;
-        
+
         Debug.Log("볼륨 설정 적용");
-        
-        // 설정 저장
-        volumeController.SaveVolumeSettings();
-       
+
+        // 저장은 SettingsCoordinator가 패널 닫힐 때 자동 처리
     }
     
     

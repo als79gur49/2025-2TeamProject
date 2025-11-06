@@ -85,16 +85,6 @@ public interface IVolumeController
     void MuteAll(bool mute);
     
     /// <summary>
-    /// 볼륨 설정 저장
-    /// </summary>
-    void SaveVolumeSettings();
-    
-    /// <summary>
-    /// 볼륨 설정 로드
-    /// </summary>
-    void LoadVolumeSettings();
-    
-    /// <summary>
     /// 볼륨 설정이 기본값인지 확인
     /// </summary>
     /// <returns>기본값 여부</returns>

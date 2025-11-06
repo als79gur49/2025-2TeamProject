@@ -102,7 +102,44 @@ namespace Game.Core
             Log("   Initializing DeckInventoryCoordinator...");
             deckInventoryCoordinator.Initialize(inventory, deck);
 
+            // SettingsCoordinator 초기화
+            InitializeSettingsCoordinator();
+
             Log("✅ TitleScene Coordinators initialized successfully");
+        }
+
+        /// <summary>
+        /// SettingsCoordinator 초기화 (SettingsPanel 연결)
+        /// </summary>
+        private void InitializeSettingsCoordinator()
+        {
+            Log("   Initializing SettingsCoordinator...");
+
+            // SettingsPanel 찾기
+            var settingsPanel = UIPanelFacade.GetPanel<SettingsPanel>();
+
+            if (settingsPanel == null)
+            {
+                // LocalUIPanelManager에서 못 찾으면 직접 검색
+                settingsPanel = FindObjectOfType<SettingsPanel>();
+            }
+
+            if (settingsPanel == null)
+            {
+                LogWarning("   ⚠️ SettingsPanel not found - SettingsCoordinator not initialized");
+                return;
+            }
+
+            // GameObject 생성 및 컴포넌트 추가
+            var coordinatorGO = new GameObject("SettingsCoordinator");
+            coordinatorGO.transform.SetParent(transform); // TitleSceneInitializer 자식으로 배치
+
+            var coordinator = coordinatorGO.AddComponent<SettingsCoordinator>();
+
+            // 초기화 (SettingsPanel 연결 + 이벤트 구독)
+            coordinator.Initialize(settingsPanel);
+
+            Log("   ✅ SettingsCoordinator initialized and connected to SettingsPanel");
         }
 
         #endregion

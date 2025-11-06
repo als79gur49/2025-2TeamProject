@@ -50,20 +50,29 @@ namespace Game.SaveSystem
         private void InitializeOtherServices()
         {
             // ServiceLocator를 통한 서비스 참조
+            // IsInitialized 체크 대신 개별 서비스 존재 여부로 확인
             try
             {
-                if (ServiceLocator.IsInitialized)
+                // AudioServiceContainer 가져오기
+                if (ServiceLocator.IsRegistered<IAudioServiceContainer>())
                 {
-                    // 인터페이스를 통한 접근
-                    if (ServiceLocator.IsRegistered<IAudioServiceContainer>())
-                    {
-                        audioServiceContainer = ServiceLocator.Get<IAudioServiceContainer>();
-                    }
+                    audioServiceContainer = ServiceLocator.Get<IAudioServiceContainer>();
+                    Debug.Log($"[SaveDataAdapter] Get AudioServiceContainer");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SaveDataAdapter] IAudioServiceContainer not registered yet");
+                }
 
-                    if (ServiceLocator.IsRegistered<IVolumeController>())
-                    {
-                        volumeController = ServiceLocator.Get<IVolumeController>();
-                    }
+                // VolumeController 가져오기
+                if (ServiceLocator.IsRegistered<IVolumeController>())
+                {
+                    volumeController = ServiceLocator.Get<IVolumeController>();
+                    Debug.Log($"[SaveDataAdapter] Get VolumeController");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SaveDataAdapter] IVolumeController not registered yet");
                 }
             }
             catch (Exception e)

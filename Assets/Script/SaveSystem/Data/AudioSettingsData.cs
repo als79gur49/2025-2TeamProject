@@ -10,17 +10,17 @@ namespace Game.SaveSystem
     public class AudioSettingsData
     {
         /// <summary>
-        /// 마스터 볼륨 (0.0 ~ 1.0)
+        /// 마스터 볼륨 (-80 ~ 20 dB)
         /// </summary>
         public float masterVolume;
 
         /// <summary>
-        /// BGM 볼륨 (0.0 ~ 1.0)
+        /// BGM 볼륨 (-80 ~ 20 dB)
         /// </summary>
         public float bgmVolume;
 
         /// <summary>
-        /// 효과음 볼륨 (0.0 ~ 1.0)
+        /// 효과음 볼륨 (-80 ~ 20 dB)
         /// </summary>
         public float effectVolume;
 
@@ -45,13 +45,14 @@ namespace Game.SaveSystem
         public DateTime lastModified;
 
         /// <summary>
-        /// 기본 생성자 - 기본 볼륨 설정
+        /// 기본 생성자 - 기본 볼륨 설정 (dB 단위)
+        /// 0dB = 정상 레벨, -5dB = 약간 작게
         /// </summary>
         public AudioSettingsData()
         {
-            masterVolume = 1.0f;
-            bgmVolume = 0.7f;
-            effectVolume = 0.8f;
+            masterVolume = 0.0f;   // 0dB (정상 레벨)
+            bgmVolume = -5.0f;     // -5dB (약간 작게)
+            effectVolume = 0.0f;   // 0dB (정상 레벨)
             isMasterMuted = false;
             isBgmMuted = false;
             isEffectMuted = false;

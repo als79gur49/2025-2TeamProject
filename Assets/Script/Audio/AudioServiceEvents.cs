@@ -64,15 +64,27 @@ public struct AudioFadeInfo
 
 /// <summary>
 /// 볼륨 설정 정보 구조체
+/// 모든 볼륨 값은 dB 단위 (-80 ~ 20 dB)
 /// </summary>
 [Serializable]
 public struct VolumeSettings : System.IEquatable<VolumeSettings>
 {
+    /// <summary>마스터 볼륨 (dB 단위: -80 ~ 20)</summary>
     public float masterVolume;
+
+    /// <summary>BGM 볼륨 (dB 단위: -80 ~ 20)</summary>
     public float bgmVolume;
+
+    /// <summary>효과음 볼륨 (dB 단위: -80 ~ 20)</summary>
     public float effectVolume;
+
+    /// <summary>마스터 음소거 상태</summary>
     public bool masterMuted;
+
+    /// <summary>BGM 음소거 상태</summary>
     public bool bgmMuted;
+
+    /// <summary>효과음 음소거 상태</summary>
     public bool effectMuted;
     
     public VolumeSettings(float master, float bgm, float effect, bool masterMute = false, bool bgmMute = false, bool effectMute = false)
