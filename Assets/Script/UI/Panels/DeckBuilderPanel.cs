@@ -7,7 +7,8 @@ using System.Linq;
 using System;
 using Game.Data;
 using Game.Validators;
-using Game.Systems;
+using Game.SaveSystem;
+using Game.Core;
 using Game.Card.UI.Refactored;
 
 namespace Game.UI.Panels
@@ -18,6 +19,8 @@ namespace Game.UI.Panels
     /// </summary>
     public class DeckBuilderPanel : UIPanel, IDropHandler, IPointerEnterHandler, IPointerExitHandler
     {
+        // SaveSystem 참조
+        private ISaveDataAdapter saveAdapter;
         [Header("Deck Settings")]
         [SerializeField] private Transform deckListContainer;
         [SerializeField] private GameObject cardUIPrefab;
@@ -96,11 +99,22 @@ namespace Game.UI.Panels
 
         /// <summary>
         /// 의존성 있는 초기화 (Start에서 호출)
-        /// 현재 ServiceLocator 의존성 없음
+        /// ServiceLocator에서 SaveDataAdapter 가져오기
         /// </summary>
         protected override void OnInitializeWithDependencies()
         {
             base.OnInitializeWithDependencies();
+
+            // SaveDataAdapter 가져오기
+            if (ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                Debug.Log("[DeckBuilderPanel] SaveAdapter retrieved from ServiceLocator");
+            }
+            else
+            {
+                Debug.LogWarning("[DeckBuilderPanel] SaveAdapter not registered in ServiceLocator");
+            }
 
             Debug.Log("[DeckBuilderPanel] Dependency initialization complete (Start)");
         }
@@ -522,15 +536,22 @@ namespace Game.UI.Panels
                 return;
             }
 
-            // 덱 저장
-            bool success = DeckSaveSystem.SaveDeck(deckName, deckCards);
-            if (success)
+            // 덱 저장 (SaveAdapter 사용)
+            if (saveAdapter != null)
             {
-                Debug.Log($"[DeckBuilder] Deck '{deckName}' saved successfully!");
+                bool success = saveAdapter.SaveDeck(deckName, deckCards);
+                if (success)
+                {
+                    Debug.Log($"[DeckBuilder] Deck '{deckName}' saved successfully!");
+                }
+                else
+                {
+                    Debug.LogError($"[DeckBuilder] Failed to save deck '{deckName}'");
+                }
             }
             else
             {
-                Debug.LogError($"[DeckBuilder] Failed to save deck '{deckName}'");
+                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot save deck");
             }
         }
 
@@ -557,8 +578,14 @@ namespace Game.UI.Panels
         /// </summary>
         private void OnLoadDeckClicked()
         {
+            if (saveAdapter == null)
+            {
+                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot load deck");
+                return;
+            }
+
             // 저장된 덱 목록 가져오기
-            List<string> savedDecks = DeckSaveSystem.GetSavedDeckNames();
+            List<string> savedDecks = saveAdapter.GetSavedDeckNames();
 
             if (savedDecks.Count == 0)
             {
@@ -579,7 +606,13 @@ namespace Game.UI.Panels
         /// </summary>
         private void LoadDeckFromFile(string deckName)
         {
-            Dictionary<CardData, int> loadedDeck = DeckSaveSystem.LoadDeck(deckName);
+            if (saveAdapter == null)
+            {
+                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot load deck");
+                return;
+            }
+
+            Dictionary<CardData, int> loadedDeck = saveAdapter.LoadDeck(deckName);
 
             if (loadedDeck == null)
             {

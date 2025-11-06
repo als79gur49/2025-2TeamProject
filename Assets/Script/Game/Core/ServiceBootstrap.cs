@@ -4,6 +4,7 @@ using System.Collections;
 using Game.Services;
 using Game.Controllers;
 using Game.SceneManagement;
+using Game.SaveSystem;
 
 namespace Game.Core
 {
@@ -152,6 +153,9 @@ namespace Game.Core
             // PHASE 2: Audio System (no dependencies)
             InitializeAudioServiceContainer();
 
+            // PHASE 2.5: Save System (depends on Audio System)
+            InitializeSaveSystem();
+
             // PHASE 3: Controllers (depend on Phase 1 services)
             InitializeSceneTransitionController();
 
@@ -274,6 +278,44 @@ namespace Game.Core
         }
 
         /// <summary>
+        /// Initialize SaveSystem (SaveGameManager + SaveDataAdapter) and register with ServiceLocator.
+        /// Dependencies: Audio System (IVolumeController, IAudioServiceContainer)
+        /// </summary>
+        private void InitializeSaveSystem()
+        {
+            Log("[SaveSystem] Initializing Save System...");
+
+            // 1. Create SaveGameManager GameObject
+            GameObject saveManagerGO = new GameObject("SaveGameManager");
+            SaveGameManager saveManagerImpl = saveManagerGO.AddComponent<SaveGameManager>();
+            DontDestroyOnLoad(saveManagerGO);
+            Log("  ✓ SaveGameManager created");
+
+            // 2. Create SaveDataAdapter GameObject
+            GameObject adapterGO = new GameObject("SaveDataAdapter");
+            SaveDataAdapter adapterImpl = adapterGO.AddComponent<SaveDataAdapter>();
+            DontDestroyOnLoad(adapterGO);
+
+            // 3. Inject SaveManager dependency into Adapter
+            ISaveGameManager saveManager = saveManagerImpl;
+            adapterImpl.Initialize(saveManager);
+            Log("  ✓ SaveDataAdapter initialized with SaveGameManager");
+
+            // 4. Register Adapter interface with ServiceLocator
+            ISaveDataAdapter saveAdapter = adapterImpl;
+            ServiceLocator.RegisterSingleton<ISaveDataAdapter, SaveDataAdapter>(adapterImpl);
+            Log("  ✓ ISaveDataAdapter registered to ServiceLocator");
+
+            // 5. Add ServiceCleanup component
+            if (adapterGO.GetComponent<ServiceCleanup>() == null)
+            {
+                adapterGO.AddComponent<ServiceCleanup>();
+            }
+
+            Log("  ✓ Save System initialization complete");
+        }
+
+        /// <summary>
         /// Initialize SceneTransitionController and register with ServiceLocator.
         /// Dependencies: ISceneLoaderService (must be registered first)
         /// </summary>
@@ -377,6 +419,9 @@ namespace Game.Core
             allValid &= ValidateAudioService<IEffectAudioService>("EffectAudioService");
             allValid &= ValidateAudioService<IVolumeController>("VolumeController");
 
+            // Validate Save System
+            allValid &= ValidateSaveDataAdapter("SaveDataAdapter");
+
             // Validate SceneTransitionController
             allValid &= ValidateService<ISceneTransitionController>("SceneTransitionController");
 
@@ -455,6 +500,37 @@ namespace Game.Core
                     LogError($"  ✗ {serviceName}: IsInitialized returned false");
                     return false;
                 }
+            }
+
+            Log($"  ✓ {serviceName}: Valid");
+            return true;
+        }
+
+        /// <summary>
+        /// Validate SaveDataAdapter with SaveSystem-specific checks.
+        /// </summary>
+        private bool ValidateSaveDataAdapter(string serviceName)
+        {
+            // Check if registered
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                LogError($"  ✗ {serviceName}: Not registered in ServiceLocator");
+                return false;
+            }
+
+            // Check if retrievable
+            ISaveDataAdapter service = ServiceLocator.Get<ISaveDataAdapter>();
+            if (service == null)
+            {
+                LogError($"  ✗ {serviceName}: Registered but returns null");
+                return false;
+            }
+
+            // SaveSystem-specific validation
+            if (!service.IsInitialized)
+            {
+                LogError($"  ✗ {serviceName}: IsInitialized returned false");
+                return false;
             }
 
             Log($"  ✓ {serviceName}: Valid");

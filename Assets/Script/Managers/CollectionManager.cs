@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using Game.Data;
+using Game.Core;
+using Game.SaveSystem;
 
 namespace Game.Managers
 {
@@ -19,6 +21,9 @@ namespace Game.Managers
 
         // 플레이어가 소유한 카드 (카드 → 소유 개수)
         private Dictionary<CardData, int> ownedCards = new Dictionary<CardData, int>();
+
+        // SaveSystem 참조
+        private ISaveDataAdapter saveAdapter;
 
         // 이벤트
         public event Action OnCollectionChanged;
@@ -38,10 +43,28 @@ namespace Game.Managers
                 Destroy(gameObject);
                 return;
             }
-            // 테스트를 위한 일부로 추가한 코드, 
-            SaveAvailableCards();
 
-            LoadCollection();
+            // 테스트를 위한 일부로 추가한 코드
+            SaveAvailableCards();
+        }
+
+        private void Start()
+        {
+            // ServiceBootstrap이 먼저 실행되므로 ServiceLocator는 이미 초기화됨
+            // SaveAdapter 가져오기
+            if (ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                Debug.Log("[CollectionManager] SaveAdapter retrieved from ServiceLocator");
+
+                // 저장된 컬렉션 로드
+                LoadCollection();
+            }
+            else
+            {
+                Debug.LogWarning("[CollectionManager] SaveAdapter not registered, using legacy load");
+                LoadCollectionLegacy(); // 기존 PlayerPrefs 방식 폴백
+            }
         }
 
         #endregion
@@ -140,9 +163,43 @@ namespace Game.Managers
         #region Save/Load
 
         /// <summary>
-        /// 컬렉션 저장 (PlayerPrefs JSON)
+        /// 컬렉션 저장 (새로운 SaveSystem 사용)
         /// </summary>
         public void SaveCollection()
+        {
+            if (saveAdapter != null && saveAdapter.IsInitialized)
+            {
+                saveAdapter.SaveSpecific(SaveFileType.CardCollection);
+                Debug.Log($"[CollectionManager] Collection saved via SaveAdapter: {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
+            }
+            else
+            {
+                Debug.LogWarning("[CollectionManager] SaveAdapter not available, using legacy save");
+                SaveCollectionLegacy();
+            }
+        }
+
+        /// <summary>
+        /// 컬렉션 로드 (새로운 SaveSystem 사용)
+        /// </summary>
+        public void LoadCollection()
+        {
+            if (saveAdapter != null && saveAdapter.IsInitialized)
+            {
+                saveAdapter.LoadSpecific(SaveFileType.CardCollection);
+                Debug.Log($"[CollectionManager] Collection loaded via SaveAdapter: {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
+            }
+            else
+            {
+                Debug.LogWarning("[CollectionManager] SaveAdapter not available, using legacy load");
+                LoadCollectionLegacy();
+            }
+        }
+
+        /// <summary>
+        /// 컬렉션 저장 (기존 PlayerPrefs 방식 - 폴백용)
+        /// </summary>
+        private void SaveCollectionLegacy()
         {
             var saveData = new CollectionSaveData
             {
@@ -154,13 +211,13 @@ namespace Game.Managers
             PlayerPrefs.SetString("PlayerCollection", json);
             PlayerPrefs.Save();
 
-            Debug.Log($"[CollectionManager] Collection saved: {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
+            Debug.Log($"[CollectionManager] Collection saved (legacy mode): {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
         }
 
         /// <summary>
-        /// 컬렉션 로드 (PlayerPrefs JSON)
+        /// 컬렉션 로드 (기존 PlayerPrefs 방식 - 폴백용)
         /// </summary>
-        public void LoadCollection()
+        private void LoadCollectionLegacy()
         {
             string json = PlayerPrefs.GetString("PlayerCollection", "");
 
@@ -190,7 +247,7 @@ namespace Game.Managers
 
             OnCollectionChanged?.Invoke();
 
-            Debug.Log($"[CollectionManager] Collection loaded: {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
+            Debug.Log($"[CollectionManager] Collection loaded (legacy mode): {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total cards");
         }
 
         /// <summary>
