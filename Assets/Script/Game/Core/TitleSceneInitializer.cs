@@ -3,6 +3,7 @@ using Game.Initialization;
 using Game.UI.Panels;
 using Game.UI.Coordinators;
 using Game.Managers;
+using Game.SaveSystem;
 
 namespace Game.Core
 {
@@ -99,6 +100,18 @@ namespace Game.Core
                 playerDataManager.Initialize();
                 ServiceLocator.RegisterSingleton<PlayerDataManager, PlayerDataManager>(playerDataManager);
                 Log("   ✓ PlayerDataManager registered");
+
+                // PlayerData 디스크에서 로드 (lastUsedDeckName 포함)
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                if (saveAdapter != null && saveAdapter.HasSaveData())
+                {
+                    saveAdapter.LoadSpecific(SaveFileType.PlayerData);
+                    Log("   ✓ Player data loaded from save file (lastUsedDeckName restored)");
+                }
+                else
+                {
+                    Log("   ℹ No save data found, using default player data");
+                }
             }
             else
             {

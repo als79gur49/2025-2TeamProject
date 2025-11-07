@@ -29,7 +29,9 @@ public class Unit : MonoBehaviour
     
     [SerializeField, Tooltip("Shows if death notification has been sent to prevent duplicates")]
     private bool deathNotificationSent = false;
-    
+    [SerializeField, Tooltip("사망애니메이션 길이")]
+    private float deathAnimationDuration = 1f; // 해당 시간 이후 파괴
+
     // Component references
     private IHealthComponent healthComponent;
     private ICombatSystem combatComponent;
@@ -52,6 +54,11 @@ public class Unit : MonoBehaviour
     // Phase 3: Clean Architecture - ServiceLocator pattern
     private IGridManager gridManager;
     private IGlobalStateManager globalStateManager;
+    private IDeathAnimationManager deathAnimationManager;
+
+    // Death animation state tracking
+    private bool isPlayingDeathAnimation = false;
+    private bool isWaitingForDeathAnimation = false;
 
     [SerializeField]
     private Tile currentTile;
@@ -164,6 +171,18 @@ public class Unit : MonoBehaviour
         if (globalStateManager == null)
         {
             Debug.LogWarning($"[Unit] {gameObject.name} could not get GlobalStateManager from ServiceLocator");
+        }
+        else
+        {
+            // GlobalStateManager 이벤트 구독
+            globalStateManager.OnBusyStateChanged += OnGlobalBusyStateChanged;
+        }
+
+        // DeathAnimationManager 초기화
+        deathAnimationManager = ServiceLocator.Get<IDeathAnimationManager>();
+        if (deathAnimationManager == null)
+        {
+            Debug.LogWarning($"[Unit] {gameObject.name} could not get IDeathAnimationManager from ServiceLocator");
         }
 
         isInitialized = true;
@@ -611,12 +630,24 @@ public class Unit : MonoBehaviour
     public void OnHealthComponentDeath()
     {
         Debug.Log($"[Unit] {gameObject.name} received death notification from HealthComponent");
-        
-        // UnitService에 사망을 알림 (즉시 정리를 위해)
-        NotifyUnitServiceOfDeath();
-        
-        // GameObject 파괴
-        Die();
+
+        // DeathAnimationManager를 통한 죽음 처리
+        if (deathAnimationManager != null)
+        {
+            Debug.Log($"[Unit] Requesting death animation for {gameObject.name}");
+
+            // UnitService 사망 통지 (즉시 리스트에서 제거)
+            NotifyUnitServiceOfDeath();
+
+            // 사망 애니메이션 재생 (애니메이션 완료 후 자동 파괴)
+            deathAnimationManager.ProcessUnitDeath(this, deathAnimationDuration);
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit] DeathAnimationManager not found - using direct destruction for {gameObject.name}");
+            NotifyUnitServiceOfDeath();
+            Die();
+        }
     }
     
     /// <summary>
@@ -647,7 +678,89 @@ public class Unit : MonoBehaviour
             Debug.LogWarning($"[Unit] Could not find GameServiceManager to notify UnitService of {gameObject.name} death");
         }
     }
-    
+
+    /// <summary>
+    /// 죽음 애니메이션 상태 설정 (DeathAnimationManager에서 호출)
+    /// </summary>
+    public void SetDeathAnimationState(bool isPlaying)
+    {
+        isPlayingDeathAnimation = isPlaying;
+
+        if (isPlaying)
+        {
+            // 애니메이션 중 상호작용 불가능하도록 콜라이더 비활성화
+            var collider = GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+                Debug.Log($"[Unit] Disabled collider for {gameObject.name} during death animation");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 죽음 시퀀스 완료 (DeathAnimationManager에서 호출)
+    /// </summary>
+    public void CompleteDeathSequence()
+    {
+        Debug.Log($"[Unit] Completing death sequence for {gameObject.name}");
+
+        // 타일 정리 (아직 하지 않았다면)
+        if (!deathNotificationSent)
+        {
+            CleanupCurrentTile();
+        }
+
+        // GameObject 파괴
+        Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// GlobalStateManager의 Busy 상태 변경 이벤트 핸들러
+    /// </summary>
+    private void OnGlobalBusyStateChanged(BusyType type, bool isBusy)
+    {
+        // DeathAnimation이 끝났을 때만 처리
+        if (type == BusyType.DeathAnimation && !isBusy)
+        {
+            // 대기 중인 행동 체인이 있으면 재개
+            if (isWaitingForDeathAnimation)
+            {
+                Debug.Log($"[Unit] {gameObject.name} resuming action chain after death animation");
+                isWaitingForDeathAnimation = false;
+                ResumeActionChain();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 일시정지된 행동 체인 재개
+    /// </summary>
+    private void ResumeActionChain()
+    {
+        Debug.Log($"[Unit] {gameObject.name} resuming action chain after death animation");
+
+        // OnActionCompleted의 정상 흐름 재개
+        var result = currentActionResult;
+        currentActionResult = null;
+
+        if (result == null)
+        {
+            OnAllActionsCompleted();
+            return;
+        }
+
+        if (result.ShouldContinueChain())
+        {
+            actionEvaluator.MoveToNextModifier();
+            EvaluateAndExecuteNextAction();
+        }
+        else
+        {
+            OnAllActionsCompleted();
+        }
+    }
+
     /// <summary>
     /// Unit 사망 시 Grid 관련 데이터를 정리합니다.
     /// Clean Architecture: GridManager에게 모든 Grid 정리 작업을 위임
@@ -783,6 +896,12 @@ public class Unit : MonoBehaviour
             gridManager.OnUnitMoved -= OnUnitMovedInGrid;
         }
 
+        // GlobalStateManager 이벤트 구독 해제
+        if (globalStateManager != null)
+        {
+            globalStateManager.OnBusyStateChanged -= OnGlobalBusyStateChanged;
+        }
+
         // HealthComponent 이벤트 구독 해제
         if (healthComponent != null)
         {
@@ -878,6 +997,15 @@ public class Unit : MonoBehaviour
     /// </summary>
     public void OnActionCompleted()
     {
+        // 죽음 애니메이션 중이면 행동 체인 일시정지
+        if (globalStateManager != null && globalStateManager.IsBusy(BusyType.DeathAnimation))
+        {
+            Debug.Log($"[Unit] {gameObject.name} pausing action chain - death animation in progress");
+            isWaitingForDeathAnimation = true;
+            // currentActionResult 보존 (ResumeActionChain에서 사용)
+            return;
+        }
+
         // 로컬 복사본 생성 (다음 행동 시작 전에 현재 결과 보존)
         var result = currentActionResult;
 

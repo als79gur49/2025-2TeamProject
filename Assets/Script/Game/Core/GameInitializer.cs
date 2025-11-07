@@ -31,6 +31,9 @@ public class GameInitializer : SceneInitializer
     [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
     [SerializeField] private GameUICoordinator gameUICoordinator; // 게임-UI 이벤트 중재 서비스 추가
 
+    [Header("Death Animation Services")]
+    [SerializeField] private DeathAnimationManager deathAnimationManager; // 죽음 애니메이션 관리 서비스
+
     [Header("Damage Display Services")]
     [SerializeField] private Game.Repositories.DamageDisplayRepository damageDisplayRepository; // 데미지 표시 Repository
     [SerializeField] private Game.Services.DamageDisplayService damageDisplayService; // 데미지 표시 Service
@@ -155,6 +158,9 @@ public class GameInitializer : SceneInitializer
 
         // Damage Display Services 등록 - Repository Pattern을 통한 데미지 표시 시스템
         RegisterDamageDisplayServices();
+
+        // Death Animation Services 등록 - DeathAnimationManager를 통한 사망 애니메이션 시스템
+        RegisterDeathAnimationServices();
     }
 
     /// <summary>
@@ -398,6 +404,32 @@ public class GameInitializer : SceneInitializer
     }
 
     /// <summary>
+    /// Death Animation 서비스 등록 - DeathAnimationManager를 통한 사망 애니메이션 시스템 등록
+    /// </summary>
+    private void RegisterDeathAnimationServices()
+    {
+        Log("Registering Death Animation services via DeathAnimationManager...");
+
+        // DeathAnimationManager 등록
+        if (deathAnimationManager != null)
+        {
+            ServiceLocator.Register<IDeathAnimationManager>(deathAnimationManager);
+            deathAnimationManager.Initialize();
+            Log("✅ IDeathAnimationManager registered and initialized");
+            Log($"  → Default death duration: {deathAnimationManager.IsProcessingDeath}");
+            Log($"  → Pending death count: {deathAnimationManager.PendingDeathCount}");
+        }
+        else
+        {
+            LogError("❌ DeathAnimationManager not found - Death animation services not registered");
+            LogError("  → Units will be destroyed immediately upon death");
+            LogError("  → Please assign DeathAnimationManager in GameInitializer inspector");
+        }
+
+        Log("Death Animation services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -480,6 +512,24 @@ public class GameInitializer : SceneInitializer
         if (!ServiceLocator.IsRegistered<Game.Services.IDamageDisplayService>())
         {
             LogError("❌ Warning: IDamageDisplayService not registered");
+        }
+
+        // Death Animation 서비스 확인
+        if (!ServiceLocator.IsRegistered<IDeathAnimationManager>())
+        {
+            LogError("❌ Warning: IDeathAnimationManager not registered");
+        }
+        else
+        {
+            var deathAnimManager = ServiceLocator.Get<IDeathAnimationManager>();
+            if (deathAnimManager != null)
+            {
+                Log("✅ IDeathAnimationManager verified");
+            }
+            else
+            {
+                LogError("❌ IDeathAnimationManager is registered but null");
+            }
         }
 
         // 서비스 상태 검증 (파괴된 MonoBehaviour 정리)

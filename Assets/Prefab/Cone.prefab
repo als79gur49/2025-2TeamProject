@@ -383,6 +383,7 @@ MonoBehaviour:
   componentSystemReady: 0
   isInitialized: 0
   deathNotificationSent: 0
+  deathAnimationDuration: 0.5
   currentTile: {fileID: 0}
 --- !u!114 &1252125009523436965
 MonoBehaviour:

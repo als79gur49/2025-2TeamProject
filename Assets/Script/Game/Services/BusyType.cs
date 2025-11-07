@@ -25,6 +25,12 @@ namespace Game.Services
         /// 페이즈/턴 진행만 잠금 - 카드 플레이는 가능, 턴 종료 차단
         /// 사용 예: 유닛 처리 중, 페이즈 전환 애니메이션
         /// </summary>
-        PhaseLock
+        PhaseLock,
+
+        /// <summary>
+        /// 사망 애니메이션 재생 중 - 유닛 파괴 지연 및 행동 체인 일시정지
+        /// 사용 예: 유닛 사망 시 애니메이션 완료까지 GameObject 유지, 다른 유닛 대기
+        /// </summary>
+        DeathAnimation
     }
 }

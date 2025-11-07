@@ -17765,6 +17765,8 @@ MonoBehaviour:
   hideOnStart: 1
   openButton: {fileID: 2140029111}
   closeButton: {fileID: 8298598614198008609}
+  deckBuilderPanel: {fileID: 749856735}
+  inventoryPanel: {fileID: 8298598613840439068}
 --- !u!114 &8298598615045046000
 MonoBehaviour:
   m_ObjectHideFlags: 0

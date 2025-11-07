@@ -14,6 +14,10 @@ namespace Game.UI.Panels
         [SerializeField] private Button openButton;
         [SerializeField] private Button closeButton;
 
+        [Header("Child Panels")]
+        [SerializeField] private DeckBuilderPanel deckBuilderPanel;
+        [SerializeField] private InventoryPanel inventoryPanel;
+
         // IOpenablePanel 구현
         public Button OpenButton => openButton;
         public Button CloseButton => closeButton;
@@ -34,6 +38,21 @@ namespace Game.UI.Panels
             if (closeButton != null)
                 closeButton.onClick.AddListener(() => OnHide());
 
+            // 자식 패널 찾기 (Inspector에서 할당하지 않은 경우 자동으로 찾기)
+            if (deckBuilderPanel == null)
+            {
+                deckBuilderPanel = GetComponentInChildren<DeckBuilderPanel>(true);
+                if (deckBuilderPanel != null)
+                    Debug.Log("[CardInventoryPanel] DeckBuilderPanel found automatically");
+            }
+
+            if (inventoryPanel == null)
+            {
+                inventoryPanel = GetComponentInChildren<InventoryPanel>(true);
+                if (inventoryPanel != null)
+                    Debug.Log("[CardInventoryPanel] InventoryPanel found automatically");
+            }
+
             // UI 컴포넌트 검증
             ValidateReferences();
 
@@ -53,24 +72,59 @@ namespace Game.UI.Panels
 
         /// <summary>
         /// 패널 표시
-        /// 좌측 덱 빌더와 우측 인벤토리를 함께 활성화
+        /// 부모 패널을 먼저 활성화한 후, 자식 패널들을 활성화
         /// </summary>
         protected override void OnShowPanel()
         {
             base.OnShowPanel();
 
-            Debug.Log("[CardInventoryPanel] Panel shown with both child panels");
+            // 자식 패널들도 활성화 (순서: DeckBuilderPanel → InventoryPanel)
+            if (deckBuilderPanel != null)
+            {
+                deckBuilderPanel.OnShow();
+                Debug.Log("[CardInventoryPanel] DeckBuilderPanel.OnShow() called");
+            }
+            else
+            {
+                Debug.LogWarning("[CardInventoryPanel] DeckBuilderPanel is null! Please assign it in the Inspector.");
+            }
+
+            if (inventoryPanel != null)
+            {
+                inventoryPanel.OnShow();
+                Debug.Log("[CardInventoryPanel] InventoryPanel.OnShow() called");
+            }
+            else
+            {
+                Debug.LogWarning("[CardInventoryPanel] InventoryPanel is null! Please assign it in the Inspector.");
+            }
+
+            Debug.Log("[CardInventoryPanel] Panel shown with both child panels activated");
         }
 
         /// <summary>
         /// 패널 숨김
-        /// 두 하위 패널을 함께 비활성화
+        /// 자식 패널들을 먼저 숨긴 후, 부모 패널을 숨김
         /// </summary>
         protected override void OnHidePanel()
         {
+            // 자식 패널들을 먼저 숨기기 (순서: DeckBuilderPanel → InventoryPanel → 부모)
+            if (deckBuilderPanel != null)
+            {
+                deckBuilderPanel.OnHide();
+                Debug.Log("[CardInventoryPanel] DeckBuilderPanel.OnHide() called");
+            }
+
+            if (inventoryPanel != null)
+            {
+                inventoryPanel.OnHide();
+                Debug.Log("[CardInventoryPanel] InventoryPanel.OnHide() called");
+            }
+
+            // 자식 패널들을 숨긴 후 부모 패널 숨기기
             base.OnHidePanel();
 
-            Debug.Log("[CardInventoryPanel] Panel hidden with both child panels");
+            Debug.Log("[CardInventoryPanel] All child panels hidden, then parent panel hidden");
         }
 
         /// <summary>
@@ -79,6 +133,17 @@ namespace Game.UI.Panels
         /// </summary>
         protected override void OnCleanup()
         {
+            // 자식 패널들 정리
+            if (deckBuilderPanel != null)
+            {
+                deckBuilderPanel.Cleanup();
+            }
+
+            if (inventoryPanel != null)
+            {
+                inventoryPanel.Cleanup();
+            }
+
             base.OnCleanup();
 
             // 버튼 리스너 해제
@@ -87,7 +152,7 @@ namespace Game.UI.Panels
             if (closeButton != null)
                 closeButton.onClick.RemoveAllListeners();
 
-            Debug.Log("[CardInventoryPanel] Cleanup complete");
+            Debug.Log("[CardInventoryPanel] Cleanup complete for parent and child panels");
         }
 
         #endregion
@@ -104,7 +169,23 @@ namespace Game.UI.Panels
 
             if (closeButton == null)
                 Debug.LogWarning("[CardInventoryPanel] CloseButton not assigned!");
+
+            if (deckBuilderPanel == null)
+                Debug.LogWarning("[CardInventoryPanel] DeckBuilderPanel not found! Please assign it in the Inspector or ensure it exists as a child.");
+
+            if (inventoryPanel == null)
+                Debug.LogWarning("[CardInventoryPanel] InventoryPanel not found! Please assign it in the Inspector or ensure it exists as a child.");
         }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// 외부에서 자식 패널에 접근이 필요한 경우를 위한 Getter
+        /// </summary>
+        public DeckBuilderPanel GetDeckBuilderPanel() => deckBuilderPanel;
+        public InventoryPanel GetInventoryPanel() => inventoryPanel;
 
         #endregion
 
