@@ -25,16 +25,21 @@ namespace Game.UI.Coordinators
         [Header("Visual Feedback")]
         [SerializeField] private CardTransferFeedback transferFeedback;
 
+        #region Dependencies
+        private Game.Managers.ICardCollection cardCollection;
+        #endregion
+
         #region Lifecycle
 
         /// <summary>
         /// SceneInitializer에서 호출 - 모든 패널 초기화 완료 후 실행 보장
         /// </summary>
-        public void Initialize(InventoryPanel inventory, DeckBuilderPanel deck)
+        public void Initialize(InventoryPanel inventory, DeckBuilderPanel deck, Game.Managers.ICardCollection collection)
         {
             // 명시적 의존성 주입
             inventoryPanel = inventory;
             deckPanel = deck;
+            cardCollection = collection;
 
             // Null 체크
             if (inventoryPanel == null)
@@ -49,11 +54,17 @@ namespace Game.UI.Coordinators
                 return;
             }
 
+            if (cardCollection == null)
+            {
+                Debug.LogError("[DeckInventoryCoordinator] ICardCollection is null!");
+                return;
+            }
+
             // Panel들에 Coordinator 참조 설정 (중재자 패턴)
             inventoryPanel.SetCoordinator(this);
             deckPanel.SetCoordinator(this);
 
-            Debug.Log("[DeckInventoryCoordinator] Initialized with validated panels");
+            Debug.Log("[DeckInventoryCoordinator] Initialized with validated panels and card collection");
         }
 
         private void OnEnable()
@@ -122,9 +133,9 @@ namespace Game.UI.Coordinators
         private void OnCardAddedToDeck(CardData card)
         {
             // 사용 가능한 개수 계산 및 인벤토리 UI 업데이트
-            if (inventoryPanel != null && deckPanel != null)
+            if (inventoryPanel != null && deckPanel != null && cardCollection != null)
             {
-                int ownedCount = Game.Managers.CollectionManager.Instance.GetOwnedCount(card);
+                int ownedCount = cardCollection.GetOwnedCount(card);
                 int inDeckCount = deckPanel.GetDeckCardCount(card);
                 int availableCount = ownedCount - inDeckCount;
 
@@ -146,9 +157,9 @@ namespace Game.UI.Coordinators
         private void OnCardRemovedFromDeck(CardData card)
         {
             // 사용 가능한 개수 계산 및 인벤토리 UI 업데이트
-            if (inventoryPanel != null && deckPanel != null)
+            if (inventoryPanel != null && deckPanel != null && cardCollection != null)
             {
-                int ownedCount = Game.Managers.CollectionManager.Instance.GetOwnedCount(card);
+                int ownedCount = cardCollection.GetOwnedCount(card);
                 int inDeckCount = deckPanel.GetDeckCardCount(card);
                 int availableCount = ownedCount - inDeckCount;
 

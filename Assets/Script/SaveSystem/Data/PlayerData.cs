@@ -30,6 +30,11 @@ namespace Game.SaveSystem
         public float totalPlayTime;
 
         /// <summary>
+        /// 마지막으로 사용한 덱 이름 (자동 로드용)
+        /// </summary>
+        public string lastUsedDeckName;
+
+        /// <summary>
         /// 마지막 수정 시간
         /// </summary>
         public DateTime lastModified;
@@ -43,6 +48,7 @@ namespace Game.SaveSystem
             playerName = "Player";
             gold = 0;
             totalPlayTime = 0f;
+            lastUsedDeckName = "";
             lastModified = DateTime.Now;
         }
     }

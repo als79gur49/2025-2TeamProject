@@ -51,6 +51,9 @@ namespace Game.UI.Panels
         // Coordinator 참조 (중재자 패턴)
         private Game.UI.Coordinators.DeckInventoryCoordinator coordinator;
 
+        // CollectionManager 참조 (의존성 주입)
+        private ICardCollection collectionManager;
+
         // 현재 드래그 중인 카드 (검증용)
         private CardData currentDraggedCard = null;
 
@@ -79,34 +82,29 @@ namespace Game.UI.Panels
 
         /// <summary>
         /// 의존성 있는 초기화 (Start에서 호출)
-        /// CollectionManager 싱글톤 의존성 처리
+        /// CollectionManager 의존성 처리 - Initialize()로 대체됨
         /// </summary>
         protected override void OnInitializeWithDependencies()
         {
             base.OnInitializeWithDependencies();
 
-            // 컬렉션 매니저 이벤트 구독
-            if (CollectionManager.Instance != null)
-            {
-                CollectionManager.Instance.OnCollectionChanged += OnCollectionChanged;
-            }
-
-            // 초기 카드 로드
-            LoadCardsFromCollection();
-
+            // Initialize()에서 이미 처리되므로 여기서는 아무것도 하지 않음
             Debug.Log("[InventoryPanel] Dependency initialization complete (Start)");
         }
 
         /// <summary>
         /// SceneInitializer에서 호출 - 의존성 주입
         /// </summary>
-        public void Initialize(CollectionManager collectionManager)
+        public void Initialize(ICardCollection collection)
         {
-            if (collectionManager == null)
+            if (collection == null)
             {
-                Debug.LogError("[InventoryPanel] CollectionManager is null!");
+                Debug.LogError("[InventoryPanel] ICardCollection is null!");
                 return;
             }
+
+            // 컬렉션 매니저 참조 저장
+            this.collectionManager = collection;
 
             // 컬렉션 매니저 이벤트 구독
             collectionManager.OnCollectionChanged += OnCollectionChanged;
@@ -114,7 +112,7 @@ namespace Game.UI.Panels
             // 초기 카드 로드
             LoadCardsFromCollection();
 
-            Debug.Log("[InventoryPanel] Initialized with CollectionManager");
+            Debug.Log("[InventoryPanel] Initialized with ICardCollection");
         }
 
         protected override void OnDestroy()
@@ -122,9 +120,9 @@ namespace Game.UI.Panels
             base.OnDestroy();
 
             // 이벤트 구독 해제
-            if (CollectionManager.Instance != null)
+            if (collectionManager != null)
             {
-                CollectionManager.Instance.OnCollectionChanged -= OnCollectionChanged;
+                collectionManager.OnCollectionChanged -= OnCollectionChanged;
             }
         }
 
@@ -143,13 +141,13 @@ namespace Game.UI.Panels
         /// </summary>
         private void LoadCardsFromCollection()
         {
-            if (CollectionManager.Instance == null)
+            if (collectionManager == null)
             {
                 Debug.LogError("[InventoryPanel] CollectionManager not found");
                 return;
             }
 
-            allCards = CollectionManager.Instance.GetAllOwnedCards();
+            allCards = collectionManager.GetAllOwnedCards();
             ApplyFiltersAndSort();
             PopulateCardGrid();
         }
@@ -246,7 +244,7 @@ namespace Game.UI.Panels
 
             if (cardUI != null)
             {
-                int ownedCount = CollectionManager.Instance.GetOwnedCount(card);
+                int ownedCount = collectionManager != null ? collectionManager.GetOwnedCount(card) : 0;
 
                 // 덱에 들어있는 개수를 빼서 가용성 계산 (Coordinator를 통해)
                 int inDeckCount = coordinator != null ? coordinator.GetDeckCardCount(card) : 0;
@@ -450,11 +448,11 @@ namespace Game.UI.Panels
         /// </summary>
         private void UpdateTotalCardsText()
         {
-            if (totalCardsText == null || CollectionManager.Instance == null)
+            if (totalCardsText == null || collectionManager == null)
                 return;
 
-            int totalOwned = CollectionManager.Instance.GetTotalCardCount();
-            int uniqueCards = CollectionManager.Instance.GetUniqueCardCount();
+            int totalOwned = collectionManager.GetTotalCardCount();
+            int uniqueCards = collectionManager.GetUniqueCardCount();
 
             totalCardsText.text = $" {uniqueCards}/{totalOwned}";
         }

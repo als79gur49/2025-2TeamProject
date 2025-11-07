@@ -125,7 +125,7 @@ namespace Game.Initialization
         /// <summary>
         /// Phase 2: 로컬 서비스 등록 (LocalUIPanelManager 등)
         /// </summary>
-        private void RegisterLocalServices()
+        protected virtual void RegisterLocalServices()
         {
             Log("[Phase 2] Registering local services...");
 

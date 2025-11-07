@@ -26,6 +26,106 @@ namespace Game.Core
         [Header("TitleScene 전용 참조")]
         [SerializeField] private DeckInventoryCoordinator deckInventoryCoordinator;
 
+        [Header("씬 매니저 참조 (ServiceLocator 등록용)")]
+        [SerializeField] private CardDatabase cardDatabase;
+        [SerializeField] private CollectionManager collectionManager;
+        [SerializeField] private PlayerDataManager playerDataManager;
+        [SerializeField] private StageProgressManager stageProgressManager;
+
+        #region Scene Manager Registration
+
+        /// <summary>
+        /// Phase 2.5: 씬 매니저들을 ServiceLocator에 등록
+        /// RegisterLocalServices() 직후에 호출됨
+        /// </summary>
+        protected override void RegisterLocalServices()
+        {
+            base.RegisterLocalServices();
+
+            Log("[Phase 2.5] Registering Scene Managers to ServiceLocator...");
+            RegisterSceneManagers();
+            Log("✅ Scene Managers registered successfully");
+        }
+
+        /// <summary>
+        /// 씬 매니저들을 ServiceLocator에 등록하고 초기화
+        /// </summary>
+        private void RegisterSceneManagers()
+        {
+            // 1. CardDatabase 등록
+            if (cardDatabase == null)
+            {
+                LogWarning("   ⚠️ CardDatabase not assigned! Searching in scene...");
+                cardDatabase = FindObjectOfType<CardDatabase>();
+            }
+
+            if (cardDatabase != null)
+            {
+                cardDatabase.Initialize();
+                ServiceLocator.RegisterSingleton<ICardRegistry, CardDatabase>(cardDatabase);
+                Log("   ✓ CardDatabase registered as ICardRegistry");
+            }
+            else
+            {
+                LogError("   ❌ CardDatabase not found!");
+            }
+
+            // 2. CollectionManager 등록
+            if (collectionManager == null)
+            {
+                LogWarning("   ⚠️ CollectionManager not assigned! Searching in scene...");
+                collectionManager = FindObjectOfType<CollectionManager>();
+            }
+
+            if (collectionManager != null)
+            {
+                ServiceLocator.RegisterSingleton<ICardCollection, CollectionManager>(collectionManager);
+                Log("   ✓ CollectionManager registered as ICardCollection");
+            }
+            else
+            {
+                LogError("   ❌ CollectionManager not found!");
+            }
+
+            // 3. PlayerDataManager 등록
+            if (playerDataManager == null)
+            {
+                LogWarning("   ⚠️ PlayerDataManager not assigned! Searching in scene...");
+                playerDataManager = FindObjectOfType<PlayerDataManager>();
+            }
+
+            if (playerDataManager != null)
+            {
+                playerDataManager.Initialize();
+                ServiceLocator.RegisterSingleton<PlayerDataManager, PlayerDataManager>(playerDataManager);
+                Log("   ✓ PlayerDataManager registered");
+            }
+            else
+            {
+                LogError("   ❌ PlayerDataManager not found!");
+            }
+
+            // 4. StageProgressManager 등록
+            if (stageProgressManager == null)
+            {
+                LogWarning("   ⚠️ StageProgressManager not assigned! Searching in scene...");
+                stageProgressManager = FindObjectOfType<StageProgressManager>();
+            }
+
+            if (stageProgressManager != null)
+            {
+                stageProgressManager.Initialize();
+                ServiceLocator.RegisterSingleton<StageProgressManager, StageProgressManager>(stageProgressManager);
+                Log("   ✓ StageProgressManager registered");
+            }
+            else
+            {
+                LogError("   ❌ StageProgressManager not found!");
+            }
+        }
+
+        #endregion
+
         #region Implemented Abstract Methods
 
         /// <summary>
@@ -63,7 +163,12 @@ namespace Game.Core
 
             // 명시적 순서로 초기화
             Log("   Initializing InventoryPanel...");
-            inventory.Initialize(CollectionManager.Instance);
+            if (collectionManager == null)
+            {
+                LogError("❌ CollectionManager not available!");
+                return;
+            }
+            inventory.Initialize(collectionManager);
 
             Log("   Initializing DeckBuilderPanel...");
             deck.Initialize();
@@ -100,7 +205,7 @@ namespace Game.Core
 
             // Coordinator 초기화
             Log("   Initializing DeckInventoryCoordinator...");
-            deckInventoryCoordinator.Initialize(inventory, deck);
+            deckInventoryCoordinator.Initialize(inventory, deck, collectionManager);
 
             // SettingsCoordinator 초기화
             InitializeSettingsCoordinator();
@@ -201,7 +306,10 @@ namespace Game.Core
             }
 
             // CollectionManager 확인
-            Debug.Log($"CollectionManager: {(CollectionManager.Instance != null ? "✅ Available" : "❌ Not Available")}");
+            var collection = ServiceLocator.IsRegistered<ICardCollection>()
+                ? ServiceLocator.Get<ICardCollection>()
+                : null;
+            Debug.Log($"CollectionManager: {(collection != null ? "✅ Available" : "❌ Not Available")}");
 
             Debug.Log("================================");
         }

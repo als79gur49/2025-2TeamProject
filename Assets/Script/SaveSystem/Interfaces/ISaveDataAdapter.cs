@@ -30,6 +30,10 @@ namespace Game.SaveSystem
         List<string> GetSavedDeckNames();
         bool DeleteDeck(string deckName);
 
+        // 마지막 사용 덱 관리
+        void SaveLastUsedDeckName(string deckName);
+        string LoadLastUsedDeckName();
+
         // 데이터 변환 메서드
         List<EnhancedCardData> ConvertDeckToEnhancedCards(Dictionary<CardData, int> deckCards);
         Dictionary<CardData, int> ConvertEnhancedCardsToDeck(List<EnhancedCardData> enhancedCards);

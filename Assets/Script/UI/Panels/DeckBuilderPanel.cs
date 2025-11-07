@@ -131,9 +131,59 @@ namespace Game.UI.Panels
             Debug.Log("[DeckBuilderPanel] Initialized");
         }
 
+        /// <summary>
+        /// 마지막으로 사용한 덱 자동 로드 시도
+        /// </summary>
+        private void TryLoadLastUsedDeck()
+        {
+            if (saveAdapter == null)
+            {
+                Debug.LogWarning("[DeckBuilderPanel] SaveAdapter not available, skipping auto-load");
+                return;
+            }
+
+            string lastDeckName = saveAdapter.LoadLastUsedDeckName();
+
+            // 빈 문자열 또는 null 체크
+            if (string.IsNullOrEmpty(lastDeckName))
+            {
+                Debug.Log("[DeckBuilderPanel] No last used deck found, starting with empty deck");
+                return;
+            }
+
+            // 덱 파일 존재 여부 확인
+            var savedDecks = saveAdapter.GetSavedDeckNames();
+            if (!savedDecks.Contains(lastDeckName))
+            {
+                Debug.LogWarning($"[DeckBuilderPanel] Last used deck '{lastDeckName}' not found");
+
+                // 다른 덱이 존재하면 첫 번째 덱 로드
+                if (savedDecks.Count > 0)
+                {
+                    Debug.Log($"[DeckBuilderPanel] Loading first available deck: {savedDecks[0]}");
+                    LoadDeckFromFile(savedDecks[0]);
+                }
+                return;
+            }
+
+            try
+            {
+                LoadDeckFromFile(lastDeckName);
+                Debug.Log($"[DeckBuilderPanel] Auto-loaded last deck: {lastDeckName}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[DeckBuilderPanel] Failed to auto-load deck '{lastDeckName}': {e.Message}");
+            }
+        }
+
         protected override void OnShowPanel()
         {
             base.OnShowPanel();
+
+            // 마지막 사용 덱 자동 로드 시도
+            TryLoadLastUsedDeck();
+
             UpdateDeckDisplay();
         }
 
@@ -542,7 +592,9 @@ namespace Game.UI.Panels
                 bool success = saveAdapter.SaveDeck(deckName, deckCards);
                 if (success)
                 {
-                    Debug.Log($"[DeckBuilder] Deck '{deckName}' saved successfully!");
+                    // 마지막 사용 덱으로 저장
+                    saveAdapter.SaveLastUsedDeckName(deckName);
+                    Debug.Log($"[DeckBuilder] Deck '{deckName}' saved and set as last used!");
                 }
                 else
                 {
@@ -638,6 +690,9 @@ namespace Game.UI.Panels
                 deckNameInput.text = deckName;
             }
 
+            // 마지막 사용 덱으로 저장
+            saveAdapter.SaveLastUsedDeckName(deckName);
+
             Debug.Log($"[DeckBuilder] Deck '{deckName}' loaded successfully!");
         }
 
@@ -647,6 +702,30 @@ namespace Game.UI.Panels
         public void SetCoordinator(Game.UI.Coordinators.DeckInventoryCoordinator coord)
         {
             coordinator = coord;
+        }
+
+        /// <summary>
+        /// 현재 편집 중인 덱 이름 반환 (읽기 전용)
+        /// 빈 덱이거나 이름이 없으면 null 반환
+        /// </summary>
+        public string GetCurrentDeckName()
+        {
+            // 빈 덱은 저장하지 않음
+            if (deckCards.Count == 0)
+            {
+                return null;
+            }
+
+            return deckNameInput?.text;
+        }
+
+        /// <summary>
+        /// 현재 덱 카드 데이터 반환 (읽기 전용 복사본)
+        /// Coordinator가 자동 저장할 때 사용
+        /// </summary>
+        public Dictionary<CardData, int> GetCurrentDeckCards()
+        {
+            return new Dictionary<CardData, int>(deckCards);
         }
 
         #endregion

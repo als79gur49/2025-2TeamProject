@@ -18,7 +18,8 @@ namespace Game.SaveSystem
         private ISaveGameManager saveManager;
         private IAudioServiceContainer audioServiceContainer;
         private IVolumeController volumeController;
-        private CollectionManager collectionManager;
+        // 씬 종속 의존성은 ServiceLocator를 통해 필요 시 조회
+        // GetCardRegistry(), GetCardCollection(), GetPlayerDataManager(), GetStageProgressManager() 사용
         #endregion
 
         #region Properties
@@ -30,6 +31,8 @@ namespace Game.SaveSystem
         /// <summary>
         /// 의존성 주입을 통한 초기화
         /// ServiceBootstrap에서 호출
+        /// 씬 종속 의존성(CardRegistry, CardCollection, PlayerDataManager, StageProgressManager)은
+        /// ServiceLocator를 통해 필요 시 조회됩니다.
         /// </summary>
         public void Initialize(ISaveGameManager saveGameManager)
         {
@@ -44,7 +47,7 @@ namespace Game.SaveSystem
             SubscribeEvents();
 
             IsInitialized = true;
-            Debug.Log("[SaveDataAdapter] Initialized with dependency injection");
+            Debug.Log("[SaveDataAdapter] Initialized with ISaveGameManager. Scene-specific dependencies will be resolved via ServiceLocator.");
         }
 
         private void InitializeOtherServices()
@@ -80,8 +83,7 @@ namespace Game.SaveSystem
                 Debug.LogWarning($"[SaveDataAdapter] Some services not available: {e.Message}");
             }
 
-            // CollectionManager 참조
-            collectionManager = CollectionManager.Instance;
+            // CollectionManager 참조는 Initialize()에서 주입받음
         }
 
         private void SubscribeEvents()
@@ -304,6 +306,48 @@ namespace Game.SaveSystem
 
             return deckCards;
         }
+
+        public void SaveLastUsedDeckName(string deckName)
+        {
+            ValidateSaveManager();
+
+            if (string.IsNullOrWhiteSpace(deckName))
+            {
+                Debug.LogWarning("[SaveDataAdapter] Refusing to save empty deck name");
+                return;
+            }
+
+            var playerDataMgr = GetPlayerDataManager();
+            if (playerDataMgr == null)
+            {
+                Debug.LogWarning("[SaveDataAdapter] PlayerDataManager not available, cannot save last used deck");
+                return;
+            }
+
+            // PlayerData에 덱 이름 설정
+            var playerData = playerDataMgr.GetCurrentPlayerData();
+            playerData.lastUsedDeckName = deckName;
+
+            // 즉시 저장
+            SaveSpecific(SaveFileType.PlayerData);
+
+            Debug.Log($"[SaveDataAdapter] Last used deck name saved: {deckName}");
+        }
+
+        public string LoadLastUsedDeckName()
+        {
+            ValidateSaveManager();
+
+            var playerDataMgr = GetPlayerDataManager();
+            if (playerDataMgr == null)
+            {
+                Debug.LogWarning("[SaveDataAdapter] PlayerDataManager not available, cannot load last used deck");
+                return null;
+            }
+
+            var playerData = playerDataMgr.GetCurrentPlayerData();
+            return playerData?.lastUsedDeckName;
+        }
         #endregion
 
         #region Data Collection Methods
@@ -352,64 +396,48 @@ namespace Game.SaveSystem
 
         private PlayerData CollectPlayerData()
         {
-            var playerData = new PlayerData();
+            var playerDataMgr = GetPlayerDataManager();
+            if (playerDataMgr == null)
+            {
+                Debug.LogWarning("[SaveDataAdapter] PlayerDataManager not available, returning empty PlayerData");
+                return new PlayerData();
+            }
 
-            // 임시 구현 - 실제 게임 매니저에서 가져와야 함
-            playerData.playerID = PlayerPrefs.GetString("PlayerID", GeneratePlayerID());
-            playerData.playerName = PlayerPrefs.GetString("PlayerName", "Player");
-            playerData.gold = PlayerPrefs.GetInt("Gold", 0);
-            playerData.totalPlayTime = PlayerPrefs.GetFloat("TotalPlayTime", 0f);
-
-            return playerData;
+            // PlayerDataManager에서 현재 런타임 데이터 가져오기
+            return playerDataMgr.GetCurrentPlayerData();
         }
 
         private void ApplyPlayerData(PlayerData data)
         {
-            if (data == null) return;
+            var playerDataMgr = GetPlayerDataManager();
+            if (data == null || playerDataMgr == null) return;
 
-            // 임시 구현
-            PlayerPrefs.SetString("PlayerID", data.playerID);
-            PlayerPrefs.SetString("PlayerName", data.playerName);
-            PlayerPrefs.SetInt("Gold", data.gold);
-            PlayerPrefs.SetFloat("TotalPlayTime", data.totalPlayTime);
-            PlayerPrefs.Save();
+            // PlayerDataManager에 로드된 데이터 적용
+            playerDataMgr.SetPlayerData(data);
 
             Debug.Log($"[SaveDataAdapter] Player data applied - ID: {data.playerID}, Gold: {data.gold}");
         }
 
         private StageProgressData CollectStageProgress()
         {
-            var progress = new StageProgressData();
-
-            // 임시 구현
-            string savedProgress = PlayerPrefs.GetString("StageProgress", "");
-            if (!string.IsNullOrEmpty(savedProgress))
+            var stageProgressMgr = GetStageProgressManager();
+            if (stageProgressMgr == null)
             {
-                try
-                {
-                    progress = Newtonsoft.Json.JsonConvert.DeserializeObject<StageProgressData>(savedProgress);
-                }
-                catch
-                {
-                    progress = GenerateDefaultStageProgress();
-                }
-            }
-            else
-            {
-                progress = GenerateDefaultStageProgress();
+                Debug.LogWarning("[SaveDataAdapter] StageProgressManager not available, returning empty StageProgressData");
+                return new StageProgressData();
             }
 
-            return progress;
+            // StageProgressManager에서 현재 런타임 데이터 가져오기
+            return stageProgressMgr.GetCurrentProgress();
         }
 
         private void ApplyStageProgress(StageProgressData progress)
         {
-            if (progress == null) return;
+            var stageProgressMgr = GetStageProgressManager();
+            if (progress == null || stageProgressMgr == null) return;
 
-            // 임시 구현
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(progress);
-            PlayerPrefs.SetString("StageProgress", json);
-            PlayerPrefs.Save();
+            // StageProgressManager에 로드된 데이터 적용
+            stageProgressMgr.SetProgress(progress);
 
             Debug.Log($"[SaveDataAdapter] Stage progress applied - Current: {progress.currentChapter}-{progress.currentStage}");
         }
@@ -417,10 +445,11 @@ namespace Game.SaveSystem
         private CardCollectionData CollectCardCollection()
         {
             var collection = new CardCollectionData();
+            var cardCol = GetCardCollection();
 
-            if (collectionManager != null)
+            if (cardCol != null)
             {
-                var allCards = collectionManager.GetAllOwnedCards();
+                var allCards = cardCol.GetAllOwnedCards();
 
                 foreach (var cardData in allCards)
                 {
@@ -428,7 +457,7 @@ namespace Game.SaveSystem
                     {
                         cardID = cardData.CardID,
                         cardName = cardData.CardName,
-                        quantity = collectionManager.GetOwnedCount(cardData),
+                        quantity = cardCol.GetOwnedCount(cardData),
                         level = 1,
                         enhancementLevel = 0,
                         experience = 0,
@@ -448,21 +477,29 @@ namespace Game.SaveSystem
 
         private void ApplyCardCollection(CardCollectionData collection)
         {
-            if (collection == null || collectionManager == null) return;
+            var cardCol = GetCardCollection();
+            if (collection == null || cardCol == null) return;
 
-            // CollectionSaveData 형식으로 변환 (기존 CollectionManager 호환)
-            var saveData = new CollectionSaveData
+            // EnhancedCardData를 CardData + counts로 변환
+            List<CardData> cards = new List<CardData>();
+            List<int> counts = new List<int>();
+
+            foreach (var enhancedCard in collection.ownedCards)
             {
-                cardIds = collection.ownedCards.Select(c => c.cardID).ToList(),
-                counts = collection.ownedCards.Select(c => c.quantity).ToList()
-            };
+                CardData cardData = FindCardDataByID(enhancedCard.cardID);
+                if (cardData != null)
+                {
+                    cards.Add(cardData);
+                    counts.Add(enhancedCard.quantity);
+                }
+                else
+                {
+                    Debug.LogWarning($"[SaveDataAdapter] Card not found: {enhancedCard.cardID}");
+                }
+            }
 
-            string json = JsonUtility.ToJson(saveData, true);
-            PlayerPrefs.SetString("PlayerCollection", json);
-            PlayerPrefs.Save();
-
-            // CollectionManager 리로드
-            collectionManager.LoadCollection();
+            // 직접 데이터 설정 (LoadCollection 호출 제거 - 무한 재귀 방지)
+            cardCol.SetCollectionFromLoadedData(cards, counts);
 
             Debug.Log($"[SaveDataAdapter] Card collection applied - {collection.ownedCards.Count} cards");
         }
@@ -496,32 +533,60 @@ namespace Game.SaveSystem
             }
         }
 
-        private string GeneratePlayerID()
-        {
-            return "PLR" + UnityEngine.Random.Range(100000, 999999).ToString();
-        }
-
-        private StageProgressData GenerateDefaultStageProgress()
-        {
-            var progress = new StageProgressData();
-            progress.currentChapter = 1;
-            progress.currentStage = 1;
-            progress.stageRecords.Add(new StageRecord
-            {
-                chapter = 1,
-                stage = 1,
-                isUnlocked = true,
-                isCleared = false
-            });
-
-            return progress;
-        }
 
         private CardData FindCardDataByID(string cardID)
         {
-            // Resources에서 찾기
-            CardData[] allCards = Resources.LoadAll<CardData>("Cards");
-            return allCards.FirstOrDefault(c => c.CardID == cardID);
+            // CardRegistry를 통한 O(1) 조회
+            var registry = GetCardRegistry();
+            return registry?.GetCardByID(cardID);
+        }
+
+        /// <summary>
+        /// ServiceLocator를 통해 ICardRegistry를 조회합니다.
+        /// </summary>
+        private ICardRegistry GetCardRegistry()
+        {
+            if (ServiceLocator.IsRegistered<ICardRegistry>())
+            {
+                return ServiceLocator.Get<ICardRegistry>();
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ServiceLocator를 통해 ICardCollection을 조회합니다.
+        /// </summary>
+        private ICardCollection GetCardCollection()
+        {
+            if (ServiceLocator.IsRegistered<ICardCollection>())
+            {
+                return ServiceLocator.Get<ICardCollection>();
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ServiceLocator를 통해 PlayerDataManager를 조회합니다.
+        /// </summary>
+        private PlayerDataManager GetPlayerDataManager()
+        {
+            if (ServiceLocator.IsRegistered<PlayerDataManager>())
+            {
+                return ServiceLocator.Get<PlayerDataManager>();
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ServiceLocator를 통해 StageProgressManager를 조회합니다.
+        /// </summary>
+        private StageProgressManager GetStageProgressManager()
+        {
+            if (ServiceLocator.IsRegistered<StageProgressManager>())
+            {
+                return ServiceLocator.Get<StageProgressManager>();
+            }
+            return null;
         }
         #endregion
 

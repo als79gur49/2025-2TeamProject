@@ -35,6 +35,11 @@ namespace Game.SaveSystem
         public int bestScore;
 
         /// <summary>
+        /// 획득한 최고 별 개수
+        /// </summary>
+        public int bestStars;
+
+        /// <summary>
         /// 클리어 횟수
         /// </summary>
         public int clearCount;
@@ -56,6 +61,7 @@ namespace Game.SaveSystem
             isUnlocked = false;
             isCleared = false;
             bestScore = 0;
+            bestStars = 0;
             clearCount = 0;
             firstClearDate = DateTime.MinValue;
             lastPlayDate = DateTime.MinValue;
