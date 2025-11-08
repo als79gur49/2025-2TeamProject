@@ -19,8 +19,6 @@ namespace Game.UI.Panels
     /// </summary>
     public class DeckBuilderPanel : UIPanel, IDropHandler, IPointerEnterHandler, IPointerExitHandler
     {
-        // SaveSystem 참조
-        private ISaveDataAdapter saveAdapter;
         [Header("Deck Settings")]
         [SerializeField] private Transform deckListContainer;
         [SerializeField] private GameObject cardUIPrefab;
@@ -47,10 +45,15 @@ namespace Game.UI.Panels
         [SerializeField] private Color invalidDropColor = new Color(1f, 0f, 0f, 0.3f);
         [SerializeField] private Color normalColor = new Color(1f, 1f, 1f, 0f);
 
+        [Header("Deck Selection")]
+        [SerializeField] private TMP_Dropdown deckSelectionDropdown;
+
         [Header("Buttons")]
         [SerializeField] private Button saveDeckButton;
         [SerializeField] private Button clearDeckButton;
         [SerializeField] private Button loadDeckButton;
+        [SerializeField] private Button addDeckButton;
+        [SerializeField] private Button removeDeckButton;
 
         // 덱 데이터
         private Dictionary<CardData, int> deckCards = new Dictionary<CardData, int>();
@@ -67,6 +70,26 @@ namespace Game.UI.Panels
         public event Action<CardData> OnCardRemovedFromDeck;
         public event Action<Dictionary<CardData, int>> OnDeckChanged;
 
+        /// <summary>
+        /// 사용자가 수동으로 덱 저장을 요청할 때 발생 (Save 버튼 클릭)
+        /// </summary>
+        public event Action<string, Dictionary<CardData, int>> OnDeckSaveRequested;
+
+        /// <summary>
+        /// 사용자가 드롭다운에서 다른 덱을 선택할 때 발생
+        /// </summary>
+        public event Action<string> OnDeckLoadRequested;
+
+        /// <summary>
+        /// 사용자가 AddDeck 버튼을 클릭했을 때 발생
+        /// </summary>
+        public event Action OnDeckCreateRequested;
+
+        /// <summary>
+        /// 사용자가 RemoveDeck 버튼을 클릭했을 때 발생
+        /// </summary>
+        public event Action<string> OnDeckDeleteRequested;
+
         #region Lifecycle
 
         /// <summary>
@@ -82,8 +105,15 @@ namespace Game.UI.Panels
                 saveDeckButton.onClick.AddListener(OnSaveDeckClicked);
             if (clearDeckButton != null)
                 clearDeckButton.onClick.AddListener(OnClearDeckClicked);
-            if (loadDeckButton != null)
-                loadDeckButton.onClick.AddListener(OnLoadDeckClicked);
+            // loadDeckButton은 더 이상 사용하지 않음 (드롭다운으로 대체)
+            if (addDeckButton != null)
+                addDeckButton.onClick.AddListener(OnAddDeckClicked);
+            if (removeDeckButton != null)
+                removeDeckButton.onClick.AddListener(OnRemoveDeckClicked);
+
+            // 드롭다운 이벤트 설정
+            if (deckSelectionDropdown != null)
+                deckSelectionDropdown.onValueChanged.AddListener(OnDeckDropdownChanged);
 
             // 덱 이름 기본값
             if (deckNameInput != null)
@@ -98,30 +128,8 @@ namespace Game.UI.Panels
         }
 
         /// <summary>
-        /// 의존성 있는 초기화 (Start에서 호출)
-        /// ServiceLocator에서 SaveDataAdapter 가져오기
-        /// </summary>
-        protected override void OnInitializeWithDependencies()
-        {
-            base.OnInitializeWithDependencies();
-
-            // SaveDataAdapter 가져오기
-            if (ServiceLocator.IsRegistered<ISaveDataAdapter>())
-            {
-                saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
-                Debug.Log("[DeckBuilderPanel] SaveAdapter retrieved from ServiceLocator");
-            }
-            else
-            {
-                Debug.LogWarning("[DeckBuilderPanel] SaveAdapter not registered in ServiceLocator");
-            }
-
-            Debug.Log("[DeckBuilderPanel] Dependency initialization complete (Start)");
-        }
-
-        /// <summary>
         /// SceneInitializer에서 호출 - 의존성 주입
-        /// DeckBuilderPanel은 현재 외부 의존성이 없지만 일관성을 위해 메서드 제공
+        /// Coordinator가 모든 저장/로드를 처리하므로 DeckBuilderPanel은 UI만 관리
         /// </summary>
         public void Initialize()
         {
@@ -131,60 +139,15 @@ namespace Game.UI.Panels
             Debug.Log("[DeckBuilderPanel] Initialized");
         }
 
-        /// <summary>
-        /// 마지막으로 사용한 덱 자동 로드 시도
-        /// </summary>
-        private void TryLoadLastUsedDeck()
-        {
-            if (saveAdapter == null)
-            {
-                Debug.LogWarning("[DeckBuilderPanel] SaveAdapter not available, skipping auto-load");
-                return;
-            }
-
-            string lastDeckName = saveAdapter.LoadLastUsedDeckName();
-
-            // 빈 문자열 또는 null 체크
-            if (string.IsNullOrEmpty(lastDeckName))
-            {
-                Debug.Log("[DeckBuilderPanel] No last used deck found, starting with empty deck");
-                return;
-            }
-
-            // 덱 파일 존재 여부 확인
-            var savedDecks = saveAdapter.GetSavedDeckNames();
-            if (!savedDecks.Contains(lastDeckName))
-            {
-                Debug.LogWarning($"[DeckBuilderPanel] Last used deck '{lastDeckName}' not found");
-
-                // 다른 덱이 존재하면 첫 번째 덱 로드
-                if (savedDecks.Count > 0)
-                {
-                    Debug.Log($"[DeckBuilderPanel] Loading first available deck: {savedDecks[0]}");
-                    LoadDeckFromFile(savedDecks[0]);
-                }
-                return;
-            }
-
-            try
-            {
-                LoadDeckFromFile(lastDeckName);
-                Debug.Log($"[DeckBuilderPanel] Auto-loaded last deck: {lastDeckName}");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[DeckBuilderPanel] Failed to auto-load deck '{lastDeckName}': {e.Message}");
-            }
-        }
-
         protected override void OnShowPanel()
         {
             base.OnShowPanel();
 
-            // 마지막 사용 덱 자동 로드 시도
-            TryLoadLastUsedDeck();
-
+            // Coordinator가 자동으로 덱 목록과 마지막 사용 덱을 로드함
+            // UI만 업데이트
             UpdateDeckDisplay();
+
+            Debug.Log("[DeckBuilderPanel] Panel shown, waiting for Coordinator to load deck");
         }
 
         #endregion
@@ -565,11 +528,11 @@ namespace Game.UI.Panels
         #region Button Handlers
 
         /// <summary>
-        /// 덱 저장 버튼 클릭
+        /// 덱 저장 버튼 클릭 - Coordinator에게 저장 요청 이벤트 발생
         /// </summary>
         private void OnSaveDeckClicked()
         {
-            // DeckValidator를 사용한 검증
+            // DeckValidator를 사용한 검증 (UI 레벨 검증)
             DeckValidationResult result = DeckValidator.ValidateDeck(deckCards);
 
             if (!result.IsValid)
@@ -586,25 +549,9 @@ namespace Game.UI.Panels
                 return;
             }
 
-            // 덱 저장 (SaveAdapter 사용)
-            if (saveAdapter != null)
-            {
-                bool success = saveAdapter.SaveDeck(deckName, deckCards);
-                if (success)
-                {
-                    // 마지막 사용 덱으로 저장
-                    saveAdapter.SaveLastUsedDeckName(deckName);
-                    Debug.Log($"[DeckBuilder] Deck '{deckName}' saved and set as last used!");
-                }
-                else
-                {
-                    Debug.LogError($"[DeckBuilder] Failed to save deck '{deckName}'");
-                }
-            }
-            else
-            {
-                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot save deck");
-            }
+            // Coordinator에게 저장 요청 이벤트 발생
+            OnDeckSaveRequested?.Invoke(deckName, new Dictionary<CardData, int>(deckCards));
+            Debug.Log($"[DeckBuilder] Save requested for deck: {deckName}");
         }
 
         /// <summary>
@@ -625,50 +572,111 @@ namespace Game.UI.Panels
             Debug.Log("[DeckBuilder] Deck cleared");
         }
 
+
+
         /// <summary>
-        /// 덱 불러오기 버튼 클릭
+        /// Coordinator 참조 설정 (중재자 패턴)
         /// </summary>
-        private void OnLoadDeckClicked()
+        public void SetCoordinator(Game.UI.Coordinators.DeckInventoryCoordinator coord)
         {
-            if (saveAdapter == null)
-            {
-                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot load deck");
-                return;
-            }
-
-            // 저장된 덱 목록 가져오기
-            List<string> savedDecks = saveAdapter.GetSavedDeckNames();
-
-            if (savedDecks.Count == 0)
-            {
-                Debug.LogWarning("[DeckBuilder] 저장된 덱이 없습니다");
-                return;
-            }
-
-            // TODO: 덱 선택 UI 패널 표시
-            // 임시로 첫 번째 덱을 로드
-            string deckToLoad = savedDecks[0];
-            LoadDeckFromFile(deckToLoad);
-
-            Debug.Log($"[DeckBuilder] Available decks: {string.Join(", ", savedDecks)}");
+            coordinator = coord;
         }
 
         /// <summary>
-        /// 파일에서 덱 로드
+        /// 현재 편집 중인 덱 이름 반환 (읽기 전용)
+        /// 덱 이름이 비어있으면 null 반환
         /// </summary>
-        private void LoadDeckFromFile(string deckName)
+        public string GetCurrentDeckName()
         {
-            if (saveAdapter == null)
+            // 덱 이름 입력 필드 검증
+            if (deckNameInput == null || string.IsNullOrWhiteSpace(deckNameInput.text))
             {
-                Debug.LogError("[DeckBuilder] SaveAdapter not available, cannot load deck");
+                return null;
+            }
+
+            return deckNameInput.text;
+        }
+
+        /// <summary>
+        /// 현재 덱 카드 데이터 반환 (읽기 전용 복사본)
+        /// Coordinator가 자동 저장할 때 사용
+        /// </summary>
+        public Dictionary<CardData, int> GetCurrentDeckCards()
+        {
+            return new Dictionary<CardData, int>(deckCards);
+        }
+
+
+        /// <summary>
+        /// 드롭다운 값 변경 이벤트 핸들러
+        /// Coordinator에게 덱 로드 요청을 발생시킴
+        /// </summary>
+        private void OnDeckDropdownChanged(int index)
+        {
+            if (deckSelectionDropdown == null)
+                return;
+
+            // "-- 덱 선택 --" 또는 "저장된 덱 없음" 선택 시 무시
+            if (index <= 0)
+            {
+                Debug.Log("[DeckBuilder] Placeholder option selected, ignoring");
                 return;
             }
 
-            Dictionary<CardData, int> loadedDeck = saveAdapter.LoadDeck(deckName);
+            // 선택된 덱 이름 가져오기
+            string selectedDeckName = deckSelectionDropdown.options[index].text;
 
-            if (loadedDeck == null)
+            // 현재 편집 중인 덱과 같으면 중복 로드 방지
+            string currentDeckName = GetCurrentDeckName();
+            if (selectedDeckName == currentDeckName)
             {
-                Debug.LogError($"[DeckBuilder] Failed to load deck '{deckName}'");
+                Debug.Log($"[DeckBuilder] '{selectedDeckName}' is already loaded");
+                return;
+            }
+
+            // Coordinator에게 로드 요청 이벤트 발생
+            OnDeckLoadRequested?.Invoke(selectedDeckName);
+            Debug.Log($"[DeckBuilder] Load requested from dropdown: {selectedDeckName}");
+        }
+
+        /// <summary>
+        /// 새 덱 추가 버튼 클릭 - Coordinator에게 생성 요청
+        /// </summary>
+        private void OnAddDeckClicked()
+        {
+            OnDeckCreateRequested?.Invoke();
+            Debug.Log("[DeckBuilder] New deck creation requested");
+        }
+
+        /// <summary>
+        /// 덱 삭제 버튼 클릭 - Coordinator에게 삭제 요청
+        /// </summary>
+        private void OnRemoveDeckClicked()
+        {
+            string currentDeckName = GetCurrentDeckName();
+
+            if (string.IsNullOrWhiteSpace(currentDeckName))
+            {
+                Debug.LogWarning("[DeckBuilder] No deck loaded to remove");
+                return;
+            }
+
+            OnDeckDeleteRequested?.Invoke(currentDeckName);
+            Debug.Log($"[DeckBuilder] Delete requested for deck: {currentDeckName}");
+        }
+
+        #endregion
+
+        #region Public API for Coordinator
+
+        /// <summary>
+        /// Coordinator가 덱을 로드할 때 호출하는 Public API
+        /// </summary>
+        public void LoadDeck(string deckName, Dictionary<CardData, int> deckCards)
+        {
+            if (deckCards == null)
+            {
+                Debug.LogError("[DeckBuilderPanel] Cannot load null deck data");
                 return;
             }
 
@@ -676,7 +684,7 @@ namespace Game.UI.Panels
             OnClearDeckClicked();
 
             // 로드된 덱 카드 추가
-            foreach (var kvp in loadedDeck)
+            foreach (var kvp in deckCards)
             {
                 for (int i = 0; i < kvp.Value; i++)
                 {
@@ -690,42 +698,58 @@ namespace Game.UI.Panels
                 deckNameInput.text = deckName;
             }
 
-            // 마지막 사용 덱으로 저장
-            saveAdapter.SaveLastUsedDeckName(deckName);
-
-            Debug.Log($"[DeckBuilder] Deck '{deckName}' loaded successfully!");
+            UpdateDeckDisplay();
+            Debug.Log($"[DeckBuilderPanel] Deck '{deckName}' loaded via Coordinator");
         }
 
         /// <summary>
-        /// Coordinator 참조 설정 (중재자 패턴)
+        /// Coordinator가 저장된 덱 목록을 제공할 때 호출하는 Public API
         /// </summary>
-        public void SetCoordinator(Game.UI.Coordinators.DeckInventoryCoordinator coord)
+        public void SetAvailableDecks(List<string> deckNames)
         {
-            coordinator = coord;
-        }
-
-        /// <summary>
-        /// 현재 편집 중인 덱 이름 반환 (읽기 전용)
-        /// 빈 덱이거나 이름이 없으면 null 반환
-        /// </summary>
-        public string GetCurrentDeckName()
-        {
-            // 빈 덱은 저장하지 않음
-            if (deckCards.Count == 0)
+            if (deckSelectionDropdown == null)
             {
-                return null;
+                Debug.LogWarning("[DeckBuilderPanel] Deck dropdown not assigned");
+                return;
             }
 
-            return deckNameInput?.text;
+            // 기존 옵션 제거
+            deckSelectionDropdown.ClearOptions();
+
+            if (deckNames == null || deckNames.Count == 0)
+            {
+                // 저장된 덱이 없을 경우
+                deckSelectionDropdown.AddOptions(new List<string> { "저장된 덱 없음" });
+                deckSelectionDropdown.interactable = false;
+                Debug.Log("[DeckBuilderPanel] No decks available");
+                return;
+            }
+
+            // 드롭다운에 옵션 추가
+            deckSelectionDropdown.AddOptions(deckNames);
+            deckSelectionDropdown.interactable = true;
+
+            Debug.Log($"[DeckBuilderPanel] Dropdown updated with {deckNames.Count} decks via Coordinator");
         }
 
         /// <summary>
-        /// 현재 덱 카드 데이터 반환 (읽기 전용 복사본)
-        /// Coordinator가 자동 저장할 때 사용
+        /// Coordinator가 현재 로드된 덱을 드롭다운에서 선택 상태로 만들 때 사용
         /// </summary>
-        public Dictionary<CardData, int> GetCurrentDeckCards()
+        public void SyncDropdownToDeck(string deckName)
         {
-            return new Dictionary<CardData, int>(deckCards);
+            if (deckSelectionDropdown == null || string.IsNullOrEmpty(deckName))
+                return;
+
+            // 드롭다운에서 해당 덱의 인덱스 찾기
+            for (int i = 0; i < deckSelectionDropdown.options.Count; i++)
+            {
+                if (deckSelectionDropdown.options[i].text == deckName)
+                {
+                    deckSelectionDropdown.SetValueWithoutNotify(i);
+                    Debug.Log($"[DeckBuilderPanel] Dropdown synced to: {deckName}");
+                    break;
+                }
+            }
         }
 
         #endregion
