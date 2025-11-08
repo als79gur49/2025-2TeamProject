@@ -428,7 +428,7 @@ namespace Game.SaveSystem
             }
 
             // StageProgressManager에서 현재 런타임 데이터 가져오기
-            return stageProgressMgr.GetCurrentProgress();
+            return stageProgressMgr.GetProgressData();
         }
 
         private void ApplyStageProgress(StageProgressData progress)
@@ -437,9 +437,9 @@ namespace Game.SaveSystem
             if (progress == null || stageProgressMgr == null) return;
 
             // StageProgressManager에 로드된 데이터 적용
-            stageProgressMgr.SetProgress(progress);
+            stageProgressMgr.SetProgressData(progress);
 
-            Debug.Log($"[SaveDataAdapter] Stage progress applied - Current: {progress.currentChapter}-{progress.currentStage}");
+            Debug.Log($"[SaveDataAdapter] Stage progress applied - Current: {progress.currentStageId}");
         }
 
         private CardCollectionData CollectCardCollection()

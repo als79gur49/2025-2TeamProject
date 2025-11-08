@@ -10,7 +10,8 @@
       "Bash(rm:*)",
       "Bash(git log:*)",
       "Bash(git reset:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
