@@ -9,6 +9,7 @@ using Game.SaveSystem;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Game.Services;
+using Game.Controllers;
 
 namespace Game.UI
 {
@@ -100,7 +101,7 @@ namespace Game.UI
         private UnityEvent<List<string>> onShowUnlockRequirements = new UnityEvent<List<string>>();
 
         // Runtime State
-        private StageProgressManager progressManager;
+        private IStageProgressManager progressManager;
         private StageInfo currentStageInfo;
         private bool isInitialized = false;
         private Animator animator;
@@ -116,10 +117,18 @@ namespace Game.UI
             }
 
             // Get references
-            progressManager = StageProgressManager.Instance;
+            if (ServiceLocator.IsRegistered<IStageProgressManager>())
+            {
+                progressManager = ServiceLocator.Get<IStageProgressManager>();
+            }
+            else
+            {
+                Debug.LogError("[StageButton] IStageProgressManager not found in ServiceLocator");
+            }
+
             animator = GetComponent<Animator>();
             canvasGroup = GetComponent<CanvasGroup>();
-            
+
             if (canvasGroup == null)
             {
                 canvasGroup = gameObject.AddComponent<CanvasGroup>();
@@ -385,10 +394,6 @@ namespace Game.UI
                 {
                     progressText.text = $"Cleared: {currentStageInfo.clearCount}x";
                 }
-                else if (currentStageInfo.state == StageState.InProgress)
-                {
-                    progressText.text = "In Progress";
-                }
                 else
                 {
                     progressText.text = "";
@@ -435,8 +440,8 @@ namespace Game.UI
 
         private void LoadStageScene()
         {
-            // Set current stage in progress manager
-            progressManager.StartStage(stageData.StageId);
+            // Prepare stage for play (씬 로드 전 준비)
+            progressManager.PrepareStageForPlay(stageData.StageId);
 
             // Validate SceneData
             if (stageData.SceneData == null)
@@ -445,15 +450,16 @@ namespace Game.UI
                 return;
             }
 
-            // Use SceneLoaderService if available
-            if (ServiceLocator.IsRegistered<ISceneLoaderService>())
+            // Use SceneTransitionController for consistent async loading with loading screen
+            if (ServiceLocator.IsRegistered<ISceneTransitionController>())
             {
-                var sceneLoader = ServiceLocator.Get<ISceneLoaderService>();
-                sceneLoader.LoadSceneAsync(stageData.SceneData);
+                var sceneTransition = ServiceLocator.Get<ISceneTransitionController>();
+                sceneTransition.LoadSceneWithLoading(stageData.SceneData);
             }
             else
             {
-                SceneManager.LoadScene(stageData.SceneData.SceneName);
+                Debug.LogError($"[StageButton] ISceneTransitionController not found in ServiceLocator! " +
+                              "Ensure SceneTransitionController is registered in Bootstrap scene.");
             }
         }
 
@@ -529,8 +535,6 @@ namespace Game.UI
                     return colorScheme.lockedColor;
                 case StageState.Unlocked:
                     return colorScheme.unlockedColor;
-                case StageState.InProgress:
-                    return colorScheme.inProgressColor;
                 case StageState.Cleared:
                     return colorScheme.clearedColor;
                 case StageState.Perfect:
@@ -587,7 +591,6 @@ namespace Game.UI
         {
             public Color lockedColor = new Color(0.3f, 0.3f, 0.3f, 1f);
             public Color unlockedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-            public Color inProgressColor = new Color(1f, 0.9f, 0.5f, 1f);
             public Color clearedColor = new Color(0.5f, 1f, 0.5f, 1f);
             public Color perfectColor = new Color(1f, 0.8f, 0.2f, 1f);
             

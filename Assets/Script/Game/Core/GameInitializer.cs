@@ -7,7 +7,7 @@ using Game.Coordinators;
 using Game.Initialization;
 using PlasticPipe.PlasticProtocol.Messages;
 using Game;
-
+using Game.Managers;
 
 /// <summary>
 /// 게임 초기화 매니저 - 모든 서비스 등록 및 의존성 주입 설정
@@ -30,6 +30,10 @@ public class GameInitializer : SceneInitializer
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
     [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
     [SerializeField] private GameUICoordinator gameUICoordinator; // 게임-UI 이벤트 중재 서비스 추가
+
+    [Header("Session Management")]
+    [SerializeField] private Game.Managers.GameSessionManager gameSessionManager; // 게임 세션 데이터 추적 서비스
+    [SerializeField] private GameResultCoordinator gameResultCoordinator; // 게임 결과 조율 서비스
 
     [Header("Death Animation Services")]
     [SerializeField] private DeathAnimationManager deathAnimationManager; // 죽음 애니메이션 관리 서비스
@@ -81,6 +85,9 @@ public class GameInitializer : SceneInitializer
 
         // 5. 초기화 완료 마킹
         ServiceLocator.MarkAsInitialized();
+
+        // 6. 게임 세션 시작 (스테이지 ID 기반)
+        StartGameSession();
 
         Log("Game initialization completed successfully!");
     }
@@ -366,6 +373,17 @@ public class GameInitializer : SceneInitializer
             LogError("❌ GameUICoordinator not found - Game-to-UI coordination not available");
         }
 
+        // GameSessionManager 등록 (Runtime 데이터 추적)
+        if (gameSessionManager != null)
+        {
+            ServiceLocator.Register<IGameSessionManager>(gameSessionManager);
+            Log("✅ IGameSessionManager registered (tracks runtime session data)");
+        }
+        else
+        {
+            LogError("❌ GameSessionManager not found - Session data tracking not available");
+        }
+
         Log("Game outcome management services registration completed");
     }
 
@@ -596,6 +614,14 @@ public class GameInitializer : SceneInitializer
         Debug.LogError($"[GameInitializer] {message}");
     }
 
+    private void LogWarning(string message)
+    {
+        if (logInitializationSteps)
+        {
+            Debug.LogWarning($"[GameInitializer] {message}");
+        }
+    }
+
     // ✅ 에디터용 도구들
 #if UNITY_EDITOR
     [Header("에디터 도구")]
@@ -668,6 +694,99 @@ public class GameInitializer : SceneInitializer
     }
 #endif
 
+    /// <summary>
+    /// 게임 세션 시작 (현재 스테이지 ID로)
+    /// </summary>
+    private void StartGameSession()
+    {
+        Log("Starting game session...");
+
+        string stageId = GetCurrentStageIdFromScene();
+
+        if (gameSessionManager != null)
+        {
+            gameSessionManager.StartSession(stageId);
+            Log($"✅ Game session started: {stageId}");
+        }
+        else
+        {
+            LogError("❌ GameSessionManager is null - Cannot start session");
+        }
+    }
+
+    /// <summary>
+    /// 현재 씬의 스테이지 ID 가져오기
+    /// StageButton.LoadStageScene()에서 PrepareStageForPlay()를 통해 설정된 ID 사용
+    /// </summary>
+    private string GetCurrentStageIdFromScene()
+    {
+        Log("Retrieving current stage ID from StageProgressManager...");
+
+        // StageProgressManager에서 현재 스테이지 ID 가져오기
+        // (StageButton.LoadStageScene() → PrepareStageForPlay()에서 이미 설정됨)
+        if (ServiceLocator.IsRegistered<IStageProgressManager>())
+        {
+            var progressManager = ServiceLocator.Get<IStageProgressManager>();
+            string stageId = progressManager.GetCurrentStageId();
+
+            if (!string.IsNullOrEmpty(stageId))
+            {
+                Log($"✅ Stage ID retrieved from StageProgressManager: {stageId}");
+                return stageId;
+            }
+            else
+            {
+                LogWarning("⚠️ StageProgressManager returned empty stage ID");
+            }
+        }
+        else
+        {
+            LogWarning("⚠️ IStageProgressManager not registered - using fallback");
+        }
+
+        // Fallback: 에디터에서 씬을 직접 실행하거나 StageProgressManager가 없는 경우
+        // (정상 플레이 플로우에서는 이 fallback이 실행되지 않아야 함)
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        Log($"  Using fallback stage ID for scene: {sceneName}");
+
+        // 씬 이름 기반 기본값 매핑 (에디터 테스트용)
+        if (sceneName == "PrototypeTestScene" || sceneName == "StageTestScene")
+        {
+            return "chapter1_stage1";
+        }
+
+        if (sceneName.StartsWith("Stage"))
+        {
+            // Stage01_01 → chapter1_stage1 형식으로 변환
+            return ConvertSceneNameToStageId(sceneName);
+        }
+
+        // 최종 fallback
+        LogWarning($"⚠️ No stage ID mapping for scene '{sceneName}', using default");
+        return "chapter1_stage1";
+    }
+
+    /// <summary>
+    /// 씬 이름을 스테이지 ID로 변환 (에디터 테스트용 fallback)
+    /// 예: "Stage01_01" → "chapter1_stage1"
+    /// </summary>
+    private string ConvertSceneNameToStageId(string sceneName)
+    {
+        // Stage01_01 형식 파싱
+        if (sceneName.StartsWith("Stage") && sceneName.Length >= 9)
+        {
+            string chapterPart = sceneName.Substring(5, 2); // "01"
+            string stagePart = sceneName.Substring(8, 2);   // "01"
+
+            int chapterNum = int.Parse(chapterPart);
+            int stageNum = int.Parse(stagePart);
+
+            return $"chapter{chapterNum}_stage{stageNum}";
+        }
+
+        return "chapter1_stage1";
+    }
+
     #region SceneInitializer Abstract Methods Implementation
 
     /// <summary>
@@ -694,6 +813,17 @@ public class GameInitializer : SceneInitializer
 
         // GameUICoordinator는 이미 RegisterGameOutcomeServices()에서 Init() 호출됨
         // DeckInventoryCoordinator는 이 씬에 없음
+
+        // GameResultCoordinator 초기화 (게임 결과 처리)
+        if (gameResultCoordinator != null)
+        {
+            gameResultCoordinator.Initialize();
+            Log("✅ GameResultCoordinator initialized (handles game result processing)");
+        }
+        else
+        {
+            LogError("❌ GameResultCoordinator not found - Game result processing not available");
+        }
 
         // SettingsCoordinator 초기화
         InitializeSettingsCoordinator();

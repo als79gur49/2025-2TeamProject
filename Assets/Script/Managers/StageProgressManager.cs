@@ -12,29 +12,8 @@ namespace Game.Managers
     /// 스테이지 진행도 관리자
     /// Dictionary 기반 효율적인 데이터 관리
     /// </summary>
-    public class StageProgressManager : MonoBehaviour
+    public class StageProgressManager : MonoBehaviour, IStageProgressManager
     {
-        #region Singleton
-        private static StageProgressManager instance;
-        public static StageProgressManager Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = FindObjectOfType<StageProgressManager>();
-                    if (instance == null)
-                    {
-                        GameObject go = new GameObject("StageProgressManager");
-                        instance = go.AddComponent<StageProgressManager>();
-                        DontDestroyOnLoad(go);
-                    }
-                }
-                return instance;
-            }
-        }
-        #endregion
-
         #region Fields
         [Header("Stage Database")]
         [SerializeField]
@@ -54,52 +33,31 @@ namespace Game.Managers
         private StageProgressData progressData;
         private Dictionary<string, StageDataSO> stageLookup;
         private ISaveDataAdapter saveAdapter;
-        private PlaySession currentSession;
-        private float lastAutoSaveTime;
         #endregion
 
         #region Events
         public event Action<string> OnStageUnlocked;
         public event Action<string, int, int> OnStageCompleted;
-        public event Action<string, int> OnStageScoreUpdated;
         public event Action<string, StageState> OnStageStateChanged;
         public event Action<StageProgressData> OnProgressUpdated;
-        public event Action<float> OnOverallProgressChanged;
         #endregion
 
         #region Initialization
-
-        private void Awake()
-        {
-            if (instance != null && instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-            
-            Initialize();
-        }
 
         public void Initialize()
         {
             // 새로운 진행도 데이터 생성
             progressData = new StageProgressData();
-            
+
             // 스테이지 룩업 테이블 생성
             BuildStageLookup();
-            
-            // SaveDataAdapter 연결
+
+            // SaveDataAdapter 연결0
             ConnectSaveAdapter();
-            
-            // ServiceLocator 등록
-            RegisterToServiceLocator();
-            
+
             // 첫 스테이지 자동 해금
             UnlockInitialStages();
-            
+
             Debug.Log($"[StageProgressManager] Initialized with {stageDatabase.Count} stages");
         }
 
@@ -129,20 +87,12 @@ namespace Game.Managers
             }
         }
 
-        private void RegisterToServiceLocator()
-        {
-            if (!ServiceLocator.IsRegistered<StageProgressManager>())
-            {
-                ServiceLocator.RegisterSingleton<StageProgressManager, StageProgressManager>(this);
-            }
-        }
-
-        private void UnlockInitialStages()
+        public void UnlockInitialStages()
         {
             // 튜토리얼 및 첫 스테이지 자동 해금
             foreach (var stage in stageDatabase)
             {
-                if (stage.Type == StageType.Tutorial || 
+                if (stage.Type == StageType.Tutorial ||
                     (stage.ChapterId == "chapter1" && stage.StageNumber == 1))
                 {
                     UnlockStage(stage.StageId, false);
@@ -155,56 +105,55 @@ namespace Game.Managers
         #region Stage Operations
 
         /// <summary>
-        /// 스테이지 시작
+        /// 스테이지 플레이 준비 (씬 로드 전 호출)
         /// </summary>
-        public void StartStage(string stageId)
+        /// <param name="stageId">준비할 스테이지 ID</param>
+        public void PrepareStageForPlay(string stageId)
         {
             if (!IsStageUnlocked(stageId))
             {
-                Debug.LogError($"[StageProgressManager] Cannot start locked stage: {stageId}");
+                Debug.LogError($"[StageProgressManager] Cannot prepare locked stage: {stageId}");
                 return;
             }
 
-            // 현재 세션 생성
-            currentSession = new PlaySession();
-            
-            // 레코드 가져오기 또는 생성
-            var record = progressData.GetOrCreateRecord(stageId);
-            
-            // 상태 업데이트
-            if (record.state == StageState.Unlocked)
-            {
-                record.state = StageState.InProgress;
-                OnStageStateChanged?.Invoke(stageId, StageState.InProgress);
-            }
-            
-            // 현재 진행중 스테이지 설정
             progressData.currentStageId = stageId;
-            
-            Debug.Log($"[StageProgressManager] Started stage: {stageId}");
+            Debug.Log($"[StageProgressManager] Stage prepared for play: {stageId}");
         }
 
         /// <summary>
-        /// 스테이지 완료
+        /// 현재 준비된 스테이지 ID 가져오기
         /// </summary>
-        public void CompleteStage(string stageId, int score, Dictionary<string, int> statistics = null)
+        /// <returns>현재 스테이지 ID (없으면 빈 문자열)</returns>
+        public string GetCurrentStageId()
         {
-            if (currentSession == null)
+            return progressData?.currentStageId ?? "";
+        }
+
+        /// <summary>
+        /// 스테이지 완료 기록 (외부에서 최종 데이터 받음)
+        /// </summary>
+        /// <param name="stageId">완료한 스테이지 ID</param>
+        /// <param name="score">최종 점수</param>
+        /// <param name="statistics">게임 통계 (적 처치 수, 데미지 등)</param>
+        public void RecordStageCompletion(string stageId, int score, Dictionary<string, int> statistics = null)
+        {
+            // 통계에서 플레이 시간 가져오기 (초 단위)
+            float playTime = 0f;
+            if (statistics != null && statistics.ContainsKey("play_time"))
             {
-                Debug.LogWarning("[StageProgressManager] No active session");
-                currentSession = new PlaySession();
+                playTime = statistics["play_time"];
             }
 
-            // 세션 정보 업데이트
-            currentSession.endTime = DateTime.Now;
-            currentSession.score = score;
-            currentSession.completed = true;
-            currentSession.playTime = (float)(currentSession.endTime - currentSession.startTime).TotalSeconds;
-            
-            if (statistics != null)
+            // PlaySession 생성 (매개변수에서 데이터 받아 생성)
+            var session = new PlaySession
             {
-                currentSession.statistics = statistics;
-            }
+                startTime = DateTime.Now.AddSeconds(-playTime),
+                endTime = DateTime.Now,
+                score = score,
+                statistics = statistics ?? new Dictionary<string, int>(),
+                completed = true,
+                playTime = playTime
+            };
 
             // 스테이지 데이터 가져오기
             var stageData = GetStageData(stageId);
@@ -216,21 +165,20 @@ namespace Game.Managers
 
             // 별 계산
             int stars = stageData.CalculateStars(score);
-            currentSession.stars = stars;
+            session.stars = stars;
 
             // 레코드 업데이트
             var record = progressData.GetOrCreateRecord(stageId);
             bool isFirstClear = record.state != StageState.Cleared && record.state != StageState.Perfect;
-            
+
             // 세션 추가
-            record.playSessions.Add(currentSession);
-            
+            record.playSessions.Add(session);
+
             // 최고 기록 업데이트
             if (score > record.bestScore)
             {
                 record.bestScore = score;
                 record.bestStars = stars;
-                OnStageScoreUpdated?.Invoke(stageId, score);
             }
 
             // 상태 업데이트
@@ -238,12 +186,12 @@ namespace Game.Managers
             {
                 record.firstClearDate = DateTime.Now;
             }
-            
+
             record.state = stars >= 3 ? StageState.Perfect : StageState.Cleared;
             record.lastPlayDate = DateTime.Now;
-            
+
             // 통계 업데이트
-            UpdateStatistics(record, currentSession);
+            UpdateStatistics(record, session);
             
             // 전체 진행도 업데이트
             UpdateGlobalProgress();
@@ -265,11 +213,8 @@ namespace Game.Managers
             {
                 SaveProgress();
             }
-            
-            Debug.Log($"[StageProgressManager] Completed stage {stageId}: Score={score}, Stars={stars}");
-            
-            // 세션 클리어
-            currentSession = null;
+
+            Debug.Log($"[StageProgressManager] Stage {stageId} completion recorded: Score={score}, Stars={stars}");
         }
 
         /// <summary>
@@ -356,10 +301,6 @@ namespace Game.Managers
             
             // 챕터별 진행도 업데이트
             UpdateChapterProgress();
-            
-            // 전체 진행률 이벤트
-            float overallProgress = progressData.CalculateOverallProgress(stageDatabase.Count);
-            OnOverallProgressChanged?.Invoke(overallProgress);
         }
 
         /// <summary>
@@ -516,15 +457,10 @@ namespace Game.Managers
             {
                 progressData.lastModified = DateTime.Now;
 
-                // SaveDataAdapter를 통해 저장
-                var saveData = new StageProgressSaveData(progressData);
-                
-                // 임시: JSON으로 직렬화하여 저장
-                string json = JsonUtility.ToJson(saveData);
-                PlayerPrefs.SetString("StageProgress", json);
-                PlayerPrefs.Save();
-                
-                Debug.Log("[StageProgressManager] Progress saved");
+                // SaveDataAdapter를 통한 저장
+                saveAdapter.SaveSpecific(SaveFileType.StageProgress);
+
+                Debug.Log("[StageProgressManager] Progress saved via SaveDataAdapter");
             }
             catch (Exception e)
             {
@@ -537,21 +473,73 @@ namespace Game.Managers
         /// </summary>
         public void LoadProgress()
         {
+            if (saveAdapter == null)
+            {
+                Debug.LogWarning("[StageProgressManager] SaveAdapter not available");
+                return;
+            }
+
             try
             {
-                string json = PlayerPrefs.GetString("StageProgress", "");
-                if (!string.IsNullOrEmpty(json))
+                // PlayerPrefs 레거시 데이터 마이그레이션 체크
+                MigrateFromPlayerPrefsIfNeeded();
+
+                // SaveDataAdapter를 통한 로드
+                saveAdapter.LoadSpecific(SaveFileType.StageProgress);
+
+                Debug.Log("[StageProgressManager] Progress loaded via SaveDataAdapter");
+
+                // 로드 후 자동으로 해금 조건 재평가
+                // 과거에 클리어한 스테이지가 있다면, 새로 추가된 스테이지도 조건 충족 시 해금
+                CheckAndUnlockNextStages();
+
+                if (debugMode)
                 {
-                    var saveData = JsonUtility.FromJson<StageProgressSaveData>(json);
-                    progressData = saveData.progressData;
-                    
-                    OnProgressUpdated?.Invoke(progressData);
-                    Debug.Log("[StageProgressManager] Progress loaded");
+                    Debug.Log("[StageProgressManager] Unlock conditions re-evaluated after load");
                 }
             }
             catch (Exception e)
             {
                 Debug.LogError($"[StageProgressManager] Load failed: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// PlayerPrefs에서 SaveDataAdapter로 마이그레이션 (1회 실행)
+        /// </summary>
+        private void MigrateFromPlayerPrefsIfNeeded()
+        {
+            // PlayerPrefs에 레거시 데이터가 있는지 확인
+            string legacyJson = PlayerPrefs.GetString("StageProgress", "");
+            if (string.IsNullOrEmpty(legacyJson))
+            {
+                return; // 마이그레이션할 데이터 없음
+            }
+
+            try
+            {
+                Debug.Log("[StageProgressManager] Migrating legacy data from PlayerPrefs...");
+
+                // 레거시 데이터 파싱
+                var saveData = JsonUtility.FromJson<StageProgressSaveData>(legacyJson);
+                if (saveData != null && saveData.progressData != null)
+                {
+                    // 현재 progressData에 적용
+                    progressData = saveData.progressData;
+
+                    // SaveDataAdapter를 통해 새로운 형식으로 저장
+                    saveAdapter.SaveSpecific(SaveFileType.StageProgress);
+
+                    // PlayerPrefs 레거시 데이터 삭제
+                    PlayerPrefs.DeleteKey("StageProgress");
+                    PlayerPrefs.Save();
+
+                    Debug.Log("[StageProgressManager] Migration completed successfully");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[StageProgressManager] Migration failed: {e.Message}");
             }
         }
 
@@ -568,21 +556,6 @@ namespace Game.Managers
 
             progressData = data;
             OnProgressUpdated?.Invoke(progressData);
-        }
-
-        #endregion
-
-        #region Auto Save
-
-        private void Update()
-        {
-            if (!autoSaveEnabled) return;
-            
-            if (Time.time - lastAutoSaveTime > autoSaveInterval)
-            {
-                SaveProgress();
-                lastAutoSaveTime = Time.time;
-            }
         }
 
         #endregion

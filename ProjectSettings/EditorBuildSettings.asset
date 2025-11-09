@@ -12,18 +12,24 @@ EditorBuildSettings:
     path: Assets/Scenes/TestScenes/Prototypes/TitleTestScene.unity
     guid: 1b3c176583abaeb4290b087736c8816f
   - enabled: 1
-    path: Assets/Scenes/TestScenes/SingleFeatureTestScenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
     path: Assets/Scenes/TestScenes/Prototypes/StageTestScene.unity
     guid: b7d5af68fbeb06147a7dadace1f56ecc
   - enabled: 1
-    path: Assets/Scenes/TestScenes/Prototypes/PrototypeTestScene.unity
-    guid: 60109c27cfff7494a835171f295d1cb8
-  - enabled: 1
-    path: Assets/Scenes/TestScenes/Prototypes/PrototypeWithGraphicTestScene.unity
-    guid: 5b95dcb3f9f3e854598e4d658d3f2ba2
-  - enabled: 1
     path: Assets/Scenes/TestScenes/Prototypes/Second.unity
     guid: 58e5b120c8daf2c41b9c003dbc11c8f3
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage01_01.unity
+    guid: cebee1cbdca3a7247b452bbf3cd722f0
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage01_02.unity
+    guid: ae52da34d66f6c749b2b63cb27066041
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage01_03.unity
+    guid: 79977dfbc2e50b0498988c88a94f7c01
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage01_04.unity
+    guid: e25dac309a2c1034c9610828e5d88ddd
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage01_05.unity
+    guid: 68ea4fa3c9d9cef449966c6cf766bf57
   m_configObjects: {}

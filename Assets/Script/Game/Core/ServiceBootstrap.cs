@@ -5,6 +5,7 @@ using Game.Services;
 using Game.Controllers;
 using Game.SceneManagement;
 using Game.SaveSystem;
+using Game.Managers;
 
 namespace Game.Core
 {
@@ -41,6 +42,14 @@ namespace Game.Core
         [Header("UI Service Configuration")]
         [Tooltip("Required: GlobalUIPanelManager prefab with Canvas (Sort Order 1000)")]
         [SerializeField] private GameObject globalUIPanelManagerPrefab;
+
+        [Header("Player Data System Configuration")]
+        [Tooltip("Required: PlayerDataManager prefab")]
+        [SerializeField] private GameObject playerDataManagerPrefab;
+
+        [Header("Stage System Configuration")]
+        [Tooltip("Required: StageProgressManager prefab with stageDatabase configured")]
+        [SerializeField] private GameObject stageProgressManagerPrefab;
 
         [Header("Initial Scene Configuration")]
         [Tooltip("SceneData asset to load after bootstrap initialization. Contains scene name, BGM, and loading screen configuration.")]
@@ -155,6 +164,12 @@ namespace Game.Core
 
             // PHASE 2.5: Save System (depends on Audio System)
             InitializeSaveSystem();
+
+            // PHASE 2.6: Player Data System (depends on Save System)
+            InitializePlayerDataManager();
+
+            // PHASE 2.7: Stage Progress System (depends on Save System)
+            InitializeStageProgressManager();
 
             // PHASE 3: Controllers (depend on Phase 1 services)
             InitializeSceneTransitionController();
@@ -328,6 +343,161 @@ namespace Game.Core
         }
 
         /// <summary>
+        /// Initialize PlayerDataManager and register with ServiceLocator.
+        /// Dependencies: ISaveDataAdapter (Phase 2.5)
+        /// </summary>
+        private void InitializePlayerDataManager()
+        {
+            Log("[PlayerData] Initializing Player Data System...");
+
+            // Validate dependency
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                LogError("  ✗ Dependency check failed: ISaveDataAdapter not registered!");
+                LogError("  → Cannot initialize PlayerDataManager without SaveDataAdapter");
+                return;
+            }
+
+            // Validate prefab reference
+            if (playerDataManagerPrefab == null)
+            {
+                LogError("  ✗ PlayerDataManager prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create manager instance from prefab
+            GameObject managerObj = Instantiate(playerDataManagerPrefab);
+            PlayerDataManager manager = managerObj.GetComponent<PlayerDataManager>();
+
+            if (manager == null)
+            {
+                LogError("  ✗ PlayerDataManager component not found on prefab!");
+                LogError("  → Verify the prefab has PlayerDataManager component");
+                Destroy(managerObj);
+                return;
+            }
+
+            // Apply DontDestroyOnLoad
+            DontDestroyOnLoad(managerObj);
+
+            // Initialize manager (before registration for proper dependency injection)
+            manager.Initialize();
+            Log("  ✓ PlayerDataManager initialized");
+
+            // Register with ServiceLocator
+            ServiceLocator.RegisterSingleton<PlayerDataManager, PlayerDataManager>(manager);
+            Log("  ✓ PlayerDataManager registered to ServiceLocator");
+
+            // Add ServiceCleanup component
+            if (managerObj.GetComponent<ServiceCleanup>() == null)
+            {
+                managerObj.AddComponent<ServiceCleanup>();
+            }
+
+            // Load saved player data
+            try
+            {
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                if (saveAdapter.HasSaveData())
+                {
+                    saveAdapter.LoadSpecific(SaveFileType.PlayerData);
+                    Log("  ✓ Player data loaded from save file");
+                }
+                else
+                {
+                    Log("  ℹ No saved player data found, using initial state");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log($"  ⚠ Failed to load player data: {ex.Message}");
+                Log("  ℹ Using initial player data state");
+            }
+
+            Log("  ✓ Player Data System initialization complete");
+        }
+
+        /// <summary>
+        /// Initialize StageProgressManager and register with ServiceLocator.
+        /// Dependencies: ISaveDataAdapter (Phase 2.5)
+        /// </summary>
+        private void InitializeStageProgressManager()
+        {
+            Log("[Stage] Initializing Stage Progress System...");
+
+            // Validate dependency
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                LogError("  ✗ Dependency check failed: ISaveDataAdapter not registered!");
+                LogError("  → Cannot initialize StageProgressManager without SaveDataAdapter");
+                return;
+            }
+
+            // Validate prefab reference
+            if (stageProgressManagerPrefab == null)
+            {
+                LogError("  ✗ StageProgressManager prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create manager instance from prefab
+            GameObject managerObj = Instantiate(stageProgressManagerPrefab);
+            StageProgressManager manager = managerObj.GetComponent<StageProgressManager>();
+
+            if (manager == null)
+            {
+                LogError("  ✗ StageProgressManager component not found on prefab!");
+                LogError("  → Verify the prefab has StageProgressManager component");
+                Destroy(managerObj);
+                return;
+            }
+
+            // Apply DontDestroyOnLoad
+            DontDestroyOnLoad(managerObj);
+
+            // Initialize manager (before registration for proper dependency injection)
+            manager.Initialize();
+            Log("  ✓ StageProgressManager initialized");
+
+            // Register with ServiceLocator
+            ServiceLocator.RegisterSingleton<IStageProgressManager, StageProgressManager>(manager);
+            Log("  ✓ IStageProgressManager registered to ServiceLocator");
+
+            // Add ServiceCleanup component
+            if (managerObj.GetComponent<ServiceCleanup>() == null)
+            {
+                managerObj.AddComponent<ServiceCleanup>();
+            }
+
+            // Load saved progress
+            try
+            {
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                if (saveAdapter.HasSaveData())
+                {
+                    // Use LoadProgress() instead of direct SaveDataAdapter call
+                    // This ensures CheckAndUnlockNextStages() runs after loading
+                    manager.LoadProgress();
+                    Log("  ✓ Stage progress loaded from save file");
+                    Log("  ✓ Unlock conditions re-evaluated (new stages auto-unlocked if conditions met)");
+                }
+                else
+                {
+                    Log("  ℹ No saved stage progress found, using initial state");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log($"  ⚠ Failed to load stage progress: {ex.Message}");
+                Log("  ℹ Using initial stage progress state");
+            }
+
+            Log("  ✓ Stage Progress System initialization complete");
+        }
+
+        /// <summary>
         /// Initialize SceneTransitionController and register with ServiceLocator.
         /// Dependencies: ISceneLoaderService (must be registered first)
         /// </summary>
@@ -433,6 +603,12 @@ namespace Game.Core
 
             // Validate Save System
             allValid &= ValidateSaveDataAdapter("SaveDataAdapter");
+
+            // Validate Player Data Manager
+            allValid &= ValidateService<PlayerDataManager>("PlayerDataManager");
+
+            // Validate Stage Progress Manager
+            allValid &= ValidateService<IStageProgressManager>("IStageProgressManager");
 
             // Validate SceneTransitionController
             allValid &= ValidateService<ISceneTransitionController>("SceneTransitionController");

@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4911623118557806851
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5794561421695772069}
+  - component: {fileID: 703496734441172655}
+  - component: {fileID: 9132595002350099067}
+  m_Layer: 0
+  m_Name: GameInitializer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5794561421695772069
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4911623118557806851}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 838.91425, y: 536.32825, z: 12.270409}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &703496734441172655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4911623118557806851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c740c59e80c54eb42908844c5efcda28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  autoInitializeOnStart: 1
+  logInitializationSteps: 1
+  panelManager: {fileID: 0}
+  globalStateManager: {fileID: 0}
+  gridManager: {fileID: 0}
+  gameServiceManager: {fileID: 0}
+  cardServiceManager: {fileID: 0}
+  resourceManager: {fileID: 0}
+  spellEffectExecutor: {fileID: 0}
+  teamConfigurationManager: {fileID: 0}
+  baseManager: {fileID: 0}
+  gameOutcomeManager: {fileID: 0}
+  gameUICoordinator: {fileID: 0}
+  deathAnimationManager: {fileID: 0}
+  damageDisplayRepository: {fileID: 0}
+  damageDisplayService: {fileID: 0}
+  damageDisplayEventChannel: {fileID: 11400000, guid: c29322a787527114b9136014c4ff48f5,
+    type: 2}
+  damagePopupPrefab: {fileID: 5711241224786816405, guid: 1e678a7b361fb114ba4ce9f720c06f40,
+    type: 3}
+  showDebugInfo: 1
+--- !u!114 &9132595002350099067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4911623118557806851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79f571e2c86af1d4181868a15bf25b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridSize: {x: 10, y: 10}
+  tileSize: {x: 1, y: 1}
+  gridOrigin: {x: 0, y: 0, z: 0}

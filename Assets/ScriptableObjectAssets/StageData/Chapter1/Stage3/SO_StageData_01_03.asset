@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9561aab1c20a142ae407b2c246a562, type: 3}
+  m_Name: SO_StageData_01_03
+  m_EditorClassIdentifier: 
+  stageId: chapter1_stage3
+  chapterId: chapter1
+  stageNumber: 3
+  displayName: Stage 3
+  description: "\uCC55\uD1301\uC758 3\uB2E8\uACC4 \uC2A4\uD14C\uC774\uC9C0"
+  icon: {fileID: 0}
+  thumbnail: {fileID: 0}
+  sceneData: {fileID: 11400000, guid: 4d39e74ad1771584ea820cd46161a15f, type: 2}
+  stageType: 1
+  difficulty: 1
+  isHidden: 0
+  unlockConditions:
+  - {fileID: 11400000, guid: 4a63aea723d4e2c408615610f0d9d562, type: 2}
+  bonusUnlockConditions: []
+  scoringSettings:
+    maxScore: 10000
+    starThresholds: b80b00007017000028230000
+    useRankSystem: 1
+    sRankScore: 9500
+    aRankScore: 8000
+    bRankScore: 6000
+    cRankScore: 4000
+    timeBonus: 1
+    noDamageBonus: 1.5
+    comboMultiplier: 1.2
+  rewards:
+    baseCoin: 100
+    baseExp: 50
+    clearItems: []
+    starBonusCoins: 3200000064000000c8000000
+    firstClearBonus: 500
+    firstClearItems: []
+  tags: []
+  themeColor: {r: 1, g: 1, b: 1, a: 1}

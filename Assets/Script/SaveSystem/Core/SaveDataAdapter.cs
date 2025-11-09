@@ -578,13 +578,13 @@ namespace Game.SaveSystem
         }
 
         /// <summary>
-        /// ServiceLocator를 통해 StageProgressManager를 조회합니다.
+        /// ServiceLocator를 통해 IStageProgressManager를 조회합니다.
         /// </summary>
-        private StageProgressManager GetStageProgressManager()
+        private IStageProgressManager GetStageProgressManager()
         {
-            if (ServiceLocator.IsRegistered<StageProgressManager>())
+            if (ServiceLocator.IsRegistered<IStageProgressManager>())
             {
-                return ServiceLocator.Get<StageProgressManager>();
+                return ServiceLocator.Get<IStageProgressManager>();
             }
             return null;
         }

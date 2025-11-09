@@ -13,7 +13,6 @@ namespace Game.SaveSystem
     {
         Locked = 0,      // 잠김
         Unlocked = 1,    // 해금됨
-        InProgress = 2,  // 진행중 (시작했지만 클리어하지 못함)
         Cleared = 3,     // 클리어
         Perfect = 4      // 퍼펙트 클리어 (3성)
     }

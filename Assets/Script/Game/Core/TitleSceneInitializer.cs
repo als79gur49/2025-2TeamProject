@@ -30,8 +30,6 @@ namespace Game.Core
         [Header("씬 매니저 참조 (ServiceLocator 등록용)")]
         [SerializeField] private CardDatabase cardDatabase;
         [SerializeField] private CollectionManager collectionManager;
-        [SerializeField] private PlayerDataManager playerDataManager;
-        [SerializeField] private StageProgressManager stageProgressManager;
 
         #region Scene Manager Registration
 
@@ -88,53 +86,8 @@ namespace Game.Core
                 LogError("   ❌ CollectionManager not found!");
             }
 
-            // 3. PlayerDataManager 등록
-            if (playerDataManager == null)
-            {
-                LogWarning("   ⚠️ PlayerDataManager not assigned! Searching in scene...");
-                playerDataManager = FindObjectOfType<PlayerDataManager>();
-            }
-
-            if (playerDataManager != null)
-            {
-                playerDataManager.Initialize();
-                ServiceLocator.RegisterSingleton<PlayerDataManager, PlayerDataManager>(playerDataManager);
-                Log("   ✓ PlayerDataManager registered");
-
-                // PlayerData 디스크에서 로드 (lastUsedDeckName 포함)
-                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
-                if (saveAdapter != null && saveAdapter.HasSaveData())
-                {
-                    saveAdapter.LoadSpecific(SaveFileType.PlayerData);
-                    Log("   ✓ Player data loaded from save file (lastUsedDeckName restored)");
-                }
-                else
-                {
-                    Log("   ℹ No save data found, using default player data");
-                }
-            }
-            else
-            {
-                LogError("   ❌ PlayerDataManager not found!");
-            }
-
-            // 4. StageProgressManager 등록
-            if (stageProgressManager == null)
-            {
-                LogWarning("   ⚠️ StageProgressManager not assigned! Searching in scene...");
-                stageProgressManager = FindObjectOfType<StageProgressManager>();
-            }
-
-            if (stageProgressManager != null)
-            {
-                stageProgressManager.Initialize();
-                ServiceLocator.RegisterSingleton<StageProgressManager, StageProgressManager>(stageProgressManager);
-                Log("   ✓ StageProgressManager registered");
-            }
-            else
-            {
-                LogError("   ❌ StageProgressManager not found!");
-            }
+            // PlayerDataManager는 ServiceBootstrap에서 전역 서비스로 관리됨
+            // ServiceLocator를 통해 자동으로 제공되므로 여기서는 초기화 불필요
         }
 
         #endregion
