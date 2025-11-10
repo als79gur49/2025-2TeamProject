@@ -1,7 +1,10 @@
 using UnityEngine;
+using System.Linq;
 using Game.Core;
 using Game.Interfaces;
 using Game.AI;
+using Game.Managers;
+using Game.SaveSystem;
 
 namespace Game.Services
 {
@@ -174,6 +177,9 @@ namespace Game.Services
             {
                 cardHandManager.Init(turnService);
                 Log("💉 CardHandManager dependencies injected via Init()");
+
+                // Phase 4: PlayerData에서 덱 로드
+                LoadPlayerDeck();
             }
 
             // EnemyAIController 초기화 (v2.0 - 확장된 의존성)
@@ -200,6 +206,72 @@ namespace Game.Services
                 enemyAIController.OnCardUsed += HandleEnemyCardUsed;
                 enemyAIController.OnCardDrawn += HandleEnemyCardDrawn;
                 Log("✅ Subscribed to EnemyAIController card events");
+            }
+        }
+
+        /// <summary>
+        /// PlayerData에서 lastUsedDeckName을 가져와 덱 로드
+        /// Phase 4: 덱 기반 카드 드로우 시스템
+        /// </summary>
+        private void LoadPlayerDeck()
+        {
+            Log("📚 Attempting to load player deck from PlayerData...");
+
+            try
+            {
+                // PlayerDataManager에서 플레이어 데이터 가져오기
+                var playerDataManager = ServiceLocator.Get<IPlayerDataManager>();
+                if (playerDataManager == null)
+                {
+                    LogError("❌ PlayerDataManager not found in ServiceLocator");
+                    return;
+                }
+
+                var playerData = playerDataManager.GetCurrentPlayerData();
+                if (playerData == null)
+                {
+                    LogError("❌ Current player data is null");
+                    return;
+                }
+
+                string lastDeckName = playerData.lastUsedDeckName;
+
+                if (string.IsNullOrEmpty(lastDeckName))
+                {
+                    Log("⚠️ No lastUsedDeckName found - CardHandManager will use fallback (availableCards)");
+                    return;
+                }
+
+                Log($"📋 Found lastUsedDeckName: '{lastDeckName}'");
+
+                // SaveDataAdapter를 통해 덱 로드
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                if (saveAdapter == null)
+                {
+                    LogError("❌ SaveDataAdapter not found in ServiceLocator");
+                    return;
+                }
+
+                var deckData = saveAdapter.LoadDeck(lastDeckName);
+
+                if (deckData == null || deckData.Count == 0)
+                {
+                    LogError($"❌ Deck '{lastDeckName}' not found or empty - using fallback");
+                    return;
+                }
+
+                // 총 카드 개수 계산
+                int totalCards = deckData.Sum(entry => entry.Value);
+                Log($"✅ Deck '{lastDeckName}' loaded: {deckData.Count} unique cards, {totalCards} total cards");
+
+                // CardHandManager에 덱 설정
+                cardHandManager.LoadDeck(deckData);
+                Log($"🎉 Deck successfully loaded into CardHandManager");
+            }
+            catch (System.Exception ex)
+            {
+                LogError($"❌ Failed to load player deck: {ex.Message}");
+                Log("⚠️ CardHandManager will use fallback (availableCards)");
             }
         }
 

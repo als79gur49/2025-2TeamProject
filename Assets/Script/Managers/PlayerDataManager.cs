@@ -7,7 +7,7 @@ namespace Game.Managers
     /// PlayerData의 런타임 메모리 관리자
     /// SaveDataAdapter는 이 매니저에서 데이터를 수집/적용
     /// </summary>
-    public class PlayerDataManager : MonoBehaviour
+    public class PlayerDataManager : MonoBehaviour, IPlayerDataManager
     {
         //반드시 네임스페이스 지정할 것. PlayerData.PlayerData와 중복. PlayerData.PlayerData가 우선순위가 더 높은 것 같다.
         #region Current State

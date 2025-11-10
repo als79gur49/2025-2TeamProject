@@ -616,13 +616,6 @@ namespace Game.UI.Panels
             if (deckSelectionDropdown == null)
                 return;
 
-            // "-- 덱 선택 --" 또는 "저장된 덱 없음" 선택 시 무시
-            if (index <= 0)
-            {
-                Debug.Log("[DeckBuilder] Placeholder option selected, ignoring");
-                return;
-            }
-
             // 선택된 덱 이름 가져오기
             string selectedDeckName = deckSelectionDropdown.options[index].text;
 

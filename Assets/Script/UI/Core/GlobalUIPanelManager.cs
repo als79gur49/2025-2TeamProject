@@ -149,6 +149,17 @@ public class GlobalUIPanelManager : MonoBehaviour, IGlobalService
                 dualClosePanel.SecondaryCloseButton.onClick.AddListener(panel.OnHide);
         }
 
+        // IDialogPanel 자동 버튼 바인딩
+        if (panel is IDialogPanel dialogPanel)
+        {
+            // 취소 버튼은 자동으로 OnHide에 바인딩
+            if (dialogPanel.CancelButton != null)
+                dialogPanel.CancelButton.onClick.AddListener(panel.OnHide);
+
+            // 확인 버튼은 각 구현체에서 처리
+            // (예: ConfirmPanelWithStageData가 OnInitializeWithDependencies에서 설정)
+        }
+
         OnGlobalPanelRegistered?.Invoke(panel);
 
         if (debugMode)
@@ -194,6 +205,13 @@ public class GlobalUIPanelManager : MonoBehaviour, IGlobalService
 
             if (dualClosePanel.SecondaryCloseButton != null)
                 dualClosePanel.SecondaryCloseButton.onClick.RemoveListener(panel.OnHide);
+        }
+
+        // IDialogPanel 버튼 이벤트 해제
+        if (panel is IDialogPanel dialogPanel)
+        {
+            if (dialogPanel.CancelButton != null)
+                dialogPanel.CancelButton.onClick.RemoveListener(panel.OnHide);
         }
 
         // 이벤트 구독 해제

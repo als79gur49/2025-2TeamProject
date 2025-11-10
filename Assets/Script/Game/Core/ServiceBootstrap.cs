@@ -386,8 +386,8 @@ namespace Game.Core
             Log("  ✓ PlayerDataManager initialized");
 
             // Register with ServiceLocator
-            ServiceLocator.RegisterSingleton<PlayerDataManager, PlayerDataManager>(manager);
-            Log("  ✓ PlayerDataManager registered to ServiceLocator");
+            ServiceLocator.RegisterSingleton<IPlayerDataManager, PlayerDataManager>(manager);
+            Log("  ✓ IPlayerDataManager registered to ServiceLocator");
 
             // Add ServiceCleanup component
             if (managerObj.GetComponent<ServiceCleanup>() == null)
@@ -605,7 +605,7 @@ namespace Game.Core
             allValid &= ValidateSaveDataAdapter("SaveDataAdapter");
 
             // Validate Player Data Manager
-            allValid &= ValidateService<PlayerDataManager>("PlayerDataManager");
+            allValid &= ValidateService<IPlayerDataManager>("PlayerDataManager");
 
             // Validate Stage Progress Manager
             allValid &= ValidateService<IStageProgressManager>("IStageProgressManager");

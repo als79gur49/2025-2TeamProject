@@ -16,14 +16,6 @@ public class VolumeController : MonoBehaviour, IVolumeController
     [SerializeField] [Range(-80f, 20f)] private float defaultBGMVolume = 0f;
     [SerializeField] [Range(-80f, 20f)] private float defaultEffectVolume = 0f;
     
-    [Header("PlayerPrefs 키 설정")]
-    [SerializeField] private string masterVolumeKey = "AudioSettings_MasterVolume";
-    [SerializeField] private string bgmVolumeKey = "AudioSettings_BGMVolume";
-    [SerializeField] private string effectVolumeKey = "AudioSettings_EffectVolume";
-    [SerializeField] private string masterMuteKey = "AudioSettings_MasterMute";
-    [SerializeField] private string bgmMuteKey = "AudioSettings_BGMMute";
-    [SerializeField] private string effectMuteKey = "AudioSettings_EffectMute";
-    
     // 내부 볼륨 값 저장 (dB 단위)
     private float currentMasterVolume;
     private float currentBGMVolume;

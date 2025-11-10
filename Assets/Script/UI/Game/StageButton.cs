@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using TMPro;
 using Game.Data;
 using Game.Managers;
@@ -10,14 +11,16 @@ using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Game.Services;
 using Game.Controllers;
+using Game.UI.Panels;
+using DG.Tweening;
 
 namespace Game.UI
 {
     /// <summary>
-    /// 스테이지 버튼 UI 컴포넌트 V2
-    /// Dictionary 기반 효율적인 데이터 접근
+    /// 스테이지 버튼 UI 컴포넌트 V3
+    /// DOTween 기반 애니메이션 시스템
     /// </summary>
-    public class StageButton : MonoBehaviour
+    public class StageButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("Stage Configuration")]
         [SerializeField]
@@ -104,8 +107,8 @@ namespace Game.UI
         private IStageProgressManager progressManager;
         private StageInfo currentStageInfo;
         private bool isInitialized = false;
-        private Animator animator;
         private CanvasGroup canvasGroup;
+        private Sequence currentAnimation;
 
         #region Initialization
 
@@ -126,7 +129,6 @@ namespace Game.UI
                 Debug.LogError("[StageButton] IStageProgressManager not found in ServiceLocator");
             }
 
-            animator = GetComponent<Animator>();
             canvasGroup = GetComponent<CanvasGroup>();
 
             if (canvasGroup == null)
@@ -193,6 +195,13 @@ namespace Game.UI
         private void OnDisable()
         {
             UnsubscribeFromEvents();
+        }
+
+        private void OnDestroy()
+        {
+            // DOTween 애니메이션 정리 (메모리 누수 방지)
+            currentAnimation?.Kill();
+            currentAnimation = null;
         }
 
         #endregion
@@ -412,11 +421,18 @@ namespace Game.UI
             if (currentStageInfo.state == StageState.Locked)
             {
                 ShowUnlockRequirements();
+                return;
             }
-            else
+
+            // 덱/카드 검증
+            if (!ValidateDeckAndCards(out string errorMessage))
             {
-                SelectStage();
+                ShowDeckWarning(errorMessage);
+                return;
             }
+
+            // 검증 통과 - 스테이지 선택
+            SelectStage();
         }
 
         private void SelectStage()
@@ -426,10 +442,7 @@ namespace Game.UI
             onStageInfoRequested?.Invoke(currentStageInfo);
 
             // Play animation
-            if (animationSettings.useSelectAnimation && animator != null)
-            {
-                animator.SetTrigger("Select");
-            }
+            PlaySelectAnimation();
 
             // Load stage scene
             if (!string.IsNullOrEmpty(stageData.SceneToLoad))
@@ -476,6 +489,83 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// 덱과 카드 존재 여부를 검증합니다.
+        /// </summary>
+        /// <param name="errorMessage">검증 실패 시 에러 메시지</param>
+        /// <returns>검증 통과 여부</returns>
+        private bool ValidateDeckAndCards(out string errorMessage)
+        {
+            errorMessage = string.Empty;
+
+            // ISaveDataAdapter 가져오기
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                Debug.LogError("[StageButton] ISaveDataAdapter not found in ServiceLocator!");
+                return true; // 서비스가 없으면 검증 스킵 (진행 허용)
+            }
+
+            var saveDataAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+
+            // 1. 덱 존재 여부 확인
+            var deckNames = saveDataAdapter.GetSavedDeckNames();
+            if (deckNames == null || deckNames.Count == 0)
+            {
+                errorMessage = "저장된 덱이 없습니다.\n타이틀 화면으로 돌아가 덱을 생성해주세요.";
+                Debug.LogWarning($"[StageButton] {errorMessage}");
+                return false;
+            }
+
+            // 2. 마지막 사용 덱 로드
+            string lastUsedDeckName = saveDataAdapter.LoadLastUsedDeckName();
+
+            // 마지막 사용 덱이 없으면 첫 번째 덱 사용
+            if (string.IsNullOrEmpty(lastUsedDeckName))
+            {
+                lastUsedDeckName = deckNames[0];
+                Debug.Log($"[StageButton] No last used deck found, using first deck: {lastUsedDeckName}");
+            }
+
+            // 3. 덱에 카드가 있는지 확인
+            var deckCards = saveDataAdapter.LoadDeck(lastUsedDeckName);
+            if (deckCards == null || deckCards.Count == 0)
+            {
+                errorMessage = $"현재 덱({lastUsedDeckName})에 카드가 없습니다.\n타이틀 화면으로 돌아가 카드를 추가해주세요.";
+                Debug.LogWarning($"[StageButton] {errorMessage}");
+                return false;
+            }
+
+            Debug.Log($"[StageButton] Deck validation passed: {lastUsedDeckName} with {deckCards.Count} card(s)");
+            return true; // 검증 통과
+        }
+
+        /// <summary>
+        /// 덱 검증 실패 시 경고 패널을 표시합니다.
+        /// </summary>
+        /// <param name="message">표시할 경고 메시지</param>
+        private void ShowDeckWarning(string message)
+        {
+            // GlobalUIPanelManager를 통해 ConfirmPanelWithStageData 가져오기
+            if (!ServiceLocator.IsRegistered<GlobalUIPanelManager>())
+            {
+                Debug.LogError("[StageButton] GlobalUIPanelManager not found in ServiceLocator!");
+                return;
+            }
+
+            var confirmPanel = UIPanelFacade.GetPanel<ConfirmPanelWithSceneData>();
+
+            if (confirmPanel == null)
+            {
+                Debug.LogError("[StageButton] ConfirmPanelWithSceneData not found in GlobalUIPanelManager! " +
+                              "Ensure the panel is registered as a global panel.");
+                return;
+            }
+
+            // 메시지 설정 및 패널 표시
+            confirmPanel.ShowMessage(message);
+            Debug.Log($"[StageButton] Showing deck warning panel: {message}");
+        }
+
         #endregion
 
         #region Event Handlers
@@ -494,11 +584,7 @@ namespace Game.UI
             if (stageData != null && stageData.StageId == stageId)
             {
                 UpdateButtonState();
-                
-                if (animationSettings.useClearAnimation && animator != null)
-                {
-                    animator.SetTrigger("Clear");
-                }
+                PlayClearAnimation();
             }
         }
 
@@ -513,14 +599,6 @@ namespace Game.UI
         private void HandleProgressUpdated(StageProgressData progressData)
         {
             UpdateButtonState();
-        }
-
-        private void PlayUnlockAnimation()
-        {
-            if (animationSettings.useUnlockAnimation && animator != null)
-            {
-                animator.SetTrigger("Unlock");
-            }
         }
 
         #endregion
@@ -554,6 +632,113 @@ namespace Game.UI
                 case "C": return colorScheme.rankCColor;
                 default: return Color.gray;
             }
+        }
+
+        #endregion
+
+        #region DOTween Animation Methods
+
+        /// <summary>
+        /// 스테이지 선택 시 펀치 스케일 애니메이션
+        /// </summary>
+        private void PlaySelectAnimation()
+        {
+            if (!animationSettings.useSelectAnimation) return;
+
+            currentAnimation?.Kill();
+
+            transform.DOPunchScale(
+                animationSettings.selectPunchScale,
+                animationSettings.animationDuration,
+                animationSettings.selectVibrato,
+                animationSettings.selectElasticity
+            ).SetEase(animationSettings.selectEase);
+        }
+
+        /// <summary>
+        /// 스테이지 클리어 시 반짝임 애니메이션 (스케일 + 페이드)
+        /// </summary>
+        private void PlayClearAnimation()
+        {
+            if (!animationSettings.useClearAnimation) return;
+
+            currentAnimation?.Kill();
+            currentAnimation = DOTween.Sequence();
+
+            Vector3 originalScale = transform.localScale;
+            float halfDuration = animationSettings.animationDuration * 0.5f;
+
+            // 커지면서 페이드 아웃 → 작아지면서 페이드 인
+            currentAnimation
+                .Append(transform.DOScale(animationSettings.clearMaxScale, halfDuration))
+                .Append(transform.DOScale(originalScale, halfDuration))
+                .SetEase(animationSettings.clearEase);
+
+            // CanvasGroup이 있으면 페이드 효과도 추가
+            if (canvasGroup != null)
+            {
+                currentAnimation.Join(
+                    DOTween.Sequence()
+                        .Append(canvasGroup.DOFade(animationSettings.clearFadeMin, halfDuration))
+                        .Append(canvasGroup.DOFade(1f, halfDuration))
+                );
+            }
+        }
+
+        /// <summary>
+        /// 스테이지 잠금 해제 시 회전 + 스케일 애니메이션
+        /// </summary>
+        private void PlayUnlockAnimation()
+        {
+            if (!animationSettings.useUnlockAnimation) return;
+
+            currentAnimation?.Kill();
+            currentAnimation = DOTween.Sequence();
+
+            Vector3 originalScale = transform.localScale;
+            Vector3 originalRotation = transform.localEulerAngles;
+
+            // 시작 스케일로 설정
+            transform.localScale = animationSettings.unlockStartScale;
+
+            // 원래 크기로 확대 + 360도 회전
+            currentAnimation
+                .Append(transform.DOScale(originalScale, animationSettings.animationDuration))
+                .Join(transform.DORotate(
+                    originalRotation + animationSettings.unlockRotation,
+                    animationSettings.animationDuration,
+                    RotateMode.FastBeyond360
+                ))
+                .SetEase(animationSettings.unlockEase)
+                .OnComplete(() => {
+                    // 회전값 정규화
+                    transform.localEulerAngles = originalRotation;
+                });
+        }
+
+        /// <summary>
+        /// 마우스 호버 시 스케일 확대 (IPointerEnterHandler)
+        /// </summary>
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (!animationSettings.useHoverAnimation) return;
+            if (currentStageInfo.state == StageState.Locked) return; // 잠긴 스테이지는 호버 안함
+
+            currentAnimation?.Kill();
+            transform.DOScale(animationSettings.hoverScale, animationSettings.hoverDuration)
+                .SetEase(animationSettings.hoverEase);
+        }
+
+        /// <summary>
+        /// 마우스 호버 해제 시 원래 스케일로 복귀 (IPointerExitHandler)
+        /// </summary>
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (!animationSettings.useHoverAnimation) return;
+
+            currentAnimation?.Kill();
+            transform.DOScale(Vector3.one, animationSettings.hoverDuration)
+                .SetEase(animationSettings.hoverEase);
         }
 
         #endregion
@@ -606,12 +791,45 @@ namespace Game.UI
         [System.Serializable]
         public class AnimationSettings
         {
+            [Header("Animation Toggles")]
             public bool useUnlockAnimation = true;
             public bool useSelectAnimation = true;
             public bool useClearAnimation = true;
             public bool useHoverAnimation = true;
-            
+
+            [Header("General Settings")]
             public float animationDuration = 0.3f;
+
+            [Header("Select Animation (Punch Scale)")]
+            [Tooltip("스케일 펀치 강도")]
+            public Vector3 selectPunchScale = new Vector3(0.2f, 0.2f, 0.2f);
+            [Tooltip("펀치 애니메이션 진동 횟수")]
+            public int selectVibrato = 10;
+            [Tooltip("펀치 애니메이션 탄성")]
+            public float selectElasticity = 1f;
+            public Ease selectEase = Ease.OutElastic;
+
+            [Header("Clear Animation (Sparkle - Scale + Fade)")]
+            [Tooltip("최대 스케일")]
+            public Vector3 clearMaxScale = new Vector3(1.2f, 1.2f, 1.2f);
+            [Tooltip("페이드 최소값 (0~1)")]
+            [Range(0f, 1f)]
+            public float clearFadeMin = 0.5f;
+            public Ease clearEase = Ease.OutQuad;
+
+            [Header("Unlock Animation (Rotate + Scale)")]
+            [Tooltip("회전 각도 (Z축)")]
+            public Vector3 unlockRotation = new Vector3(0, 0, 360f);
+            [Tooltip("시작 스케일")]
+            public Vector3 unlockStartScale = new Vector3(0.5f, 0.5f, 0.5f);
+            public Ease unlockEase = Ease.OutBack;
+
+            [Header("Hover Animation")]
+            [Tooltip("호버 시 스케일")]
+            public Vector3 hoverScale = new Vector3(1.1f, 1.1f, 1.1f);
+            [Tooltip("호버 애니메이션 지속시간")]
+            public float hoverDuration = 0.2f;
+            public Ease hoverEase = Ease.OutQuad;
         }
 
         #endregion

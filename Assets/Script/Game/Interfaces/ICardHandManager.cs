@@ -62,5 +62,14 @@ namespace Game.Interfaces
 
         /// <summary>핸드 레이아웃 재정렬 (외부 호출용)</summary>
         void RefreshHandLayout();
+
+        /// <summary>덱 로드 및 셔플 (PlayerData의 lastUsedDeckName에서 로드된 덱 설정)</summary>
+        void LoadDeck(Dictionary<CardData, int> deck);
+
+        /// <summary>덱이 로드되었는지 여부 반환</summary>
+        bool IsDeckLoaded();
+
+        /// <summary>덱에 남은 총 카드 수 반환</summary>
+        int GetRemainingDeckCount();
     }
 }

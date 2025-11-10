@@ -19,7 +19,7 @@ namespace Game.SaveSystem
         private IAudioServiceContainer audioServiceContainer;
         private IVolumeController volumeController;
         // 씬 종속 의존성은 ServiceLocator를 통해 필요 시 조회
-        // GetCardRegistry(), GetCardCollection(), GetPlayerDataManager(), GetStageProgressManager() 사용
+        // GetCardRegistry(), GetCardCollection(), GetPlayerDataManager() → IPlayerDataManager, GetStageProgressManager() → IStageProgressManager 사용
         #endregion
 
         #region Properties
@@ -566,13 +566,13 @@ namespace Game.SaveSystem
         }
 
         /// <summary>
-        /// ServiceLocator를 통해 PlayerDataManager를 조회합니다.
+        /// ServiceLocator를 통해 IPlayerDataManager를 조회합니다.
         /// </summary>
-        private PlayerDataManager GetPlayerDataManager()
+        private IPlayerDataManager GetPlayerDataManager()
         {
-            if (ServiceLocator.IsRegistered<PlayerDataManager>())
+            if (ServiceLocator.IsRegistered<IPlayerDataManager>())
             {
-                return ServiceLocator.Get<PlayerDataManager>();
+                return ServiceLocator.Get<IPlayerDataManager>();
             }
             return null;
         }

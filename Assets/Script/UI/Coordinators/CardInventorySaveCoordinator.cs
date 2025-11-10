@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Linq;
 using Game.UI.Panels;
 using Game.SaveSystem;
 using Game.Core;
@@ -240,6 +241,7 @@ namespace Game.UI.Coordinators
 
         /// <summary>
         /// 사용자가 드롭다운에서 덱을 선택했을 때 처리
+        /// 새 덱을 로드하기 전에 현재 편집 중인 덱을 자동 저장
         /// </summary>
         private void HandleDeckLoadRequest(string deckName)
         {
@@ -247,6 +249,27 @@ namespace Game.UI.Coordinators
             {
                 Debug.LogError("[CardInventorySaveCoordinator] SaveAdapter not available");
                 return;
+            }
+
+            // 새 덱 로드 전에 현재 덱의 변경사항 자동 저장
+            if (deckBuilderPanel != null)
+            {
+                string currentDeckName = deckBuilderPanel.GetCurrentDeckName();
+                var currentDeckCards = deckBuilderPanel.GetCurrentDeckCards();
+
+                // 현재 덱이 유효하고 카드가 있으면 자동 저장
+                if (!string.IsNullOrWhiteSpace(currentDeckName) && currentDeckCards != null && currentDeckCards.Count > 0)
+                {
+                    bool saveSuccess = saveAdapter.SaveDeck(currentDeckName, currentDeckCards);
+                    if (saveSuccess)
+                    {
+                        Debug.Log($"[CardInventorySaveCoordinator] Auto-saved '{currentDeckName}' ({currentDeckCards.Values.Sum()} cards) before switching to '{deckName}'");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[CardInventorySaveCoordinator] Failed to auto-save '{currentDeckName}' before switching");
+                    }
+                }
             }
 
             var deckCards = saveAdapter.LoadDeck(deckName);

@@ -41,6 +41,11 @@ namespace Game.Services
         private bool isInitialized = false;
         private bool isPlayerSummonMode = false;
 
+        // 덱 관리 (Phase 4: PlayerData 연동)
+        private List<CardData> deckCards = new List<CardData>();
+        private Dictionary<CardData, int> deckCardCounts = new Dictionary<CardData, int>();
+        private bool isDeckLoaded = false;
+
         // 서비스 참조
         private ITurnService turnService;
         private IGlobalStateManager _stateManager;
@@ -577,9 +582,9 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 랜덤 카드 드로우 (ScriptableObject 기반)
+        /// 랜덤 카드 드로우
+        /// Phase 4: 덱 기반 드로우 우선, 덱이 없으면 availableCards fallback
         /// CardServiceManager에서 호출됨
-        /// availableCards 목록에서 랜덤 CardData를 선택하여 핸드에 추가
         /// </summary>
         public void DrawRandomCard()
         {
@@ -595,64 +600,201 @@ namespace Game.Services
                 return;
             }
 
-            Log("🃏 DrawRandomCard() called - Drawing a random card for player");
+            Log("🃏 DrawRandomCard() called - Drawing a card for player");
 
-            // availableCards에서 랜덤 선택
-            if (availableCards != null && availableCards.Count > 0)
+            CardData cardToDraw = null;
+
+            // 1순위: 로드된 덱에서 카드 드로우
+            if (isDeckLoaded && deckCards.Count > 0)
             {
-                // 유효한 카드 데이터만 필터링
-                var validCards = availableCards.Where(card => card != null).ToList();
+                cardToDraw = GetNextCardFromDeck();
 
-                if (validCards.Count > 0)
+                if (cardToDraw != null)
                 {
-                    int randomIndex = UnityEngine.Random.Range(0, validCards.Count);
-                    var randomCardData = validCards[randomIndex];
-
-                    Log($"🎯 Selected random card: {randomCardData.CardName} (index {randomIndex}/{validCards.Count})");
-
-                    bool success = AddCardToHand(randomCardData);
-
-                    if (success)
-                    {
-                        Log($"✨ Successfully drew random card: {randomCardData.CardName}");
-                    }
-                    else
-                    {
-                        LogError("Failed to add random card to hand");
-                    }
+                    Log($"📚 Drew from deck: {cardToDraw.CardName}");
                 }
                 else
                 {
-                    LogError("No valid CardData available in availableCards list");
+                    LogError("⚠️ GetNextCardFromDeck returned null");
                 }
             }
             else
             {
-                // availableCards가 비어있으면 기본 테스트 데이터 사용 (fallback)
-                LogError("availableCards list is empty, using fallback test data");
-                var testCards = CreateTestCardData();
+                // 2순위 (fallback): availableCards에서 랜덤 선택
+                Log("⚠️ Deck not loaded or empty - using fallback (availableCards)");
 
-                if (testCards.Count > 0)
+                if (availableCards != null && availableCards.Count > 0)
                 {
-                    int randomCardIndex = UnityEngine.Random.Range(0, testCards.Count);
-                    var randomCardData = testCards[randomCardIndex];
+                    // 유효한 카드 데이터만 필터링
+                    var validCards = availableCards.Where(card => card != null).ToList();
 
-                    bool success = AddCardToHand(randomCardData);
-
-                    if (success)
+                    if (validCards.Count > 0)
                     {
-                        Log($"✨ Successfully drew fallback card: {randomCardData.CardName}");
+                        int randomIndex = UnityEngine.Random.Range(0, validCards.Count);
+                        cardToDraw = validCards[randomIndex];
+
+                        Log($"🎯 Selected fallback card: {cardToDraw.CardName} (index {randomIndex}/{validCards.Count})");
                     }
                     else
                     {
-                        LogError("Failed to add fallback card to hand");
+                        LogError("No valid CardData available in availableCards list");
                     }
                 }
                 else
                 {
-                    LogError("No card data available for random draw");
+                    // 3순위 (최후 fallback): 테스트 데이터 사용
+                    LogError("availableCards list is empty, using test data fallback");
+                    var testCards = CreateTestCardData();
+
+                    if (testCards.Count > 0)
+                    {
+                        int randomCardIndex = UnityEngine.Random.Range(0, testCards.Count);
+                        cardToDraw = testCards[randomCardIndex];
+                        Log($"🧪 Using test card: {cardToDraw.CardName}");
+                    }
+                    else
+                    {
+                        LogError("No card data available for random draw");
+                    }
                 }
             }
+
+            // 선택된 카드를 핸드에 추가
+            if (cardToDraw != null)
+            {
+                bool success = AddCardToHand(cardToDraw);
+
+                if (success)
+                {
+                    Log($"✨ Successfully drew card: {cardToDraw.CardName}");
+                }
+                else
+                {
+                    LogError($"Failed to add card to hand: {cardToDraw.CardName}");
+                }
+            }
+            else
+            {
+                LogError("❌ No card to draw - all sources exhausted");
+            }
+        }
+
+        #endregion
+
+        #region 덱 관리 (Phase 4: PlayerData 연동)
+
+        /// <summary>
+        /// 덱 로드 및 셔플
+        /// PlayerData의 lastUsedDeckName에서 로드된 덱을 설정
+        /// </summary>
+        /// <param name="deck">카드와 개수로 구성된 덱 데이터</param>
+        public void LoadDeck(Dictionary<CardData, int> deck)
+        {
+            if (deck == null || deck.Count == 0)
+            {
+                LogError("❌ Cannot load empty or null deck");
+                isDeckLoaded = false;
+                return;
+            }
+
+            Log($"📚 Loading deck with {deck.Count} unique cards...");
+
+            // 기존 덱 초기화
+            deckCards.Clear();
+            deckCardCounts.Clear();
+
+            // count 기반으로 카드 리스트 생성
+            foreach (var entry in deck)
+            {
+                CardData card = entry.Key;
+                int count = entry.Value;
+
+                if (card == null || count <= 0)
+                {
+                    LogError($"⚠️ Invalid deck entry: {(card == null ? "null card" : card.CardName)} with count {count}");
+                    continue;
+                }
+
+                // count만큼 카드를 리스트에 추가
+                for (int i = 0; i < count; i++)
+                {
+                    deckCards.Add(card);
+                }
+
+                // count 정보 저장
+                deckCardCounts[card] = count;
+
+                Log($"  📄 Added {count}x {card.CardName}");
+            }
+
+            // Fisher-Yates 알고리즘으로 셔플
+            ShuffleDeck();
+
+            isDeckLoaded = true;
+            Log($"✅ Deck loaded and shuffled: {deckCards.Count} total cards");
+        }
+
+        /// <summary>
+        /// Fisher-Yates 알고리즘으로 덱 셔플
+        /// </summary>
+        private void ShuffleDeck()
+        {
+            int n = deckCards.Count;
+            for (int i = n - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                // Swap
+                CardData temp = deckCards[i];
+                deckCards[i] = deckCards[j];
+                deckCards[j] = temp;
+            }
+            Log($"🔀 Deck shuffled ({n} cards)");
+        }
+
+        /// <summary>
+        /// 셔플된 덱에서 다음 카드 반환
+        /// </summary>
+        /// <returns>다음 카드, 덱이 비었으면 null</returns>
+        private CardData GetNextCardFromDeck()
+        {
+            if (deckCards.Count == 0)
+            {
+                Log("⚠️ Deck is empty");
+                return null;
+            }
+
+            // 리스트의 마지막 카드를 꺼냄 (Stack처럼 동작)
+            CardData card = deckCards[deckCards.Count - 1];
+            deckCards.RemoveAt(deckCards.Count - 1);
+
+            // count 감소 (선택사항 - 통계 목적)
+            if (deckCardCounts.ContainsKey(card))
+            {
+                deckCardCounts[card]--;
+                if (deckCardCounts[card] <= 0)
+                {
+                    deckCardCounts.Remove(card);
+                }
+            }
+
+            Log($"🎴 Drew from deck: {card.CardName} ({deckCards.Count} cards remaining)");
+            return card;
+        }
+
+        /// <summary>
+        /// 덱이 로드되었는지 여부 반환
+        /// </summary>
+        public bool IsDeckLoaded()
+        {
+            return isDeckLoaded && deckCards.Count > 0;
+        }
+
+        /// <summary>
+        /// 덱에 남은 총 카드 수 반환
+        /// </summary>
+        public int GetRemainingDeckCount()
+        {
+            return deckCards.Count;
         }
 
         #endregion
