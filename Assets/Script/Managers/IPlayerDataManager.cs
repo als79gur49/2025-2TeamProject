@@ -71,6 +71,18 @@ namespace Game.Managers
         void SetGold(int amount);
 
         /// <summary>
+        /// 골드 소비 (상점 구매 등)
+        /// </summary>
+        /// <param name="amount">소비할 골드량</param>
+        /// <returns>성공 여부 (골드가 부족하면 false)</returns>
+        bool SpendGold(int amount);
+
+        /// <summary>
+        /// 현재 골드량 프로퍼티 (읽기 전용)
+        /// </summary>
+        int CurrentGold { get; }
+
+        /// <summary>
         /// 총 플레이 시간 조회
         /// </summary>
         /// <returns>총 플레이 시간 (초)</returns>
@@ -81,6 +93,13 @@ namespace Game.Managers
         /// </summary>
         /// <param name="time">추가할 플레이 시간 (초)</param>
         void AddPlayTime(float time);
+        #endregion
+
+        #region Events
+        /// <summary>
+        /// 골드 변경 이벤트 (구독자에게 새로운 골드량 전달)
+        /// </summary>
+        event System.Action<int> OnGoldChanged;
         #endregion
     }
 }

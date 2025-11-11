@@ -348,6 +348,46 @@ namespace Game.SaveSystem
             var playerData = playerDataMgr.GetCurrentPlayerData();
             return playerData?.lastUsedDeckName;
         }
+
+        /// <summary>
+        /// 상점 데이터 저장
+        /// </summary>
+        public void SaveShopData(ShopData shopData)
+        {
+            ValidateSaveManager();
+
+            if (shopData == null)
+            {
+                Debug.LogWarning("[SaveDataAdapter] ShopData is null, cannot save");
+                return;
+            }
+
+            shopData.lastModified = DateTime.Now;
+            saveManager.SaveToFile(GetFileName(SaveFileType.ShopData), shopData, SaveFileType.ShopData);
+
+            Debug.Log($"[SaveDataAdapter] Shop data saved: {shopData.items.Count} items");
+        }
+
+        /// <summary>
+        /// 상점 데이터 로드
+        /// </summary>
+        public ShopData LoadShopData()
+        {
+            ValidateSaveManager();
+
+            var shopData = saveManager.LoadData<ShopData>(SaveFileType.ShopData);
+
+            if (shopData != null)
+            {
+                Debug.Log($"[SaveDataAdapter] Shop data loaded: {shopData.items.Count} items");
+            }
+            else
+            {
+                Debug.Log("[SaveDataAdapter] No shop data found, will create new shop");
+            }
+
+            return shopData;
+        }
         #endregion
 
         #region Data Collection Methods
@@ -528,6 +568,8 @@ namespace Game.SaveSystem
                     return "stage_progress.json";
                 case SaveFileType.CardCollection:
                     return "card_collection.json";
+                case SaveFileType.ShopData:
+                    return "shop_data.json";
                 default:
                     return "";
             }

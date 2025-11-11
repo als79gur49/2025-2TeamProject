@@ -14,6 +14,7 @@ namespace Game.Core
     /// 초기화 대상:
     /// - InventoryPanel: 플레이어가 소유한 카드 표시
     /// - DeckBuilderPanel: 덱 구성 및 편집
+    /// - ShopPanel: 상점 UI 및 아이템 구매
     /// - DeckInventoryCoordinator: 두 패널 간 통신 중재
     ///
     /// 사용 방법:
@@ -27,76 +28,66 @@ namespace Game.Core
         [Header("TitleScene 전용 참조")]
         [SerializeField] private DeckInventoryCoordinator deckInventoryCoordinator;
 
-        [Header("씬 매니저 참조 (ServiceLocator 등록용)")]
-        [SerializeField] private CardDatabase cardDatabase;
-        [SerializeField] private CollectionManager collectionManager;
+        [Header("Scene Managers")]
+        [SerializeField] private ShopManager shopManager;
 
         #region Scene Manager Registration
 
         /// <summary>
-        /// Phase 2.5: 씬 매니저들을 ServiceLocator에 등록
-        /// RegisterLocalServices() 직후에 호출됨
+        /// Phase 2: 로컬 서비스 등록
+        /// ShopManager 초기화 및 ServiceLocator에 등록
         /// </summary>
         protected override void RegisterLocalServices()
         {
             base.RegisterLocalServices();
 
-            Log("[Phase 2.5] Registering Scene Managers to ServiceLocator...");
-            RegisterSceneManagers();
+            Log("[Phase 2.5] Registering Scene Managers...");
+
+            // ShopManager 등록
+            if (shopManager == null)
+            {
+                LogWarning("   ⚠️ ShopManager not assigned! Searching in scene...");
+                shopManager = FindObjectOfType<ShopManager>();
+            }
+
+            if (shopManager != null)
+            {
+                // ShopManager 초기화 (의존성 주입)
+                var playerData = ServiceLocator.Get<IPlayerDataManager>();
+                var collection = ServiceLocator.Get<ICardCollection>();
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+
+                if (playerData == null)
+                    LogError("   ❌ IPlayerDataManager not found in ServiceLocator!");
+                if (collection == null)
+                    LogError("   ❌ ICardCollection not found in ServiceLocator!");
+                if (saveAdapter == null)
+                    LogError("   ❌ ISaveDataAdapter not found in ServiceLocator!");
+
+                if (playerData != null && collection != null && saveAdapter != null)
+                {
+                    shopManager.Initialize(playerData, collection, saveAdapter);
+
+                    // 일반 서비스 등록 방식 사용
+                    ServiceLocator.Register<IShopManager>(shopManager);
+                    Log("   ✓ ShopManager registered as IShopManager");
+                }
+            }
+            else
+            {
+                LogError("   ❌ ShopManager not found!");
+            }
+
             Log("✅ Scene Managers registered successfully");
-        }
-
-        /// <summary>
-        /// 씬 매니저들을 ServiceLocator에 등록하고 초기화
-        /// </summary>
-        private void RegisterSceneManagers()
-        {
-            // 1. CardDatabase 등록
-            if (cardDatabase == null)
-            {
-                LogWarning("   ⚠️ CardDatabase not assigned! Searching in scene...");
-                cardDatabase = FindObjectOfType<CardDatabase>();
-            }
-
-            if (cardDatabase != null)
-            {
-                cardDatabase.Initialize();
-                ServiceLocator.RegisterSingleton<ICardRegistry, CardDatabase>(cardDatabase);
-                Log("   ✓ CardDatabase registered as ICardRegistry");
-            }
-            else
-            {
-                LogError("   ❌ CardDatabase not found!");
-            }
-
-            // 2. CollectionManager 등록
-            if (collectionManager == null)
-            {
-                LogWarning("   ⚠️ CollectionManager not assigned! Searching in scene...");
-                collectionManager = FindObjectOfType<CollectionManager>();
-            }
-
-            if (collectionManager != null)
-            {
-                ServiceLocator.RegisterSingleton<ICardCollection, CollectionManager>(collectionManager);
-                Log("   ✓ CollectionManager registered as ICardCollection");
-            }
-            else
-            {
-                LogError("   ❌ CollectionManager not found!");
-            }
-
-            // PlayerDataManager는 ServiceBootstrap에서 전역 서비스로 관리됨
-            // ServiceLocator를 통해 자동으로 제공되므로 여기서는 초기화 불필요
         }
 
         #endregion
 
-        #region Implemented Abstract Methods
+        #region UI Panel and Coordinator Initialization
 
         /// <summary>
         /// Phase 3: UI 패널 초기화
-        /// InventoryPanel, DeckBuilderPanel 초기화
+        /// InventoryPanel, DeckBuilderPanel, ShopPanel 초기화
         /// </summary>
         protected override void InitializeUIPanels()
         {
@@ -112,32 +103,39 @@ namespace Game.Core
             // 패널 가져오기
             var inventory = UIPanelFacade.GetPanel<InventoryPanel>();
             var deck = UIPanelFacade.GetPanel<DeckBuilderPanel>();
-            // Null 체크
-            if (inventory == null)
-            {
-                LogError("❌ InventoryPanel not found in LocalUIPanelManager!");
-                LogError("   Make sure InventoryPanel is a child of LocalUIPanelManager and implements IUIPanel");
-                return;
-            }
+            var shop = UIPanelFacade.GetPanel<ShopPanel>();
 
-            if (deck == null)
+            // Null 체크
+            if (inventory == null || deck == null || shop == null)
             {
-                LogError("❌ DeckBuilderPanel not found in LocalUIPanelManager!");
-                LogError("   Make sure DeckBuilderPanel is a child of LocalUIPanelManager and implements IUIPanel");
+                LogError("❌ Required panels not found!");
+                if (inventory == null)
+                    LogError("   - InventoryPanel not found in LocalUIPanelManager!");
+                if (deck == null)
+                    LogError("   - DeckBuilderPanel not found in LocalUIPanelManager!");
+                if (shop == null)
+                    LogError("   - ShopPanel not found in LocalUIPanelManager!");
+                LogError("   Make sure all panels are children of LocalUIPanelManager and implement IUIPanel");
                 return;
             }
 
             // 명시적 순서로 초기화
             Log("   Initializing InventoryPanel...");
+
+            // CollectionManager는 ServiceBootstrap에서 전역 서비스로 등록됨
+            var collectionManager = ServiceLocator.Get<ICardCollection>();
             if (collectionManager == null)
             {
-                LogError("❌ CollectionManager not available!");
+                LogError("❌ CollectionManager not available from ServiceLocator!");
                 return;
             }
             inventory.Initialize(collectionManager);
 
             Log("   Initializing DeckBuilderPanel...");
             deck.Initialize();
+
+            Log("   Initializing ShopPanel...");
+            shop.Initialize();
 
             Log("✅ TitleScene UI Panels initialized successfully");
         }
@@ -171,6 +169,15 @@ namespace Game.Core
 
             // Coordinator 초기화
             Log("   Initializing DeckInventoryCoordinator...");
+
+            // CollectionManager는 ServiceBootstrap에서 전역 서비스로 등록됨
+            var collectionManager = ServiceLocator.Get<ICardCollection>();
+            if (collectionManager == null)
+            {
+                LogError("❌ CollectionManager not available from ServiceLocator!");
+                return;
+            }
+
             deckInventoryCoordinator.Initialize(inventory, deck, collectionManager);
 
             // SettingsCoordinator 초기화
@@ -266,9 +273,11 @@ namespace Game.Core
             {
                 var inv = pm.GetComponentInChildren<InventoryPanel>();
                 var deck = pm.GetComponentInChildren<DeckBuilderPanel>();
+                var shop = pm.GetComponentInChildren<ShopPanel>();
 
                 Debug.Log($"InventoryPanel: {(inv != null ? "✅ Found" : "❌ Not Found")}");
                 Debug.Log($"DeckBuilderPanel: {(deck != null ? "✅ Found" : "❌ Not Found")}");
+                Debug.Log($"ShopPanel: {(shop != null ? "✅ Found" : "❌ Not Found")}");
             }
 
             // CollectionManager 확인

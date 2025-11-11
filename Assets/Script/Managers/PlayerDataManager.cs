@@ -14,6 +14,13 @@ namespace Game.Managers
         private Game.SaveSystem.PlayerData currentPlayerData;
         #endregion
 
+        #region Events
+        /// <summary>
+        /// 골드 변경 이벤트 (구독자에게 새로운 골드량 전달)
+        /// </summary>
+        public event System.Action<int> OnGoldChanged;
+        #endregion
+
         #region Initialization
 
         /// <summary>
@@ -57,6 +64,7 @@ namespace Game.Managers
 
             currentPlayerData = data;
             Debug.Log($"[PlayerDataManager] Player data set - ID: {data.playerID}, Gold: {data.gold}");
+            OnGoldChanged?.Invoke(currentPlayerData.gold);
         }
 
         #endregion
@@ -103,6 +111,11 @@ namespace Game.Managers
         }
 
         /// <summary>
+        /// 현재 골드 (읽기 전용 프로퍼티)
+        /// </summary>
+        public int CurrentGold => GetGold();
+
+        /// <summary>
         /// 골드 추가
         /// </summary>
         public void AddGold(int amount)
@@ -115,6 +128,7 @@ namespace Game.Managers
 
             currentPlayerData.gold += amount;
             Debug.Log($"[PlayerDataManager] Gold changed: +{amount} → Total: {currentPlayerData.gold}");
+            OnGoldChanged?.Invoke(currentPlayerData.gold);
         }
 
         /// <summary>
@@ -130,6 +144,38 @@ namespace Game.Managers
 
             currentPlayerData.gold = amount;
             Debug.Log($"[PlayerDataManager] Gold set to: {amount}");
+            OnGoldChanged?.Invoke(currentPlayerData.gold);
+        }
+
+        /// <summary>
+        /// 골드 소비 (검증 포함)
+        /// </summary>
+        /// <param name="amount">소비할 골드 양</param>
+        /// <returns>성공 여부 (충분한 골드가 있으면 true)</returns>
+        public bool SpendGold(int amount)
+        {
+            if (currentPlayerData == null)
+            {
+                Debug.LogWarning("[PlayerDataManager] Cannot spend gold - data not initialized");
+                return false;
+            }
+
+            if (amount < 0)
+            {
+                Debug.LogWarning($"[PlayerDataManager] Cannot spend negative gold: {amount}");
+                return false;
+            }
+
+            if (currentPlayerData.gold < amount)
+            {
+                Debug.LogWarning($"[PlayerDataManager] Insufficient gold - Required: {amount}, Available: {currentPlayerData.gold}");
+                return false;
+            }
+
+            currentPlayerData.gold -= amount;
+            Debug.Log($"[PlayerDataManager] Spent {amount} gold → Remaining: {currentPlayerData.gold}");
+            OnGoldChanged?.Invoke(currentPlayerData.gold);
+            return true;
         }
 
         /// <summary>

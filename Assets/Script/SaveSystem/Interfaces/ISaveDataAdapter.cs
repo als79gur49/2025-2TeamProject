@@ -37,5 +37,9 @@ namespace Game.SaveSystem
         // 데이터 변환 메서드
         List<EnhancedCardData> ConvertDeckToEnhancedCards(Dictionary<CardData, int> deckCards);
         Dictionary<CardData, int> ConvertEnhancedCardsToDeck(List<EnhancedCardData> enhancedCards);
+
+        // 상점 데이터 관리
+        void SaveShopData(ShopData shopData);
+        ShopData LoadShopData();
     }
 }

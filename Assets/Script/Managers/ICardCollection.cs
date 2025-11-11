@@ -21,6 +21,13 @@ namespace Game.Managers
         int GetOwnedCount(CardData card);
 
         /// <summary>
+        /// 카드 추가 (상점 구매, 보상 획득 등)
+        /// </summary>
+        /// <param name="card">추가할 카드</param>
+        /// <param name="quantity">추가할 수량</param>
+        void AddCard(CardData card, int quantity = 1);
+
+        /// <summary>
         /// 컬렉션 로드 (저장 데이터 반영)
         /// </summary>
         void LoadCollection();

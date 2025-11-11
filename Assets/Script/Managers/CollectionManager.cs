@@ -5,6 +5,7 @@ using System;
 using Game.Data;
 using Game.Core;
 using Game.SaveSystem;
+using Game.Managers;
 
 namespace Game.Managers
 {
@@ -28,12 +29,6 @@ namespace Game.Managers
         public event Action OnCollectionChanged;
 
         #region Lifecycle
-
-        private void Awake()
-        {
-            // 테스트를 위한 일부로 추가한 코드
-            SaveAvailableCards();
-        }
 
         private void Start()
         {
@@ -82,6 +77,14 @@ namespace Game.Managers
             SaveCollection();
 
             Debug.Log($"[CollectionManager] Added {count}x {card.CardName} to collection");
+        }
+
+        /// <summary>
+        /// 컬렉션에 카드 추가 (ICardCollection 인터페이스 구현)
+        /// </summary>
+        public void AddCard(CardData card, int quantity = 1)
+        {
+            AddCardToCollection(card, quantity);
         }
 
         /// <summary>

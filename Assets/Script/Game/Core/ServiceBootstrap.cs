@@ -51,6 +51,13 @@ namespace Game.Core
         [Tooltip("Required: StageProgressManager prefab with stageDatabase configured")]
         [SerializeField] private GameObject stageProgressManagerPrefab;
 
+        [Header("Card System Configuration")]
+        [Tooltip("Required: CardDatabase prefab for card data management")]
+        [SerializeField] private GameObject cardDatabasePrefab;
+
+        [Tooltip("Required: CollectionManager prefab for player card collection")]
+        [SerializeField] private GameObject collectionManagerPrefab;
+
         [Header("Initial Scene Configuration")]
         [Tooltip("SceneData asset to load after bootstrap initialization. Contains scene name, BGM, and loading screen configuration.")]
         [SerializeField] private SceneData initialSceneData;
@@ -162,13 +169,19 @@ namespace Game.Core
             // PHASE 2: Audio System (no dependencies)
             InitializeAudioServiceContainer();
 
+            // PHASE 2: Card Database System (no dependencies)
+            InitializeCardDatabase();
+
             // PHASE 2.5: Save System (depends on Audio System)
             InitializeSaveSystem();
 
-            // PHASE 2.6: Player Data System (depends on Save System)
+            // PHASE 2.6: Card Collection System (depends on Save System and Card Database)
+            InitializeCollectionManager();
+
+            // PHASE 2.7: Player Data System (depends on Save System)
             InitializePlayerDataManager();
 
-            // PHASE 2.7: Stage Progress System (depends on Save System)
+            // PHASE 2.8: Stage Progress System (depends on Save System)
             InitializeStageProgressManager();
 
             // PHASE 3: Controllers (depend on Phase 1 services)
@@ -293,6 +306,54 @@ namespace Game.Core
         }
 
         /// <summary>
+        /// Initialize CardDatabase and register with ServiceLocator.
+        /// Dependencies: None
+        /// </summary>
+        private void InitializeCardDatabase()
+        {
+            Log("[CardDB] Initializing Card Database System...");
+
+            // Validate prefab reference
+            if (cardDatabasePrefab == null)
+            {
+                LogError("  ✗ CardDatabase prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create database instance from prefab
+            GameObject databaseObj = Instantiate(cardDatabasePrefab);
+            CardDatabase database = databaseObj.GetComponent<CardDatabase>();
+
+            if (database == null)
+            {
+                LogError("  ✗ CardDatabase component not found on prefab!");
+                LogError("  → Verify the prefab has CardDatabase component");
+                Destroy(databaseObj);
+                return;
+            }
+
+            // Apply DontDestroyOnLoad
+            DontDestroyOnLoad(databaseObj);
+
+            // Initialize database (loads all cards from Resources/Cards/)
+            database.Initialize();
+            Log("  ✓ CardDatabase initialized");
+
+            // Register with ServiceLocator
+            ServiceLocator.RegisterSingleton<ICardRegistry, CardDatabase>(database);
+            Log("  ✓ ICardRegistry registered to ServiceLocator");
+
+            // Add ServiceCleanup component
+            if (databaseObj.GetComponent<ServiceCleanup>() == null)
+            {
+                databaseObj.AddComponent<ServiceCleanup>();
+            }
+
+            Log("  ✓ Card Database System initialization complete");
+        }
+
+        /// <summary>
         /// Initialize SaveSystem (SaveGameManager + SaveDataAdapter) and register with ServiceLocator.
         /// Dependencies: Audio System (IVolumeController, IAudioServiceContainer)
         /// </summary>
@@ -340,6 +401,90 @@ namespace Game.Core
             }
 
             Log("  ✓ Save System initialization complete with audio settings loaded");
+        }
+
+        /// <summary>
+        /// Initialize CollectionManager and register with ServiceLocator.
+        /// Dependencies: ISaveDataAdapter (Phase 2.5), ICardRegistry (Phase 2)
+        /// </summary>
+        private void InitializeCollectionManager()
+        {
+            Log("[Collection] Initializing Card Collection System...");
+
+            // Validate dependencies
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                LogError("  ✗ Dependency check failed: ISaveDataAdapter not registered!");
+                LogError("  → Cannot initialize CollectionManager without SaveDataAdapter");
+                return;
+            }
+
+            if (!ServiceLocator.IsRegistered<ICardRegistry>())
+            {
+                LogError("  ✗ Dependency check failed: ICardRegistry not registered!");
+                LogError("  → Cannot initialize CollectionManager without CardDatabase");
+                return;
+            }
+
+            // Validate prefab reference
+            if (collectionManagerPrefab == null)
+            {
+                LogError("  ✗ CollectionManager prefab reference is missing!");
+                LogError("  → Please assign the prefab in ServiceBootstrap Inspector");
+                return;
+            }
+
+            // Create manager instance from prefab
+            GameObject managerObj = Instantiate(collectionManagerPrefab);
+            CollectionManager manager = managerObj.GetComponent<CollectionManager>();
+
+            if (manager == null)
+            {
+                LogError("  ✗ CollectionManager component not found on prefab!");
+                LogError("  → Verify the prefab has CollectionManager component");
+                Destroy(managerObj);
+                return;
+            }
+
+            // Apply DontDestroyOnLoad
+            DontDestroyOnLoad(managerObj);
+
+            // Register with ServiceLocator (before Start() is called)
+            ServiceLocator.RegisterSingleton<ICardCollection, CollectionManager>(manager);
+            Log("  ✓ ICardCollection registered to ServiceLocator");
+
+            // Add ServiceCleanup component
+            if (managerObj.GetComponent<ServiceCleanup>() == null)
+            {
+                managerObj.AddComponent<ServiceCleanup>();
+            }
+
+            // Note: CollectionManager.Start() will automatically:
+            // 1. Retrieve SaveAdapter from ServiceLocator
+            // 2. Call LoadCollection() to load saved card data
+            Log("  ✓ CollectionManager will auto-initialize in Start()");
+
+            // Load saved collection
+            try
+            {
+                var saveAdapter = ServiceLocator.Get<ISaveDataAdapter>();
+                if (saveAdapter.HasSaveData())
+                {
+                    saveAdapter.LoadSpecific(SaveFileType.CardCollection);
+                    Log("  ✓ Card collection loaded from save file");
+                }
+                else
+                {
+                    Log("  ℹ No saved collection found, using initial state");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log($"  ⚠ Failed to load collection: {ex.Message}");
+                Log("  ℹ Using initial collection state");
+            }
+
+            Log("  ✓ Card Collection System initialization complete");
         }
 
         /// <summary>
@@ -600,6 +745,10 @@ namespace Game.Core
             allValid &= ValidateAudioService<IBGMAudioService>("BGMAudioService");
             allValid &= ValidateAudioService<IEffectAudioService>("EffectAudioService");
             allValid &= ValidateAudioService<IVolumeController>("VolumeController");
+
+            // Validate Card System
+            allValid &= ValidateService<ICardRegistry>("CardDatabase");
+            allValid &= ValidateService<ICardCollection>("CollectionManager");
 
             // Validate Save System
             allValid &= ValidateSaveDataAdapter("SaveDataAdapter");
