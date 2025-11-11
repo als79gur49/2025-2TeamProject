@@ -24,6 +24,11 @@ namespace Game.SaveSystem
         /// <summary>
         /// 카드 컬렉션 (보유 카드, 레벨, 강화 정보 등)
         /// </summary>
-        CardCollection
+        CardCollection,
+
+        /// <summary>
+        /// 상점 데이터 (진열 아이템, 재고, 할인 정보 등)
+        /// </summary>
+        ShopData
     }
 }
