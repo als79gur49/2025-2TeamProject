@@ -48,6 +48,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5df75b9975e2a384a87f7cfd604363b8, type: 2}
   - {fileID: 11400000, guid: 067eb8eeac1c4d745ba91c3fd205fb04, type: 2}
   - {fileID: 11400000, guid: ab48ffc940277184e82d678296b84c29, type: 2}
+  - {fileID: 11400000, guid: 2c091e4e59f5ad74992f4fce90a52e4f, type: 2}
+  - {fileID: 11400000, guid: cdb19c703bea638429762312e4a13cf5, type: 2}
   autoSaveEnabled: 1
   autoSaveInterval: 60
   debugMode: 1

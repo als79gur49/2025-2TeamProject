@@ -24,7 +24,7 @@ namespace Game.UI
     {
         [Header("Stage Configuration")]
         [SerializeField]
-        private StageDataSO stageData;
+        private string stageId;
         
         [SerializeField]
         private bool autoFindComponents = true;
@@ -166,10 +166,17 @@ namespace Game.UI
         public void Initialize()
         {
             if (isInitialized) return;
-            
+
+            if (string.IsNullOrEmpty(stageId))
+            {
+                Debug.LogError($"[StageButton] No stage ID assigned to {gameObject.name}");
+                return;
+            }
+
+            var stageData = GetStageData();
             if (stageData == null)
             {
-                Debug.LogError($"[StageButton] No stage data assigned to {gameObject.name}");
+                Debug.LogError($"[StageButton] Stage data not found for ID: {stageId}");
                 return;
             }
 
@@ -182,7 +189,7 @@ namespace Game.UI
 
             // Initial update
             UpdateButtonState();
-            
+
             isInitialized = true;
         }
 
@@ -202,6 +209,17 @@ namespace Game.UI
             // DOTween 애니메이션 정리 (메모리 누수 방지)
             currentAnimation?.Kill();
             currentAnimation = null;
+        }
+
+        /// <summary>
+        /// StageId로부터 StageDataSO를 조회합니다.
+        /// </summary>
+        private StageDataSO GetStageData()
+        {
+            if (string.IsNullOrEmpty(stageId) || progressManager == null)
+                return null;
+
+            return progressManager.GetStageData(stageId);
         }
 
         #endregion
@@ -236,6 +254,7 @@ namespace Game.UI
 
         public void UpdateButtonState()
         {
+            var stageData = GetStageData();
             if (stageData == null || progressManager == null)
                 return;
 
@@ -251,10 +270,13 @@ namespace Game.UI
 
         private void UpdateVisuals()
         {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
             // Stage identification
             if (stageNameText != null)
             {
-                stageNameText.text = currentStageInfo.isUnlocked ? 
+                stageNameText.text = currentStageInfo.isUnlocked ?
                     stageData.DisplayName : "???";
             }
 
@@ -335,8 +357,8 @@ namespace Game.UI
             if (backgroundImage != null)
             {
                 backgroundImage.color = Color.Lerp(
-                    GetStateColor(), 
-                    stageData.ThemeColor, 
+                    GetStateColor(),
+                    stageData.ThemeColor,
                     0.3f
                 );
             }
@@ -359,6 +381,9 @@ namespace Game.UI
 
         private void UpdateProgressIndicators()
         {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
             // Stars
             if (starImages != null && starImages.Length > 0)
             {
@@ -367,7 +392,7 @@ namespace Game.UI
                     if (starImages[i] == null) continue;
 
                     bool earned = i < currentStageInfo.bestStars;
-                    
+
                     if (filledStar != null && emptyStar != null)
                     {
                         starImages[i].sprite = earned ? filledStar : emptyStar;
@@ -416,7 +441,7 @@ namespace Game.UI
 
         private void OnButtonClick()
         {
-            if (stageData == null) return;
+            if (GetStageData() == null) return;
 
             if (currentStageInfo.state == StageState.Locked)
             {
@@ -437,6 +462,9 @@ namespace Game.UI
 
         private void SelectStage()
         {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
             // Fire events
             onStageSelected?.Invoke(stageData.StageId);
             onStageInfoRequested?.Invoke(currentStageInfo);
@@ -453,6 +481,9 @@ namespace Game.UI
 
         private void LoadStageScene()
         {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
             // Prepare stage for play (씬 로드 전 준비)
             progressManager.PrepareStageForPlay(stageData.StageId);
 
@@ -478,6 +509,9 @@ namespace Game.UI
 
         private void ShowUnlockRequirements()
         {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
             var requirements = stageData.GetUnlockRequirements();
             onShowUnlockRequirements?.Invoke(requirements);
 
@@ -572,7 +606,7 @@ namespace Game.UI
 
         private void HandleStageUnlocked(string stageId)
         {
-            if (stageData != null && stageData.StageId == stageId)
+            if (!string.IsNullOrEmpty(this.stageId) && this.stageId == stageId)
             {
                 UpdateButtonState();
                 PlayUnlockAnimation();
@@ -581,7 +615,7 @@ namespace Game.UI
 
         private void HandleStageCompleted(string stageId, int score, int stars)
         {
-            if (stageData != null && stageData.StageId == stageId)
+            if (!string.IsNullOrEmpty(this.stageId) && this.stageId == stageId)
             {
                 UpdateButtonState();
                 PlayClearAnimation();
@@ -590,7 +624,7 @@ namespace Game.UI
 
         private void HandleStageStateChanged(string stageId, StageState newState)
         {
-            if (stageData != null && stageData.StageId == stageId)
+            if (!string.IsNullOrEmpty(this.stageId) && this.stageId == stageId)
             {
                 UpdateButtonState();
             }
@@ -745,16 +779,16 @@ namespace Game.UI
 
         #region Public Methods
 
-        public void SetStageData(StageDataSO data)
+        public void SetStageId(string id)
         {
-            stageData = data;
+            stageId = id;
             Initialize();
             UpdateButtonState();
         }
 
-        public StageDataSO GetStageData()
+        public string GetStageId()
         {
-            return stageData;
+            return stageId;
         }
 
         public StageInfo GetStageInfo()
@@ -837,7 +871,7 @@ namespace Game.UI
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (stageData != null && Application.isPlaying)
+            if (!string.IsNullOrEmpty(stageId) && Application.isPlaying)
             {
                 UpdateButtonState();
             }
