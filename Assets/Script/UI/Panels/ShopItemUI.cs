@@ -1,13 +1,15 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
+using DG.Tweening;
 
 /// <summary>
 /// 상점 아이템 UI 컴포넌트
 /// ViewModel 기반으로 UI를 업데이트하고 사용자 입력을 처리
 /// </summary>
-public class ShopItemUI : MonoBehaviour
+public class ShopItemUI : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI Components")]
     [SerializeField] private Image iconImage;
@@ -21,11 +23,27 @@ public class ShopItemUI : MonoBehaviour
     // ViewModel
     private ShopItemViewModel viewModel;
 
+    // 클릭 콜백
+    private Action<string> onLeftClick;
+    private Action<string> onRightClick;
+
+    // 애니메이션용 원래 위치 저장
+    private Vector2 originalPosition;
+    private RectTransform rectTransform;
+
+    private void Awake()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        originalPosition = rectTransform.anchoredPosition;
+    }
+
     /// <summary>
     /// ShopItemUI 초기화
     /// </summary>
     /// <param name="vm">ViewModel (UI 데이터)</param>
-    public void Initialize(ShopItemViewModel vm)
+    /// <param name="onLeftClickCallback">좌클릭 콜백 (장바구니 추가)</param>
+    /// <param name="onRightClickCallback">우클릭 콜백 (장바구니 제거)</param>
+    public void Initialize(ShopItemViewModel vm, Action<string> onLeftClickCallback, Action<string> onRightClickCallback)
     {
         if (vm == null)
         {
@@ -34,9 +52,30 @@ public class ShopItemUI : MonoBehaviour
         }
 
         this.viewModel = vm;
+        this.onLeftClick = onLeftClickCallback;
+        this.onRightClick = onRightClickCallback;
 
         // UI 업데이트
         UpdateUI();
+    }
+
+    /// <summary>
+    /// 포인터 클릭 이벤트 처리 (IPointerClickHandler)
+    /// </summary>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (viewModel == null) return;
+
+        if (eventData.button == PointerEventData.InputButton.Left)
+        {
+            // 좌클릭: 장바구니에 추가
+            onLeftClick?.Invoke(viewModel.ItemID);
+        }
+        else if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            // 우클릭: 장바구니에서 제거
+            onRightClick?.Invoke(viewModel.ItemID);
+        }
     }
 
     /// <summary>
@@ -50,6 +89,18 @@ public class ShopItemUI : MonoBehaviour
         if (iconImage != null && viewModel.Icon != null)
         {
             iconImage.sprite = viewModel.Icon;
+
+            // 재고 상태에 따른 색상 변경
+            if (viewModel.RemainingStock <= 0)
+            {
+                // 품절: 회색빛 + 반투명
+                iconImage.color = new Color(0.5f, 0.5f, 0.5f, 0.7f);
+            }
+            else
+            {
+                // 재고 있음: 원래 색상
+                iconImage.color = Color.white;
+            }
         }
 
         // 가격 (할인 표시 포함)
@@ -80,4 +131,86 @@ public class ShopItemUI : MonoBehaviour
         this.viewModel = newViewModel;
         UpdateUI();
     }
+
+    #region Animations
+
+    /// <summary>
+    /// 장바구니에 추가될 때 애니메이션 (클릭 피드백)
+    /// </summary>
+    /// <param name="cartTargetPosition">장바구니 목표 위치 (사용하지 않음)</param>
+    public void PlayAddToCartAnimation(RectTransform cartTargetPosition)
+    {
+        // 클릭 피드백 애니메이션 시퀀스
+        Sequence clickSequence = DOTween.Sequence();
+
+        // 1. Press 효과: 눌리는 느낌 (0.1초)
+        clickSequence.Append(transform.DOScale(0.9f, 0.1f).SetEase(Ease.OutQuad));
+
+        // 2. Bounce 효과: 튀어나오는 느낌 (0.15초)
+        clickSequence.Append(transform.DOScale(1.05f, 0.15f).SetEase(Ease.OutBack));
+
+        // 3. Return 효과: 원래 크기로 복귀 (0.1초)
+        clickSequence.Append(transform.DOScale(1.0f, 0.1f).SetEase(Ease.InOutQuad));
+
+        // Glow 효과 (동시 진행)
+        if (glowEffect != null)
+        {
+            Sequence glowSequence = DOTween.Sequence();
+            glowSequence.Append(glowEffect.DOFade(1f, 0.15f));
+            glowSequence.Append(glowEffect.DOFade(0f, 0.2f));
+        }
+    }
+
+    /// <summary>
+    /// 장바구니에서 제거될 때 애니메이션 (클릭 피드백)
+    /// </summary>
+    public void PlayRemoveFromCartAnimation()
+    {
+        // 제거 피드백 애니메이션 시퀀스
+        Sequence removeSequence = DOTween.Sequence();
+
+        // 1. Quick Press: 빠르게 축소 (0.08초)
+        removeSequence.Append(transform.DOScale(0.85f, 0.08f).SetEase(Ease.OutQuad));
+
+        // 2. Bounce Back: 원래 크기로 튀어나옴 (0.12초)
+        removeSequence.Append(transform.DOScale(1.0f, 0.12f).SetEase(Ease.OutBack));
+
+        // Glow 효과 (제거 피드백)
+        if (glowEffect != null)
+        {
+            Sequence glowSequence = DOTween.Sequence();
+            glowSequence.Append(glowEffect.DOFade(0.7f, 0.1f));
+            glowSequence.Append(glowEffect.DOFade(0f, 0.15f));
+        }
+    }
+
+    /// <summary>
+    /// 클릭 실패 시 애니메이션 (좌우 흔들림)
+    /// </summary>
+    public void PlayFailAnimation()
+    {
+        // 좌우 흔들림 효과
+        transform.DOShakePosition(
+            duration: 0.3f,
+            strength: 10f,
+            vibrato: 20,
+            randomness: 90,
+            snapping: false,
+            fadeOut: true
+        );
+
+        // 붉은 깜빡임 효과
+        if (glowEffect != null)
+        {
+            Color originalColor = glowEffect.color;
+            glowEffect.color = Color.red;
+
+            Sequence failGlow = DOTween.Sequence();
+            failGlow.Append(glowEffect.DOFade(0.8f, 0.1f));
+            failGlow.Append(glowEffect.DOFade(0f, 0.2f));
+            failGlow.OnComplete(() => glowEffect.color = originalColor);
+        }
+    }
+
+    #endregion
 }
