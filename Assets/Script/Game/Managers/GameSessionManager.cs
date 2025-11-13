@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Data;
+using Game.Services;
 
 namespace Game.Managers
 {
@@ -25,6 +26,7 @@ namespace Game.Managers
         private DateTime sessionStartTime;
         private float sessionStartGameTime;
         private bool isSessionActive;
+        private IScoringService scoringService;
         #endregion
 
         #region Public API
@@ -72,7 +74,8 @@ namespace Game.Managers
         /// 게임 세션 시작
         /// </summary>
         /// <param name="stageId">스테이지 ID</param>
-        public void StartSession(string stageId)
+        /// <param name="stageData">스테이지 데이터 (점수 계산 규칙 포함)</param>
+        public void StartSession(string stageId, StageDataSO stageData)
         {
             if (isSessionActive)
             {
@@ -85,6 +88,10 @@ namespace Game.Managers
             sessionStartTime = DateTime.Now;
             sessionStartGameTime = Time.time;
             isSessionActive = true;
+
+            // ScoringService 초기화
+            scoringService = new ScoringService();
+            scoringService.Initialize(stageData);
 
             // 통계 초기화
             currentStatistics = new Dictionary<string, int>
@@ -193,6 +200,78 @@ namespace Game.Managers
             }
 
             currentStatistics[key] = value;
+        }
+
+        #endregion
+
+        #region Convenience Methods (High-Level API)
+
+        /// <summary>
+        /// 적 처치 기록 (점수 계산 + 추가 + 통계 증가)
+        /// </summary>
+        /// <param name="enemyLevel">적 레벨</param>
+        public void RecordEnemyDefeat(int enemyLevel)
+        {
+            if (!isSessionActive)
+            {
+                Debug.LogWarning("[GameSessionManager] Cannot record enemy defeat: No active session.");
+                return;
+            }
+
+            if (scoringService == null)
+            {
+                Debug.LogWarning("[GameSessionManager] ScoringService not initialized.");
+                return;
+            }
+
+            // 1. 점수 계산
+            int points = scoringService.CalculateEnemyScore(enemyLevel);
+
+            // 2. 점수 추가
+            AddScore(points);
+
+            // 3. 통계 증가
+            IncrementStatistic("enemies_defeated");
+        }
+
+        /// <summary>
+        /// 콤보 달성 기록 (콤보 보너스 점수 추가)
+        /// </summary>
+        /// <param name="comboCount">콤보 횟수</param>
+        public void RecordComboAchieved(int comboCount)
+        {
+            if (!isSessionActive)
+            {
+                Debug.LogWarning("[GameSessionManager] Cannot record combo: No active session.");
+                return;
+            }
+
+            if (scoringService == null)
+            {
+                Debug.LogWarning("[GameSessionManager] ScoringService not initialized.");
+                return;
+            }
+
+            // 콤보 보너스 계산 및 추가
+            int bonus = scoringService.CalculateComboBonus(comboCount);
+            AddScore(bonus);
+        }
+
+        /// <summary>
+        /// 데미지 기록 (통계 증가 및 점수 반영)
+        /// </summary>
+        /// <param name="amount">데미지 양</param>
+        /// <param name="isTaken">받은 데미지인지 (true: 받음, false: 입힘)</param>
+        public void RecordDamage(int amount, bool isTaken)
+        {
+            if (!isSessionActive)
+            {
+                Debug.LogWarning("[GameSessionManager] Cannot record damage: No active session.");
+                return;
+            }
+
+            string statKey = isTaken ? "damage_taken" : "damage_dealt";
+            IncrementStatistic(statKey, amount);
         }
 
         #endregion

@@ -22,6 +22,7 @@ namespace Game.SaveSystem
         private const string PLAYER_DATA_FILE = "player_data.json";
         private const string STAGE_PROGRESS_FILE = "stage_progress.json";
         private const string CARD_COLLECTION_FILE = "card_collection.json";
+        private const string SHOP_DATA_FILE = "shop_data.json";
         private const string DECK_DIRECTORY = "Decks";
 
         // JSON 설정
@@ -351,6 +352,8 @@ namespace Game.SaveSystem
                     return STAGE_PROGRESS_FILE;
                 case SaveFileType.CardCollection:
                     return CARD_COLLECTION_FILE;
+                case SaveFileType.ShopData:
+                    return SHOP_DATA_FILE;
                 default:
                     return "";
             }

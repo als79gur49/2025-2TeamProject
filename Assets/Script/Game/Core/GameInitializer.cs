@@ -705,8 +705,26 @@ public class GameInitializer : SceneInitializer
 
         if (gameSessionManager != null)
         {
-            gameSessionManager.StartSession(stageId);
-            Log($"✅ Game session started: {stageId}");
+            // StageDataSO 가져오기
+            if (ServiceLocator.IsRegistered<IStageProgressManager>())
+            {
+                var progressManager = ServiceLocator.Get<IStageProgressManager>();
+                var stageData = progressManager.GetStageData(stageId);
+
+                if (stageData != null)
+                {
+                    gameSessionManager.StartSession(stageId, stageData);
+                    Log($"✅ Game session started: {stageId}");
+                }
+                else
+                {
+                    LogError($"❌ StageData not found for: {stageId}");
+                }
+            }
+            else
+            {
+                LogError("❌ IStageProgressManager not registered - Cannot retrieve StageData");
+            }
         }
         else
         {

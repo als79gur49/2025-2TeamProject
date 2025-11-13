@@ -162,6 +162,10 @@ MonoBehaviour:
     type: 3}
   stageProgressManagerPrefab: {fileID: 4343901767094236145, guid: 43d2dccf11b755f43ba31005099ed09f,
     type: 3}
+  cardDatabasePrefab: {fileID: 1239884674533325303, guid: c29fe7711b4452a42b935c9e77b67d7d,
+    type: 3}
+  collectionManagerPrefab: {fileID: 2869990270628355823, guid: 28d01fbf2e6220146bf40e8013916051,
+    type: 3}
   initialSceneData: {fileID: 11400000, guid: aa33edd18db3ead4883f603043a7c5f5, type: 2}
   enableDebugLogs: 1
   validateOnStart: 1

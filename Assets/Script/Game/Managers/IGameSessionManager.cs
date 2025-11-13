@@ -58,7 +58,8 @@ namespace Game.Managers
         /// 게임 세션 시작
         /// </summary>
         /// <param name="stageId">스테이지 ID</param>
-        void StartSession(string stageId);
+        /// <param name="stageData">스테이지 데이터 (점수 계산 규칙 포함)</param>
+        void StartSession(string stageId, StageDataSO stageData);
 
         /// <summary>
         /// 게임 세션 종료 및 최종 데이터 반환
@@ -87,6 +88,27 @@ namespace Game.Managers
         /// <param name="key">통계 키</param>
         /// <param name="value">설정할 값</param>
         void SetStatistic(string key, int value);
+        #endregion
+
+        #region Convenience Methods (High-Level API)
+        /// <summary>
+        /// 적 처치 기록 (점수 계산 + 추가 + 통계 증가)
+        /// </summary>
+        /// <param name="enemyLevel">적 레벨</param>
+        void RecordEnemyDefeat(int enemyLevel);
+
+        /// <summary>
+        /// 콤보 달성 기록 (콤보 보너스 점수 추가)
+        /// </summary>
+        /// <param name="comboCount">콤보 횟수</param>
+        void RecordComboAchieved(int comboCount);
+
+        /// <summary>
+        /// 데미지 기록 (통계 증가 및 점수 반영)
+        /// </summary>
+        /// <param name="amount">데미지 양</param>
+        /// <param name="isTaken">받은 데미지인지 (true: 받음, false: 입힘)</param>
+        void RecordDamage(int amount, bool isTaken);
         #endregion
     }
 }
