@@ -761,11 +761,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbf531e927823df4eb3f1b2e4bd64cf6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stageData: {fileID: 11400000, guid: 5df75b9975e2a384a87f7cfd604363b8, type: 2}
+  stageId: 
   autoFindComponents: 0
   button: {fileID: 6533644225161127384}
   backgroundImage: {fileID: 7263400280790554275}
-  stageIcon: {fileID: 0}
+  stageIcon: {fileID: 7225263424784368111}
   thumbnailImage: {fileID: 0}
   lockOverlay: {fileID: 4142577444285149792}
   completionBadge: {fileID: 0}
@@ -801,6 +801,19 @@ MonoBehaviour:
     useClearAnimation: 1
     useHoverAnimation: 1
     animationDuration: 0.3
+    selectPunchScale: {x: 0.2, y: 0.2, z: 0.2}
+    selectVibrato: 10
+    selectElasticity: 1
+    selectEase: 24
+    clearMaxScale: {x: 1.2, y: 1.2, z: 1.2}
+    clearFadeMin: 0.5
+    clearEase: 6
+    unlockRotation: {x: 0, y: 0, z: 360}
+    unlockStartScale: {x: 0.5, y: 0.5, z: 0.5}
+    unlockEase: 27
+    hoverScale: {x: 1.1, y: 1.1, z: 1.1}
+    hoverDuration: 0.2
+    hoverEase: 6
   onStageSelected:
     m_PersistentCalls:
       m_Calls: []
