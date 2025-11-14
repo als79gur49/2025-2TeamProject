@@ -1,4 +1,5 @@
 using UnityEngine;
+using Game.Data;
 
 /// <summary>
 /// 상점 아이템 UI용 ViewModel
@@ -35,6 +36,13 @@ public class ShopItemViewModel
 
     /// <summary>구매할 수 있는 골드를 가지고 있는지 여부</summary>
     public bool CanAfford { get; set; }
+
+    /// <summary>
+    /// 원본 카드 데이터 (카드 아이템인 경우)
+    /// ViewModel이 Model을 참조하는 것은 MVVM에서 허용됨
+    /// 향후 다른 아이템 타입 추가 시 해당 타입 필드도 추가 가능 (예: WeaponData)
+    /// </summary>
+    public CardData CardData { get; set; }
 
     /// <summary>
     /// 남은 재고 (전체 재고 - 장바구니 수량)

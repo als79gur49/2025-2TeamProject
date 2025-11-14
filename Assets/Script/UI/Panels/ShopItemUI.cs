@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using DG.Tweening;
+using Game.Data;
 
 /// <summary>
 /// 상점 아이템 UI 컴포넌트
@@ -19,6 +20,10 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
 
     [Header("Optional Visual Elements")]
     [SerializeField] private GameObject discountBadge; // 할인 표시 (선택적)
+
+    [Header("Info Panel")]
+    [SerializeField] private Button infoButton; // Info 버튼
+    [SerializeField] private CardInfoEventChannelSO cardInfoEventChannel; // CardInfoPanel 표시 이벤트 채널
 
     // ViewModel
     private ShopItemViewModel viewModel;
@@ -54,6 +59,13 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
         this.viewModel = vm;
         this.onLeftClick = onLeftClickCallback;
         this.onRightClick = onRightClickCallback;
+
+        // Info 버튼 클릭 리스너 등록
+        if (infoButton != null)
+        {
+            infoButton.onClick.RemoveAllListeners();
+            infoButton.onClick.AddListener(OnInfoButtonClicked);
+        }
 
         // UI 업데이트
         UpdateUI();
@@ -130,6 +142,35 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
     {
         this.viewModel = newViewModel;
         UpdateUI();
+    }
+
+    /// <summary>
+    /// Info 버튼 클릭 핸들러
+    /// CardData가 있는 경우 CardInfoPanel을 표시
+    /// </summary>
+    private void OnInfoButtonClicked()
+    {
+        if (viewModel == null)
+        {
+            Debug.LogWarning("[ShopItemUI] ViewModel is null");
+            return;
+        }
+
+        if (viewModel.CardData == null)
+        {
+            Debug.LogWarning("[ShopItemUI] CardData is null - this item may not be a card type");
+            return;
+        }
+
+        if (cardInfoEventChannel == null)
+        {
+            Debug.LogError("[ShopItemUI] CardInfoEventChannel is not assigned");
+            return;
+        }
+
+        // CardInfoPanel 표시 이벤트 발생
+        cardInfoEventChannel.RaiseEvent(viewModel.CardData);
+        Debug.Log($"[ShopItemUI] Info button clicked for {viewModel.DisplayName}");
     }
 
     #region Animations

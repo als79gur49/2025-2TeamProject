@@ -299,7 +299,8 @@ public class ShopManager : MonoBehaviour, IShopManager
             Stock = item.stockAmount,
             HasDiscount = item.HasDiscount,
             IsAvailable = item.IsAvailable,
-            CanAfford = currentGold >= item.FinalPrice
+            CanAfford = currentGold >= item.FinalPrice,
+            CardData = (item.purchasableItem as CardShopItem)?.GetCardData() // 카드 아이템인 경우 원본 CardData 설정
         }).ToList();
     }
 }

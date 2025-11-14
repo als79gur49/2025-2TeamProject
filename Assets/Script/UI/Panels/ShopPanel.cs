@@ -212,6 +212,13 @@ public class ShopPanel : UIPanel, IOpenablePanel
             currentItemUIs.Add(itemUI);
         }
 
+        // Layout 강제 갱신 (ScrollRect 드래그 문제 해결)
+        if (shopItemContainer != null)
+        {
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(shopItemContainer as RectTransform);
+        }
+
         Debug.Log($"[ShopPanel] Rebuilt UI with {currentItemUIs.Count} items");
     }
 
