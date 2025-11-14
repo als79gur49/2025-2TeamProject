@@ -34,8 +34,8 @@ public class VictoryPanel : UIPanel, IGameResultPanel
     [SerializeField] private AudioData victorySoundData;             // Victory 사운드
 
     [Header("Scene Configuration")]
-    [SerializeField] private SceneData mainMenuScene;  // 메인 메뉴 씬 데이터
-    [SerializeField] private SceneData nextLevelScene; // 다음 레벨 씬 데이터
+    [SerializeField] private SceneData mainMenuScene;  // 메인 메뉴 씬 데이터 (Inspector에서 할당)
+    private SceneData nextLevelScene; // 다음 레벨 씬 데이터 (GameInitializer에서 동적 주입)
 
     [Header("Settings")]
     [SerializeField] private bool pauseGameOnShow = true;  // 패널 표시 시 게임 일시정지
@@ -96,8 +96,7 @@ public class VictoryPanel : UIPanel, IGameResultPanel
         if (mainMenuScene == null)
             Debug.LogWarning("[VictoryPanel] Main Menu Scene Data not assigned!");
 
-        if (nextLevelScene == null)
-            Debug.LogWarning("[VictoryPanel] Next Level Scene Data not assigned!");
+        // nextLevelScene은 GameInitializer에서 동적으로 주입되므로 검증 불필요
     }
 
     #endregion
@@ -126,6 +125,9 @@ public class VictoryPanel : UIPanel, IGameResultPanel
         {
             Time.timeScale = 0f;
         }
+
+        // 다음 레벨 버튼 상태 업데이트 (nextLevelScene 유무에 따라)
+        UpdateNextLevelButtonState();
 
         Debug.Log("[VictoryPanel] Victory panel displayed");
     }
@@ -221,6 +223,27 @@ public class VictoryPanel : UIPanel, IGameResultPanel
 
     #endregion
 
+    #region Button State Management
+
+    /// <summary>
+    /// 다음 레벨 씬 유무에 따라 버튼 활성화 상태 업데이트
+    /// nextLevelScene이 null이면 버튼을 숨겨 시각적으로 비활성화
+    /// </summary>
+    private void UpdateNextLevelButtonState()
+    {
+        if (nextLevelButton == null) return;
+
+        bool hasNextLevel = nextLevelScene != null;
+        nextLevelButton.gameObject.SetActive(hasNextLevel);
+
+        if (!hasNextLevel)
+        {
+            Debug.Log("[VictoryPanel] Next level unavailable - button hidden");
+        }
+    }
+
+    #endregion
+
     #region Public Methods
 
     /// <summary>
@@ -240,6 +263,7 @@ public class VictoryPanel : UIPanel, IGameResultPanel
     public void SetNextLevelScene(SceneData sceneData)
     {
         nextLevelScene = sceneData;
+        UpdateNextLevelButtonState();
     }
 
     /// <summary>

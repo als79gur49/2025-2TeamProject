@@ -434,8 +434,42 @@ namespace Game.Managers
         /// </summary>
         public float GetChapterProgress(string chapterId)
         {
-            return progressData.chapterProgress.TryGetValue(chapterId, out float progress) 
+            return progressData.chapterProgress.TryGetValue(chapterId, out float progress)
                 ? progress : 0f;
+        }
+
+        /// <summary>
+        /// 다음 스테이지 데이터 가져오기 (순차 진행용)
+        /// </summary>
+        /// <param name="currentStageId">현재 스테이지 ID</param>
+        /// <returns>다음 스테이지 데이터 (같은 챕터 내 다음 스테이지, 없으면 null)</returns>
+        public StageDataSO GetNextStageData(string currentStageId)
+        {
+            var currentStage = GetStageData(currentStageId);
+            if (currentStage == null)
+            {
+                Debug.LogWarning($"[StageProgressManager] Current stage not found: {currentStageId}");
+                return null;
+            }
+
+            // 같은 챕터의 모든 스테이지 가져오기 (이미 정렬됨)
+            var chapterStages = GetStagesInChapter(currentStage.ChapterId);
+
+            // 현재 스테이지 인덱스 찾기
+            int currentIndex = chapterStages.FindIndex(s => s.StageId == currentStageId);
+
+            if (currentIndex >= 0 && currentIndex < chapterStages.Count - 1)
+            {
+                // 다음 스테이지 반환
+                return chapterStages[currentIndex + 1];
+            }
+
+            // 다음 스테이지 없음 (챕터 마지막 스테이지)
+            if (debugMode)
+            {
+                Debug.Log($"[StageProgressManager] No next stage after {currentStageId} (end of chapter)");
+            }
+            return null;
         }
 
         #endregion

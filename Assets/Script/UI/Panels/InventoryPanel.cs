@@ -288,6 +288,14 @@ namespace Game.UI.Panels
             }
         }
 
+        /// <summary>
+        /// 총 카드 수 텍스트만 업데이트 (경량 작업)
+        /// </summary>
+        public void RefreshTotalCardsDisplay()
+        {
+            UpdateTotalCardsText();
+        }
+
         #endregion
 
         #region Filtering & Sorting
@@ -452,9 +460,10 @@ namespace Game.UI.Panels
                 return;
 
             int totalOwned = collectionManager.GetTotalCardCount();
-            int uniqueCards = collectionManager.GetUniqueCardCount();
+            int inDeck = coordinator != null ? coordinator.GetTotalDeckCardCount() : 0;
+            int available = totalOwned - inDeck;
 
-            totalCardsText.text = $" {uniqueCards}/{totalOwned}";
+            totalCardsText.text = $" <color=#7c8a97>{available}</color> / {totalOwned}";
         }
 
         /// <summary>

@@ -140,6 +140,7 @@ namespace Game.UI.Coordinators
                 int availableCount = ownedCount - inDeckCount;
 
                 inventoryPanel.UpdateCardAvailability(card, availableCount);
+                inventoryPanel.RefreshTotalCardsDisplay();
             }
 
             // 시각/청각 피드백 재생
@@ -164,6 +165,7 @@ namespace Game.UI.Coordinators
                 int availableCount = ownedCount - inDeckCount;
 
                 inventoryPanel.UpdateCardAvailability(card, availableCount);
+                inventoryPanel.RefreshTotalCardsDisplay();
             }
 
             // 시각/청각 피드백 재생
@@ -268,6 +270,18 @@ namespace Game.UI.Coordinators
                 return deckPanel.CanAddCardToDeck(card);
             }
             return false;
+        }
+
+        /// <summary>
+        /// 덱에 있는 전체 카드 개수 조회 (읽기 전용)
+        /// </summary>
+        public int GetTotalDeckCardCount()
+        {
+            if (deckPanel != null)
+            {
+                return deckPanel.GetTotalCardCount();
+            }
+            return 0;
         }
 
         #endregion

@@ -19,6 +19,11 @@ namespace Game.Managers
     /// </summary>
     public class GameSessionManager : MonoBehaviour, IGameSessionManager
     {
+        #region Event Channels
+        [Header("Event Channels")]
+        [SerializeField] private EnemyKilledEventChannelSO enemyKilledChannel;
+        #endregion
+
         #region Runtime Data
         private string currentStageId;
         private int currentScore;
@@ -27,6 +32,7 @@ namespace Game.Managers
         private float sessionStartGameTime;
         private bool isSessionActive;
         private IScoringService scoringService;
+        private StageDataSO stageData;
         #endregion
 
         #region Public API
@@ -88,6 +94,7 @@ namespace Game.Managers
             sessionStartTime = DateTime.Now;
             sessionStartGameTime = Time.time;
             isSessionActive = true;
+            this.stageData = stageData;
 
             // ScoringService 초기화
             scoringService = new ScoringService();
@@ -100,8 +107,18 @@ namespace Game.Managers
                 { "damage_dealt", 0 },
                 { "damage_taken", 0 },
                 { "units_spawned", 0 },
-                { "play_time", 0 }
+                { "play_time", 0 },
+                { "health_bonus", 0 },
+                { "time_bonus", 0 },
+                { "total_bonus", 0 }
             };
+
+            // 적 처치 이벤트 구독
+            if (enemyKilledChannel != null)
+            {
+                enemyKilledChannel.Subscribe(OnEnemyKilled);
+                Debug.Log("[GameSessionManager] Subscribed to enemy killed events");
+            }
 
             OnSessionStarted?.Invoke(stageId);
             Debug.Log($"[GameSessionManager] Session started: {stageId}");
@@ -274,12 +291,79 @@ namespace Game.Managers
             IncrementStatistic(statKey, amount);
         }
 
+        /// <summary>
+        /// 승리 보너스 계산 및 적용
+        /// HP 보너스와 시간 보너스를 자동으로 계산하여 점수에 추가
+        /// </summary>
+        /// <param name="playerHealthPercent">플레이어 베이스 HP 퍼센트 (0-100)</param>
+        public void ApplyVictoryBonus(float playerHealthPercent)
+        {
+            if (!isSessionActive)
+            {
+                Debug.LogWarning("[GameSessionManager] Cannot apply victory bonus: No active session.");
+                return;
+            }
+
+            if (scoringService == null)
+            {
+                Debug.LogWarning("[GameSessionManager] ScoringService not initialized.");
+                return;
+            }
+
+            // 1. HP 보너스 계산
+            int healthBonus = scoringService.CalculateNoDamageBonus(playerHealthPercent);
+
+            // 2. 시간 보너스 계산 (PlayTime 자체 계산)
+            float clearTime = PlayTime;
+            int timeBonus = 0;
+            if (stageData != null && stageData.Scoring != null)
+            {
+                timeBonus = scoringService.CalculateTimeBonus(clearTime);
+            }
+
+            // 3. 점수 추가
+            int totalBonus = healthBonus + timeBonus;
+            AddScore(totalBonus);
+
+            // 4. 통계 기록
+            SetStatistic("health_bonus", healthBonus);
+            SetStatistic("time_bonus", timeBonus);
+            SetStatistic("total_bonus", totalBonus);
+
+            Debug.Log($"[GameSessionManager] Victory bonus applied:\n" +
+                      $"  HP Bonus: {healthBonus} (HP: {playerHealthPercent:F1}%)\n" +
+                      $"  Time Bonus: {timeBonus} (Time: {clearTime:F2}s)\n" +
+                      $"  Total Bonus: {totalBonus}\n" +
+                      $"  Final Score: {currentScore}");
+        }
+
+        #endregion
+
+        #region Event Handlers
+
+        /// <summary>
+        /// 적 처치 이벤트 핸들러
+        /// EnemyKilledEventChannelSO에서 발생한 이벤트를 받아 점수 처리
+        /// </summary>
+        private void OnEnemyKilled()
+        {
+            // 모든 적 유닛이 동일하므로 기본 레벨(1) 사용
+            RecordEnemyDefeat(1);
+            Debug.Log($"[GameSessionManager] Enemy killed. Current score: {currentScore}, Enemies defeated: {currentStatistics["enemies_defeated"]}");
+        }
+
         #endregion
 
         #region Unity Lifecycle
 
         private void OnDestroy()
         {
+            // 이벤트 구독 해제 (메모리 누수 방지)
+            if (enemyKilledChannel != null)
+            {
+                enemyKilledChannel.Unsubscribe(OnEnemyKilled);
+            }
+
             if (isSessionActive)
             {
                 Debug.LogWarning("[GameSessionManager] Session still active on destroy. Ending session.");

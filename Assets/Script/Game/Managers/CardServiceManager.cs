@@ -5,6 +5,7 @@ using Game.Interfaces;
 using Game.AI;
 using Game.Managers;
 using Game.SaveSystem;
+using Game.Data;
 
 namespace Game.Services
 {
@@ -56,7 +57,8 @@ namespace Game.Services
         /// GameInitializer에 의해 호출될 초기화 메서드
         /// 모든 카드 서비스를 초기화하고 ServiceLocator에 등록
         /// </summary>
-        public void InitializeAndRegisterServices()
+        /// <param name="stageData">스테이지 데이터 (스테이지 설정 구성에 사용)</param>
+        public void InitializeAndRegisterServices(StageDataSO stageData = null)
         {
             Log("🃏 Starting card services initialization...");
 
@@ -81,6 +83,16 @@ namespace Game.Services
                 // 5. 서비스 상태 검증
                 ValidateServiceHealth();
                 Log("✅ Card service health validated");
+
+                // 6. 스테이지 설정 구성 (StageData가 제공된 경우)
+                if (stageData != null)
+                {
+                    ConfigureStageInternal(stageData);
+                }
+                else
+                {
+                    Log("⚠️ No StageData provided during initialization - stage configuration skipped");
+                }
 
                 isInitialized = true;
                 Log("🎉 Card services initialization completed successfully!");
@@ -651,6 +663,44 @@ namespace Game.Services
         public ICardSpawnService GetCardSpawnService() => cardSpawnService;
         public ISpawnValidator GetSpawnValidator() => spawnValidator;
         public IEnemyCardHandView GetEnemyCardHandView() => enemyCardHandView;
+
+        /// <summary>
+        /// 스테이지 설정 구성 (StageDataSO로부터 필요한 데이터 추출)
+        /// InitializeAndRegisterServices() 내부에서 호출됩니다
+        /// </summary>
+        private void ConfigureStageInternal(StageDataSO stageData)
+        {
+            if (stageData == null)
+            {
+                LogError("❌ Cannot configure stage: StageDataSO is null!");
+                return;
+            }
+
+            Log($"🎮 Configuring stage: {stageData.DisplayName} ({stageData.StageId})");
+
+            // EnemyCardPool 설정
+            if (stageData.EnemyCardPool != null && enemyAIController != null)
+            {
+                enemyAIController.SetCardPool(stageData.EnemyCardPool);
+                Log($"✅ Enemy card pool configured: {stageData.EnemyCardPool.name}");
+            }
+            else
+            {
+                if (stageData.EnemyCardPool == null)
+                {
+                    LogError("⚠️ StageDataSO has no EnemyCardPool assigned!");
+                }
+                if (enemyAIController == null)
+                {
+                    LogError("⚠️ EnemyAIController is not initialized!");
+                }
+            }
+
+            // 미래 확장: PlayerCardPool, BossCardPool 등 추가 시 여기에 추가
+            // if (stageData.PlayerCardPool != null) { ... }
+
+            Log("✅ Stage configuration completed");
+        }
 
         #endregion
     }

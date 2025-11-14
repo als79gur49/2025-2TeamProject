@@ -1,4 +1,5 @@
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Interfaces
 {
@@ -14,8 +15,11 @@ namespace Game.Interfaces
         /// <summary>모든 카드 서비스가 정상 상태인지 여부</summary>
         bool AreServicesHealthy { get; }
 
-        /// <summary>GameInitializer에 의해 호출되는 초기화 메서드</summary>
-        void InitializeAndRegisterServices();
+        /// <summary>
+        /// GameInitializer에 의해 호출되는 초기화 메서드
+        /// </summary>
+        /// <param name="stageData">스테이지 데이터 (스테이지 설정 구성에 사용)</param>
+        void InitializeAndRegisterServices(StageDataSO stageData = null);
 
         /// <summary>카드 서비스 상태 정보 반환 (디버깅용)</summary>
         string GetServiceStatus();

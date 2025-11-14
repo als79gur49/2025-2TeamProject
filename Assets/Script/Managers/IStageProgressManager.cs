@@ -121,6 +121,13 @@ namespace Game.Managers
         /// 챕터 진행률
         /// </summary>
         float GetChapterProgress(string chapterId);
+
+        /// <summary>
+        /// 다음 스테이지 데이터 가져오기 (순차 진행용)
+        /// </summary>
+        /// <param name="currentStageId">현재 스테이지 ID</param>
+        /// <returns>다음 스테이지 데이터 (없으면 null)</returns>
+        StageDataSO GetNextStageData(string currentStageId);
         #endregion
 
         #region Save/Load

@@ -130,6 +130,16 @@ namespace Game.UI.Coordinators
                         {
                             deckBuilderPanel.LoadDeck(savedDecks[0], firstDeck);
                             deckBuilderPanel.SyncDropdownToDeck(savedDecks[0]);
+
+                            // InventoryPanel 갱신하여 덱 카운트 반영
+                            if (cardInventoryPanel != null)
+                            {
+                                var inventoryPanel = cardInventoryPanel.GetInventoryPanel();
+                                if (inventoryPanel != null)
+                                {
+                                    inventoryPanel.RefreshTotalCardsDisplay();
+                                }
+                            }
                         }
                     }
                     return;
@@ -143,6 +153,16 @@ namespace Game.UI.Coordinators
                         deckBuilderPanel.LoadDeck(lastDeckName, deckCards);
                         deckBuilderPanel.SyncDropdownToDeck(lastDeckName);
                         Debug.Log($"[CardInventorySaveCoordinator] Auto-loaded last deck: {lastDeckName}");
+
+                        // InventoryPanel 갱신하여 덱 카운트 반영
+                        if (cardInventoryPanel != null)
+                        {
+                            var inventoryPanel = cardInventoryPanel.GetInventoryPanel();
+                            if (inventoryPanel != null)
+                            {
+                                inventoryPanel.RefreshTotalCardsDisplay();
+                            }
+                        }
                     }
                 }
                 catch (System.Exception e)

@@ -8,6 +8,7 @@ using Game.Initialization;
 using PlasticPipe.PlasticProtocol.Messages;
 using Game;
 using Game.Managers;
+using Game.Data;
 
 /// <summary>
 /// 게임 초기화 매니저 - 모든 서비스 등록 및 의존성 주입 설정
@@ -44,6 +45,10 @@ public class GameInitializer : SceneInitializer
     [SerializeField] private DamageDisplayEventChannelSO damageDisplayEventChannel; // 데미지 표시 EventChannel
     [SerializeField] private GameObject damagePopupPrefab; // 데미지 팝업 프리팹
 
+    // Stage Context - 초기화 시점에 로드하여 서비스들에 전달
+    private string currentStageId;
+    private StageDataSO currentStageData;
+
     // ✅ autoInitializeOnStart, logInitializationSteps는 SceneInitializer에서 상속
 
 
@@ -74,20 +79,38 @@ public class GameInitializer : SceneInitializer
         // 1. 서비스 로케이터 초기화
         InitializeServiceLocator();
 
-        // 2. 핵심 서비스 등록
+        // 2. Stage Context 로드 (스테이지 ID 및 데이터)
+        LoadStageContext();
+
+        // 3. 핵심 서비스 등록 (Stage Context를 사용하여 초기화)
         RegisterCoreServices();
 
-        // 3. 컴포넌트 서비스 등록
+        // 4. 컴포넌트 서비스 등록
         RegisterComponentServices();
 
-        // 4. 의존성 주입 완료 확인
+        // 5. 의존성 주입 완료 확인
         ValidateServices();
 
-        // 5. 초기화 완료 마킹
+        // 6. 초기화 완료 마킹
         ServiceLocator.MarkAsInitialized();
 
-        // 6. 게임 세션 시작 (스테이지 ID 기반)
-        StartGameSession();
+        // 7. 게임 세션 시작 (Stage Context 사용)
+        if (gameSessionManager != null && currentStageData != null)
+        {
+            gameSessionManager.StartSession(currentStageId, currentStageData);
+            Log($"✅ Game session started: {currentStageId}");
+        }
+        else
+        {
+            if (gameSessionManager == null)
+            {
+                LogError("❌ GameSessionManager is null - Cannot start session");
+            }
+            if (currentStageData == null)
+            {
+                LogError("❌ Current stage data is null - Cannot start session");
+            }
+        }
 
         Log("Game initialization completed successfully!");
     }
@@ -118,6 +141,83 @@ public class GameInitializer : SceneInitializer
         }
 
         Log("ServiceLocator initialization complete");
+    }
+
+    /// <summary>
+    /// Stage Context 로드 (스테이지 ID 및 데이터)
+    /// 초기화 초반에 호출하여 이후 서비스 등록 시 사용
+    /// </summary>
+    private void LoadStageContext()
+    {
+        Log("Loading Stage Context...");
+
+        // 1. StageProgressManager에서 현재 스테이지 ID 가져오기
+        if (ServiceLocator.IsRegistered<IStageProgressManager>())
+        {
+            var progressManager = ServiceLocator.Get<IStageProgressManager>();
+            currentStageId = progressManager.GetCurrentStageId();
+
+            if (!string.IsNullOrEmpty(currentStageId))
+            {
+                Log($"✅ Stage ID retrieved from StageProgressManager: {currentStageId}");
+            }
+            else
+            {
+                LogWarning("⚠️ StageProgressManager returned empty stage ID - using fallback");
+                currentStageId = GetFallbackStageId();
+            }
+
+            // 2. StageData 가져오기
+            currentStageData = progressManager.GetStageData(currentStageId);
+
+            if (currentStageData != null)
+            {
+                Log($"✅ StageData loaded: {currentStageData.DisplayName} ({currentStageId})");
+            }
+            else
+            {
+                LogError($"❌ StageData not found for: {currentStageId}");
+            }
+        }
+        else
+        {
+            LogWarning("⚠️ IStageProgressManager not registered - using fallback stage ID");
+            currentStageId = GetFallbackStageId();
+            currentStageData = null;
+        }
+
+        Log("Stage Context loading completed");
+    }
+
+    /// <summary>
+    /// Fallback 스테이지 ID 가져오기 (에디터 테스트용)
+    /// </summary>
+    private string GetFallbackStageId()
+    {
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        Log($"  Using fallback stage ID for scene: {sceneName}");
+
+        // 씬 이름 기반 기본값 매핑 (에디터 테스트용)
+        if (sceneName == "PrototypeTestScene" || sceneName == "StageTestScene")
+        {
+            return "chapter1_stage1";
+        }
+
+        if (sceneName.StartsWith("Stage") && sceneName.Length >= 9)
+        {
+            // Stage01_01 형식 파싱
+            string chapterPart = sceneName.Substring(5, 2); // "01"
+            string stagePart = sceneName.Substring(8, 2);   // "01"
+
+            int chapterNum = int.Parse(chapterPart);
+            int stageNum = int.Parse(stagePart);
+
+            return $"chapter{chapterNum}_stage{stageNum}";
+        }
+
+        // 최종 fallback
+        LogWarning($"⚠️ No stage ID mapping for scene '{sceneName}', using default");
+        return "chapter1_stage1";
     }
 
     /// <summary>
@@ -253,11 +353,11 @@ public class GameInitializer : SceneInitializer
     {
         Log("Registering card services via CardServiceManager...");
 
-        // CardServiceManager 등록
+        // CardServiceManager 등록 (Stage Context 전달)
         if (cardServiceManager != null)
         {
-            cardServiceManager.InitializeAndRegisterServices();
-            Log("✅ Card services registered via CardServiceManager");
+            cardServiceManager.InitializeAndRegisterServices(currentStageData);
+            Log("✅ Card services registered via CardServiceManager with stage context");
         }
         else
         {
@@ -694,131 +794,47 @@ public class GameInitializer : SceneInitializer
     }
 #endif
 
-    /// <summary>
-    /// 게임 세션 시작 (현재 스테이지 ID로)
-    /// </summary>
-    private void StartGameSession()
-    {
-        Log("Starting game session...");
-
-        string stageId = GetCurrentStageIdFromScene();
-
-        if (gameSessionManager != null)
-        {
-            // StageDataSO 가져오기
-            if (ServiceLocator.IsRegistered<IStageProgressManager>())
-            {
-                var progressManager = ServiceLocator.Get<IStageProgressManager>();
-                var stageData = progressManager.GetStageData(stageId);
-
-                if (stageData != null)
-                {
-                    gameSessionManager.StartSession(stageId, stageData);
-                    Log($"✅ Game session started: {stageId}");
-                }
-                else
-                {
-                    LogError($"❌ StageData not found for: {stageId}");
-                }
-            }
-            else
-            {
-                LogError("❌ IStageProgressManager not registered - Cannot retrieve StageData");
-            }
-        }
-        else
-        {
-            LogError("❌ GameSessionManager is null - Cannot start session");
-        }
-    }
-
-    /// <summary>
-    /// 현재 씬의 스테이지 ID 가져오기
-    /// StageButton.LoadStageScene()에서 PrepareStageForPlay()를 통해 설정된 ID 사용
-    /// </summary>
-    private string GetCurrentStageIdFromScene()
-    {
-        Log("Retrieving current stage ID from StageProgressManager...");
-
-        // StageProgressManager에서 현재 스테이지 ID 가져오기
-        // (StageButton.LoadStageScene() → PrepareStageForPlay()에서 이미 설정됨)
-        if (ServiceLocator.IsRegistered<IStageProgressManager>())
-        {
-            var progressManager = ServiceLocator.Get<IStageProgressManager>();
-            string stageId = progressManager.GetCurrentStageId();
-
-            if (!string.IsNullOrEmpty(stageId))
-            {
-                Log($"✅ Stage ID retrieved from StageProgressManager: {stageId}");
-                return stageId;
-            }
-            else
-            {
-                LogWarning("⚠️ StageProgressManager returned empty stage ID");
-            }
-        }
-        else
-        {
-            LogWarning("⚠️ IStageProgressManager not registered - using fallback");
-        }
-
-        // Fallback: 에디터에서 씬을 직접 실행하거나 StageProgressManager가 없는 경우
-        // (정상 플레이 플로우에서는 이 fallback이 실행되지 않아야 함)
-        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        Log($"  Using fallback stage ID for scene: {sceneName}");
-
-        // 씬 이름 기반 기본값 매핑 (에디터 테스트용)
-        if (sceneName == "PrototypeTestScene" || sceneName == "StageTestScene")
-        {
-            return "chapter1_stage1";
-        }
-
-        if (sceneName.StartsWith("Stage"))
-        {
-            // Stage01_01 → chapter1_stage1 형식으로 변환
-            return ConvertSceneNameToStageId(sceneName);
-        }
-
-        // 최종 fallback
-        LogWarning($"⚠️ No stage ID mapping for scene '{sceneName}', using default");
-        return "chapter1_stage1";
-    }
-
-    /// <summary>
-    /// 씬 이름을 스테이지 ID로 변환 (에디터 테스트용 fallback)
-    /// 예: "Stage01_01" → "chapter1_stage1"
-    /// </summary>
-    private string ConvertSceneNameToStageId(string sceneName)
-    {
-        // Stage01_01 형식 파싱
-        if (sceneName.StartsWith("Stage") && sceneName.Length >= 9)
-        {
-            string chapterPart = sceneName.Substring(5, 2); // "01"
-            string stagePart = sceneName.Substring(8, 2);   // "01"
-
-            int chapterNum = int.Parse(chapterPart);
-            int stageNum = int.Parse(stagePart);
-
-            return $"chapter{chapterNum}_stage{stageNum}";
-        }
-
-        return "chapter1_stage1";
-    }
-
     #region SceneInitializer Abstract Methods Implementation
 
     /// <summary>
     /// Phase 3: UI 패널 초기화
-    /// PrototypeTestScene (게임 씬)에는 덱 빌더 UI가 없으므로 최소한만 초기화
+    /// VictoryPanel에 다음 스테이지 씬 데이터 주입
     /// </summary>
     protected override void InitializeUIPanels()
     {
         Log("[Phase 3] Initializing PrototypeTestScene UI Panels...");
 
-        // PrototypeTestScene은 게임 씬이므로 인벤토리/덱 빌더 패널이 없음
-        // 게임 결과 패널 등 게임 씬 전용 UI만 존재
+        // StageProgressManager에서 다음 스테이지 정보 가져오기
+        var stageProgressManager = ServiceLocator.Get<IStageProgressManager>();
+        if (stageProgressManager != null && !string.IsNullOrEmpty(currentStageId))
+        {
+            StageDataSO nextStageData = stageProgressManager.GetNextStageData(currentStageId);
 
-        Log("✅ PrototypeTestScene UI Panels initialized (minimal)");
+            // VictoryPanel 초기화
+            var victoryPanel = UIPanelFacade.GetPanel<VictoryPanel>();
+            if (victoryPanel != null)
+            {
+                if (nextStageData != null && nextStageData.SceneData != null)
+                {
+                    victoryPanel.SetNextLevelScene(nextStageData.SceneData);
+                    Log($"✅ VictoryPanel initialized with next scene: {nextStageData.SceneData.SceneName}");
+                }
+                else
+                {
+                    LogWarning("⚠️ No next stage found - VictoryPanel next level not set (end of chapter)");
+                }
+            }
+            else
+            {
+                LogWarning("⚠️ VictoryPanel not found in UIPanelFacade");
+            }
+        }
+        else
+        {
+            LogError("❌ StageProgressManager or currentStageId not available for UI initialization");
+        }
+
+        Log("✅ PrototypeTestScene UI Panels initialized");
     }
 
     /// <summary>
@@ -850,24 +866,51 @@ public class GameInitializer : SceneInitializer
     }
 
     /// <summary>
-    /// SettingsCoordinator 초기화 (SettingsPanel 연결)
+    /// SettingsCoordinator 초기화 (SettingsPanel 또는 InGameSettingsPanel 연결)
+    /// InGameSettingsPanel 우선 탐색, 없으면 SettingsPanel 탐색
     /// </summary>
     private void InitializeSettingsCoordinator()
     {
         Log("   Initializing SettingsCoordinator...");
 
-        // SettingsPanel 찾기
-        var settingsPanel = UIPanelFacade.GetPanel<SettingsPanel>();
+        SettingsPanel settingsPanel = null;
 
-        if (settingsPanel == null)
+        // 1. InGameSettingsPanel 우선 탐색 (게임 씬에서 사용)
+        var inGameSettingsPanel = UIPanelFacade.GetPanel<InGameSettingsPanel>();
+
+        if (inGameSettingsPanel == null)
         {
             // LocalUIPanelManager에서 못 찾으면 직접 검색
-            settingsPanel = FindObjectOfType<SettingsPanel>();
+            inGameSettingsPanel = FindObjectOfType<InGameSettingsPanel>();
         }
 
+        if (inGameSettingsPanel != null)
+        {
+            settingsPanel = inGameSettingsPanel; // InGameSettingsPanel은 SettingsPanel을 상속
+            Log("   Found InGameSettingsPanel (with Retry/Home buttons)");
+        }
+
+        // 2. InGameSettingsPanel이 없으면 SettingsPanel 탐색 (일반 씬에서 사용)
         if (settingsPanel == null)
         {
-            LogWarning("   ⚠️ SettingsPanel not found - SettingsCoordinator not initialized");
+            settingsPanel = UIPanelFacade.GetPanel<SettingsPanel>();
+
+            if (settingsPanel == null)
+            {
+                // LocalUIPanelManager에서 못 찾으면 직접 검색
+                settingsPanel = FindObjectOfType<SettingsPanel>();
+            }
+
+            if (settingsPanel != null)
+            {
+                Log("   Found SettingsPanel (standard settings)");
+            }
+        }
+
+        // 3. 둘 다 없으면 경고
+        if (settingsPanel == null)
+        {
+            LogWarning("   ⚠️ SettingsPanel or InGameSettingsPanel not found - SettingsCoordinator not initialized");
             return;
         }
 
@@ -880,7 +923,7 @@ public class GameInitializer : SceneInitializer
         // 초기화 (SettingsPanel 연결 + 이벤트 구독)
         coordinator.Initialize(settingsPanel);
 
-        Log("   ✅ SettingsCoordinator initialized and connected to SettingsPanel");
+        Log($"   ✅ SettingsCoordinator initialized and connected to {settingsPanel.GetType().Name}");
     }
 
     #endregion

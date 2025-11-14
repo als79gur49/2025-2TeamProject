@@ -109,6 +109,13 @@ namespace Game.Managers
         /// <param name="amount">데미지 양</param>
         /// <param name="isTaken">받은 데미지인지 (true: 받음, false: 입힘)</param>
         void RecordDamage(int amount, bool isTaken);
+
+        /// <summary>
+        /// 승리 보너스 계산 및 적용 (EndSession 호출 전 사용)
+        /// HP 보너스와 시간 보너스를 자동으로 계산하여 점수에 추가
+        /// </summary>
+        /// <param name="playerHealthPercent">플레이어 베이스 HP 퍼센트 (0-100)</param>
+        void ApplyVictoryBonus(float playerHealthPercent);
         #endregion
     }
 }

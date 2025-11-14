@@ -19,7 +19,10 @@ public class Unit : MonoBehaviour
     [Header("Component System")]
     [SerializeField] private bool useComponentSystem = true;
     [SerializeField] private bool autoAddMissingComponents = true;
-    
+
+    [Header("Event Channels")]
+    [SerializeField] private EnemyKilledEventChannelSO enemyKilledChannel;
+
     [Header("Runtime Status (Read Only)")]
     [SerializeField, Tooltip("Shows if all components are properly initialized")]
     private bool componentSystemReady = false;
@@ -630,6 +633,13 @@ public class Unit : MonoBehaviour
     public void OnHealthComponentDeath()
     {
         Debug.Log($"[Unit] {gameObject.name} received death notification from HealthComponent");
+
+        // 적 유닛 처치 이벤트 발행 (점수 시스템 등에 알림)
+        if (!IsPlayerUnit && enemyKilledChannel != null)
+        {
+            enemyKilledChannel.RaiseEvent();
+            Debug.Log($"[Unit] Enemy killed event raised for {gameObject.name}");
+        }
 
         // DeathAnimationManager를 통한 죽음 처리
         if (deathAnimationManager != null)

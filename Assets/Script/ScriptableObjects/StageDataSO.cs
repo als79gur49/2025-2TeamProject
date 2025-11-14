@@ -54,7 +54,12 @@ namespace Game.Data
         [SerializeField]
         [Tooltip("씬 데이터 ScriptableObject")]
         private Game.SceneManagement.SceneData sceneData;
-        
+
+        [Header("Enemy Configuration")]
+        [SerializeField]
+        [Tooltip("적군 카드 풀 ScriptableObject")]
+        private EnemyCardPoolSO enemyCardPool;
+
         [Header("Stage Properties")]
         [SerializeField]
         private StageType stageType = StageType.Normal;
@@ -100,6 +105,7 @@ namespace Game.Data
         public Sprite Thumbnail => thumbnail;
         public string SceneToLoad => sceneData != null ? sceneData.SceneName : "";
         public Game.SceneManagement.SceneData SceneData => sceneData;
+        public EnemyCardPoolSO EnemyCardPool => enemyCardPool;
         public StageType Type => stageType;
         public int Difficulty => difficulty;
         public bool IsHidden => isHidden;
@@ -234,6 +240,32 @@ namespace Game.Data
     }
 
     /// <summary>
+    /// 시간 보너스 등급
+    /// </summary>
+    [System.Serializable]
+    public class TimeBonusTier
+    {
+        [Tooltip("클리어 시간 임계값 (초) - 이 시간 이하로 클리어 시 보너스 획득")]
+        public float timeInSeconds;
+
+        [Tooltip("부여되는 보너스 점수")]
+        public int bonusScore;
+    }
+
+    /// <summary>
+    /// 체력 보너스 등급
+    /// </summary>
+    [System.Serializable]
+    public class HealthBonusTier
+    {
+        [Tooltip("남은 체력 퍼센트 임계값 (0~100) - 이 퍼센트 이상 남았을 때 보너스 획득")]
+        public float healthPercent;
+
+        [Tooltip("부여되는 보너스 점수")]
+        public int bonusScore;
+    }
+
+    /// <summary>
     /// 점수 설정
     /// </summary>
     [System.Serializable]
@@ -242,7 +274,7 @@ namespace Game.Data
         [Header("Score Thresholds")]
         public int maxScore = 10000;
         public int[] starThresholds = new int[] { 3000, 6000, 9000 };  // 1성, 2성, 3성
-        
+
         [Header("Rank Thresholds")]
         public bool useRankSystem = true;
         public int sRankScore = 9500;   // S랭크
@@ -250,9 +282,25 @@ namespace Game.Data
         public int bRankScore = 6000;   // B랭크
         public int cRankScore = 4000;   // C랭크
 
+        [Header("Time Bonus Tiers")]
+        [Tooltip("시간 보너스 등급 (3등급) - 빠른 클리어 시간순으로 정렬됨")]
+        public TimeBonusTier[] timeBonusTiers = new TimeBonusTier[]
+        {
+            new TimeBonusTier { timeInSeconds = 60f, bonusScore = 1000 },   // 1분 이하: 1000점
+            new TimeBonusTier { timeInSeconds = 120f, bonusScore = 500 },   // 2분 이하: 500점
+            new TimeBonusTier { timeInSeconds = 180f, bonusScore = 200 }    // 3분 이하: 200점
+        };
+
+        [Header("Health Bonus Tiers")]
+        [Tooltip("체력 보너스 등급 (3등급) - 높은 체력 퍼센트순으로 정렬됨")]
+        public HealthBonusTier[] healthBonusTiers = new HealthBonusTier[]
+        {
+            new HealthBonusTier { healthPercent = 100f, bonusScore = 2000 }, // 100% 체력: 2000점
+            new HealthBonusTier { healthPercent = 70f, bonusScore = 1000 },  // 70% 이상: 1000점
+            new HealthBonusTier { healthPercent = 40f, bonusScore = 500 }    // 40% 이상: 500점
+        };
+
         [Header("Score Multipliers")]
-        public float timeBonus = 1.0f;      // 시간 보너스 배율
-        public float noDamageBonus = 1.5f;  // 노데미지 보너스
         public float comboMultiplier = 1.2f; // 콤보 배율
 
         public int CalculateStars(int score)
@@ -280,10 +328,22 @@ namespace Game.Data
         {
             // 별 임계값 정렬
             System.Array.Sort(starThresholds);
-            
+
             // 최대 점수 검증
             if (maxScore < starThresholds[starThresholds.Length - 1])
                 maxScore = starThresholds[starThresholds.Length - 1] + 100;
+
+            // 시간 보너스 등급 정렬 (시간 오름차순)
+            if (timeBonusTiers != null && timeBonusTiers.Length > 0)
+            {
+                System.Array.Sort(timeBonusTiers, (a, b) => a.timeInSeconds.CompareTo(b.timeInSeconds));
+            }
+
+            // 체력 보너스 등급 정렬 (체력 내림차순)
+            if (healthBonusTiers != null && healthBonusTiers.Length > 0)
+            {
+                System.Array.Sort(healthBonusTiers, (a, b) => b.healthPercent.CompareTo(a.healthPercent));
+            }
         }
     }
 

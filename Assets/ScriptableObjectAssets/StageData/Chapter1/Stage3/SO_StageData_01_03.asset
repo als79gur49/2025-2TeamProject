@@ -20,6 +20,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   thumbnail: {fileID: 0}
   sceneData: {fileID: 11400000, guid: 4d39e74ad1771584ea820cd46161a15f, type: 2}
+  enemyCardPool: {fileID: 11400000, guid: 54f1c5a75e2e679439b3f6561dff2fe6, type: 2}
   stageType: 1
   difficulty: 1
   isHidden: 0
@@ -34,8 +35,20 @@ MonoBehaviour:
     aRankScore: 8000
     bRankScore: 6000
     cRankScore: 4000
-    timeBonus: 1
-    noDamageBonus: 1.5
+    timeBonusTiers:
+    - timeInSeconds: 60
+      bonusScore: 1000
+    - timeInSeconds: 120
+      bonusScore: 500
+    - timeInSeconds: 180
+      bonusScore: 200
+    healthBonusTiers:
+    - healthPercent: 100
+      bonusScore: 2000
+    - healthPercent: 70
+      bonusScore: 1000
+    - healthPercent: 40
+      bonusScore: 500
     comboMultiplier: 1.2
   rewards:
     baseCoin: 100

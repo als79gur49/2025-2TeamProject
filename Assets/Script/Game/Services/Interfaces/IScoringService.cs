@@ -32,15 +32,14 @@ namespace Game.Services
         /// 시간 보너스 점수 계산
         /// </summary>
         /// <param name="clearTime">클리어 시간 (초)</param>
-        /// <param name="targetTime">목표 시간 (초)</param>
         /// <returns>계산된 시간 보너스 점수</returns>
-        int CalculateTimeBonus(float clearTime, float targetTime);
+        int CalculateTimeBonus(float clearTime);
 
         /// <summary>
-        /// 노데미지 보너스 점수 계산
+        /// 체력 보너스 점수 계산
         /// </summary>
-        /// <param name="baseScore">기본 점수</param>
+        /// <param name="healthPercent">남은 체력 퍼센트 (0~100)</param>
         /// <returns>계산된 보너스 점수</returns>
-        int CalculateNoDamageBonus(int baseScore);
+        int CalculateNoDamageBonus(float healthPercent);
     }
 }

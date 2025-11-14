@@ -146,11 +146,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1caa86c1d787a014fbfb4e5f251ef3b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyDeck:
-  - {fileID: 11400000, guid: caf30435544a4ab4a96a1eaab2fb2038, type: 2}
-  - {fileID: 11400000, guid: 3cabebd7d3435dd4e9b3013299a570c8, type: 2}
-  - {fileID: 11400000, guid: 6c4353a67e070a24ba45c2d2dc577084, type: 2}
-  initialHandSize: 3
+  cardPool: {fileID: 11400000, guid: 54f1c5a75e2e679439b3f6561dff2fe6, type: 2}
   enableLogging: 1
   showDebugGUI: 1
 --- !u!1 &535452641295509170
@@ -329,6 +325,7 @@ Transform:
   - {fileID: 6872462905064015439}
   - {fileID: 2890140844321876203}
   - {fileID: 2214151011289536361}
+  - {fileID: 5296461756542140193}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5301086056073434428
@@ -526,6 +523,51 @@ MonoBehaviour:
   playerBaseHealthUI: {fileID: 0}
   enemyBaseHealthUI: {fileID: 0}
   enableLogging: 1
+--- !u!1 &6923186336714709445
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5296461756542140193}
+  - component: {fileID: 8909739687554621720}
+  m_Layer: 0
+  m_Name: GameSessionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5296461756542140193
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6923186336714709445}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6025138373759218341}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8909739687554621720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6923186336714709445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 300fce9dbadb4fc4188764035f43ae75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyKilledChannel: {fileID: 11400000, guid: fb873dfe2fbf6de4481a4db0f4a1a184, type: 2}
 --- !u!1 &7427369602409877340
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,6 +22,7 @@ namespace Game.Coordinators
         private IGameOutcomeManager outcomeManager;
         private IGameSessionManager sessionManager;
         private IStageProgressManager progressManager;
+        private IBaseManager baseManager;
         #endregion
 
         #region Configuration
@@ -41,6 +42,7 @@ namespace Game.Coordinators
             outcomeManager = ServiceLocator.Get<IGameOutcomeManager>();
             sessionManager = ServiceLocator.Get<IGameSessionManager>();
             progressManager = ServiceLocator.Get<IStageProgressManager>();
+            baseManager = ServiceLocator.Get<IBaseManager>();
 
             // 의존성 검증
             if (outcomeManager == null)
@@ -58,6 +60,12 @@ namespace Game.Coordinators
             if (progressManager == null)
             {
                 Debug.LogError("[GameResultCoordinator] StageProgressManager not found in ServiceLocator!");
+                return;
+            }
+
+            if (baseManager == null)
+            {
+                Debug.LogError("[GameResultCoordinator] IBaseManager not found in ServiceLocator!");
                 return;
             }
 
@@ -113,7 +121,7 @@ namespace Game.Coordinators
         #region Event Handlers
 
         /// <summary>
-        /// 승리 처리: 세션 데이터 → 진행도 저장
+        /// 승리 처리: 보너스 적용 → 세션 종료 → 진행도 저장
         /// </summary>
         private void HandleVictory()
         {
@@ -122,13 +130,30 @@ namespace Game.Coordinators
                 Debug.Log("[GameResultCoordinator] Victory detected! Processing game result...");
             }
 
-            // 1. 세션 데이터 수집
+            // 1. 세션 유효성 검증
             if (sessionManager == null || !sessionManager.IsSessionActive)
             {
                 Debug.LogError("[GameResultCoordinator] Cannot process victory: No active session!");
                 return;
             }
 
+            // 2. 플레이어 베이스 HP 조회 및 승리 보너스 적용
+            if (baseManager != null && baseManager.PlayerBase != null)
+            {
+                float playerHealthPercent = baseManager.PlayerBase.HealthComponent.HealthPercentage * 100f;
+                sessionManager.ApplyVictoryBonus(playerHealthPercent);
+
+                if (enableDebugLogs)
+                {
+                    Debug.Log($"[GameResultCoordinator] Victory bonus applied with {playerHealthPercent:F1}% HP remaining");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GameResultCoordinator] BaseManager or PlayerBase is null! Victory bonus skipped.");
+            }
+
+            // 3. 세션 데이터 수집
             GameSessionData sessionData = sessionManager.EndSession();
             if (sessionData == null)
             {
@@ -136,7 +161,7 @@ namespace Game.Coordinators
                 return;
             }
 
-            // 2. 진행도 매니저에 기록
+            // 4. 진행도 매니저에 기록
             if (progressManager != null)
             {
                 try
@@ -149,10 +174,14 @@ namespace Game.Coordinators
 
                     if (enableDebugLogs)
                     {
+                        int healthBonus = sessionData.statistics.TryGetValue("health_bonus", out var hb) ? hb : 0;
+                        int timeBonus = sessionData.statistics.TryGetValue("time_bonus", out var tb) ? tb : 0;
                         Debug.Log($"[GameResultCoordinator] Victory processed successfully:\n" +
                                   $"  Stage: {sessionData.stageId}\n" +
                                   $"  Score: {sessionData.score}\n" +
-                                  $"  Play Time: {sessionData.playTime:F2}s");
+                                  $"  Play Time: {sessionData.playTime:F2}s\n" +
+                                  $"  Health Bonus: {healthBonus}\n" +
+                                  $"  Time Bonus: {timeBonus}");
                     }
                 }
                 catch (System.Exception ex)
@@ -220,6 +249,7 @@ namespace Game.Coordinators
                       $"  OutcomeManager: {(outcomeManager != null ? "Connected" : "NULL")}\n" +
                       $"  SessionManager: {(sessionManager != null ? "Connected" : "NULL")}\n" +
                       $"  ProgressManager: {(progressManager != null ? "Connected" : "NULL")}\n" +
+                      $"  BaseManager: {(baseManager != null ? "Connected" : "NULL")}\n" +
                       $"  Active Session: {(sessionManager != null && sessionManager.IsSessionActive ? sessionManager.CurrentStageId : "None")}");
         }
 

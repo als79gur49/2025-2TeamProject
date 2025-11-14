@@ -303,7 +303,7 @@ namespace Game.UI.Panels
         /// <summary>
         /// 총 카드 개수 반환
         /// </summary>
-        private int GetTotalCardCount()
+        public int GetTotalCardCount()
         {
             return deckCards.Values.Sum();
         }
@@ -398,17 +398,9 @@ namespace Game.UI.Panels
             if (deckCountText == null) return;
 
             int totalCards = GetTotalCardCount();
-            deckCountText.text = $"{totalCards} / {maxDeckSize}";
-
-            // 색상 변경
-            if (totalCards < minDeckSize)
-                deckCountText.color = Color.yellow;
-            else if (totalCards > maxDeckSize)
-                deckCountText.color = Color.red;
-            else
-                deckCountText.color = Color.green;
+            deckCountText.text = $"<color=#7c8a97>{totalCards}</color> / {maxDeckSize}"; // <#7c8a97>
         }
-
+        
         /// <summary>
         /// 마나 커브 초기화
         /// </summary>

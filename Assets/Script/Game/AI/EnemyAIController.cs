@@ -4,6 +4,7 @@ using Game.Data;
 using Game.Interfaces;
 using Game.Services;
 using Game.Card.Effects;
+using Game.AI.CardSelection;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,15 +12,18 @@ using System.Linq;
 namespace Game.AI
 {
     /// <summary>
-    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.3 - Hybrid Re-validation)
+    /// 적군의 카드 사용 AI를 총괄하는 컨트롤러 (v2.4 - Strategy Pattern)
     /// GlobalStateManager의 GameFlowLock 상태를 감지하여, 이전 VFX가 끝나면 다음 카드를 실행합니다.
     /// v2.3: 카드 실행 직전 필드 상태 재검증 및 대안 위치 탐색으로 지능적인 카드 사용 구현
+    /// v2.4: 전략 패턴 적용으로 카드 선택 로직을 교체 가능하게 개선 (EnemyCardPoolSO 기반)
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
-        [Header("AI 설정")]
-        [SerializeField] private List<CardData> enemyDeck = new List<CardData>(); // 적이 사용할 수 있는 카드 목록
-        [SerializeField] private int initialHandSize = 3; // 초기 손패 크기
+        [Header("AI Configuration")]
+        [SerializeField]
+        [Tooltip("적군이 사용할 카드 풀 ScriptableObject")]
+        private EnemyCardPoolSO cardPool;
+
         [SerializeField] private bool enableLogging = true;
 
         // 카드 가치 판정 임계값 (0 = 양수 가치면 허용)
@@ -31,6 +35,7 @@ namespace Game.AI
 
         // 내부 상태
         private List<CardData> enemyHand = new List<CardData>();
+        private Game.AI.CardSelection.ICardSelectionStrategy selectionStrategy;  // v2.4: 전략 패턴
 
         // 서비스 참조
         private IResourceManager resourceManager;
@@ -55,7 +60,7 @@ namespace Game.AI
         #region 초기화
 
         /// <summary>
-        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.3 - Hybrid Re-validation)
+        /// CardServiceManager에 의해 호출되는 초기화 메서드 (v2.4 - Strategy Pattern)
         /// </summary>
         public void Initialize(
             IResourceManager res,
@@ -78,21 +83,75 @@ namespace Game.AI
                 LogError("❌ IGlobalStateManager not found in ServiceLocator! AI cannot function correctly.");
             }
 
-            // 덱에서 초기 핸드 드로우
-            DrawInitialHand(initialHandSize);
+            // v2.4: 카드 풀 검증 및 전략 초기화
+            if (cardPool == null)
+            {
+                LogError("❌ EnemyCardPoolSO is not assigned! AI cannot draw cards.");
+                return;
+            }
+
+            if (!cardPool.IsValid())
+            {
+                LogError("❌ EnemyCardPoolSO is invalid! AI cannot draw cards.");
+                return;
+            }
+            
+            // v2.4: 전략 패턴 초기화
+            selectionStrategy = cardPool.GetStrategy();
+            Log($"🎲 Card selection strategy initialized: {selectionStrategy?.StrategyName ?? "None"}");
+            Log($"📊 Card pool info:\n{cardPool.GetPoolInfo()}");
+
+            // 카드 풀에서 초기 핸드 드로우
+            DrawInitialHand(cardPool.InitialHandSize);
 
             isInitialized = true;
-            Log("🤖 [EnemyAI v2.3] Initialized with hybrid re-validation system");
+            Log("🤖 [EnemyAI v2.4] Initialized with strategy pattern system");
         }
 
         /// <summary>
-        /// 초기 손패 드로우
+        /// 런타임에 카드 풀을 설정합니다 (StageDataSO로부터 주입용)
+        /// CardServiceManager.ConfigureStage()에서 호출됩니다
+        /// </summary>
+        public void SetCardPool(EnemyCardPoolSO pool)
+        {
+            if (pool == null)
+            {
+                LogError("❌ Cannot set null card pool!");
+                return;
+            }
+
+            if (!pool.IsValid())
+            {
+                LogError($"❌ Card pool '{pool.name}' is invalid!");
+                return;
+            }
+
+            cardPool = pool;
+            selectionStrategy = pool.GetStrategy();
+
+            Log($"🔄 Card pool updated: {pool.name}");
+            Log($"🎲 Strategy updated: {selectionStrategy?.StrategyName ?? "None"}");
+            Log($"📊 Pool info:\n{pool.GetPoolInfo()}");
+
+            // 기존 핸드 초기화 및 새로운 초기 핸드 드로우
+            enemyHand.Clear();
+            DrawInitialHand(pool.InitialHandSize);
+        }
+
+        /// <summary>
+        /// 초기 손패 드로우 (v2.4: 전략 패턴 사용)
         /// </summary>
         private void DrawInitialHand(int handSize)
         {
-            if (enemyDeck == null || enemyDeck.Count == 0)
+            if (cardPool == null || cardPool.Cards.Count == 0)
             {
-                LogError("❌ Enemy deck is empty! Cannot draw initial hand");
+                LogError("❌ Card pool is empty! Cannot draw initial hand");
+                return;
+            }
+
+            if (selectionStrategy == null)
+            {
+                LogError("❌ Selection strategy is not initialized! Cannot draw initial hand");
                 return;
             }
 
@@ -109,25 +168,39 @@ namespace Game.AI
         #region 카드 드로우
 
         /// <summary>
-        /// 덱에서 카드를 드로우합니다 (매 턴 호출)
+        /// 카드 풀에서 카드를 드로우합니다 (v2.4: 전략 패턴 사용)
         /// </summary>
         public void DrawCard(int amount = 1)
         {
-            if (enemyDeck == null || enemyDeck.Count == 0)
+            if (cardPool == null || cardPool.Cards.Count == 0)
             {
-                LogError("❌ Enemy deck is empty! Cannot draw card");
+                LogError("❌ Card pool is empty! Cannot draw card");
+                return;
+            }
+
+            if (selectionStrategy == null)
+            {
+                LogError("❌ Selection strategy is not initialized! Cannot draw card");
                 return;
             }
 
             for (int i = 0; i < amount; i++)
             {
-                // 랜덤하게 덱에서 카드 선택 (실제로는 복사본을 사용)
-                CardData drawnCard = enemyDeck[Random.Range(0, enemyDeck.Count)];
-                enemyHand.Add(drawnCard);
-                Log($"🃏 Enemy drew: {drawnCard.CardName} (Hand size: {enemyHand.Count})");
+                // v2.4: 전략을 사용하여 카드 선택
+                CardData drawnCard = selectionStrategy.DrawCard(cardPool.Cards);
 
-                // 🔔 이벤트 발생
-                OnCardDrawn?.Invoke();
+                if (drawnCard != null)
+                {
+                    enemyHand.Add(drawnCard);
+                    Log($"🃏 Enemy drew: {drawnCard.CardName} (Rarity: {drawnCard.Rarity}, Hand size: {enemyHand.Count})");
+
+                    // 🔔 이벤트 발생
+                    OnCardDrawn?.Invoke();
+                }
+                else
+                {
+                    LogError("❌ Failed to draw card from pool (strategy returned null)");
+                }
             }
         }
 
@@ -478,13 +551,13 @@ namespace Game.AI
         {
             if (enableLogging)
             {
-                Debug.Log($"[EnemyAI v2.3] {message}");
+                Debug.Log($"[EnemyAI v2.4] {message}");
             }
         }
 
         private void LogError(string message)
         {
-            Debug.LogError($"[EnemyAI v2.3] {message}");
+            Debug.LogError($"[EnemyAI v2.4] {message}");
         }
 
         #endregion
@@ -506,13 +579,15 @@ namespace Game.AI
         }
 
         /// <summary>
-        /// AI 상태 정보 반환 (디버깅용)
+        /// AI 상태 정보 반환 (v2.4: 카드 풀 및 전략 정보 추가)
         /// </summary>
         public string GetStatus()
         {
-            return $"Enemy AI v2.3 Status:\n" +
+            return $"Enemy AI v2.4 Status:\n" +
                    $"- Initialized: {isInitialized}\n" +
-                   $"- Deck Size: {enemyDeck?.Count ?? 0}\n" +
+                   $"- Card Pool: {(cardPool != null ? cardPool.name : "None")}\n" +
+                   $"- Pool Size: {cardPool?.Cards.Count ?? 0}\n" +
+                   $"- Selection Strategy: {selectionStrategy?.StrategyName ?? "None"}\n" +
                    $"- Hand Size: {enemyHand.Count}\n" +
                    $"- {GetHandInfo()}\n" +
                    $"- Current Mana: {resourceManager?.EnemyMana ?? 0}\n";
@@ -530,12 +605,15 @@ namespace Game.AI
         {
             if (!showDebugGUI || !Application.isPlaying) return;
 
-            GUILayout.BeginArea(new Rect(10, 300, 300, 200));
-            GUILayout.Box("Enemy AI v2.3 Debug");
+            GUILayout.BeginArea(new Rect(10, 300, 350, 250));
+            GUILayout.Box("Enemy AI v2.4 Debug (Strategy Pattern)");
 
             if (isInitialized)
             {
                 GUILayout.Label("✅ AI Initialized");
+                GUILayout.Label($"Card Pool: {cardPool?.name ?? "None"}");
+                GUILayout.Label($"Strategy: {selectionStrategy?.StrategyName ?? "None"}");
+                GUILayout.Label($"Pool Size: {cardPool?.Cards.Count ?? 0}");
                 GUILayout.Label($"Hand: {enemyHand.Count} cards");
                 GUILayout.Label($"Mana: {resourceManager?.EnemyMana ?? 0}");
 
@@ -553,10 +631,22 @@ namespace Game.AI
                 {
                     Debug.Log(GetHandInfo());
                 }
+
+                if (GUILayout.Button("Show Pool Info"))
+                {
+                    if (cardPool != null)
+                    {
+                        Debug.Log(cardPool.GetPoolInfo());
+                    }
+                }
             }
             else
             {
                 GUILayout.Label("❌ AI Not Initialized");
+                if (cardPool == null)
+                {
+                    GUILayout.Label("⚠️ Card Pool not assigned!");
+                }
             }
 
             GUILayout.EndArea();

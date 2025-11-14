@@ -380,6 +380,7 @@ MonoBehaviour:
   isPlayerUnit: 1
   useComponentSystem: 1
   autoAddMissingComponents: 1
+  enemyKilledChannel: {fileID: 11400000, guid: fb873dfe2fbf6de4481a4db0f4a1a184, type: 2}
   componentSystemReady: 0
   isInitialized: 0
   deathNotificationSent: 0

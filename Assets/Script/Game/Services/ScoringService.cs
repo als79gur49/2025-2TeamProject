@@ -64,39 +64,53 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 시간 보너스 점수 계산
+        /// 시간 보너스 점수 계산 (등급 기반)
         /// </summary>
         /// <param name="clearTime">클리어 시간 (초)</param>
-        /// <param name="targetTime">목표 시간 (초)</param>
         /// <returns>계산된 시간 보너스 점수</returns>
-        public int CalculateTimeBonus(float clearTime, float targetTime)
+        public int CalculateTimeBonus(float clearTime)
         {
             if (!ValidateInitialization()) return 0;
 
-            // 목표 시간보다 느리면 보너스 없음
-            if (clearTime >= targetTime) return 0;
+            var timeTiers = stageData.Scoring.timeBonusTiers;
+            if (timeTiers == null || timeTiers.Length == 0) return 0;
 
-            // (목표 시간 - 클리어 시간) / 목표 시간 비율로 보너스 계산
-            float timeRatio = (targetTime - clearTime) / targetTime;
-            float baseTimeBonus = 1000f;
-            float bonus = baseTimeBonus * timeRatio * stageData.Scoring.timeBonus;
+            // 가장 높은 등급부터 확인 (시간 오름차순 정렬 가정)
+            for (int i = 0; i < timeTiers.Length; i++)
+            {
+                if (clearTime <= timeTiers[i].timeInSeconds)
+                {
+                    return timeTiers[i].bonusScore;
+                }
+            }
 
-            return Mathf.RoundToInt(Mathf.Max(0, bonus));
+            // 어떤 등급도 만족하지 못함
+            return 0;
         }
 
         /// <summary>
-        /// 노데미지 보너스 점수 계산
+        /// 체력 보너스 점수 계산 (등급 기반)
         /// </summary>
-        /// <param name="baseScore">기본 점수</param>
+        /// <param name="healthPercent">남은 체력 퍼센트 (0~100)</param>
         /// <returns>계산된 보너스 점수</returns>
-        public int CalculateNoDamageBonus(int baseScore)
+        public int CalculateNoDamageBonus(float healthPercent)
         {
             if (!ValidateInitialization()) return 0;
 
-            // 기본 점수 * 노데미지 배율
-            float bonus = baseScore * stageData.Scoring.noDamageBonus;
+            var healthTiers = stageData.Scoring.healthBonusTiers;
+            if (healthTiers == null || healthTiers.Length == 0) return 0;
 
-            return Mathf.RoundToInt(Mathf.Max(0, bonus));
+            // 가장 높은 등급부터 확인 (체력 내림차순 정렬 가정)
+            for (int i = 0; i < healthTiers.Length; i++)
+            {
+                if (healthPercent >= healthTiers[i].healthPercent)
+                {
+                    return healthTiers[i].bonusScore;
+                }
+            }
+
+            // 어떤 등급도 만족하지 못함
+            return 0;
         }
 
         /// <summary>
