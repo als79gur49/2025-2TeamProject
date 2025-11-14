@@ -19,15 +19,8 @@ namespace Game.Services
         event Action OnDefeat;
 
         /// <summary>
-        /// Injects required dependencies
-        /// Called by GameInitializer during service registration
-        /// </summary>
-        /// <param name="baseManager">BaseManager instance to observe</param>
-        void InjectDependencies(IBaseManager baseManager);
-
-        /// <summary>
-        /// Initializes the GameOutcomeManager and subscribes to BaseManager events
-        /// Must be called after InjectDependencies
+        /// Initializes the GameOutcomeManager by retrieving dependencies from ServiceLocator
+        /// and subscribing to BaseManager events
         /// </summary>
         void Initialize();
     }

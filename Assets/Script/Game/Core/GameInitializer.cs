@@ -260,6 +260,9 @@ public class GameInitializer : SceneInitializer
         // Team Configuration Services 등록 - TeamConfigurationManager를 통한 팀별 설정 시스템 등록
         RegisterTeamConfigurationServices();
 
+        // BaseManager Services 등록 - Base 관리 시스템 등록
+        RegisterBaseManagerServices();
+
         // Game Outcome Services 등록 - GameOutcomeManager를 통한 승/패 조건 관리
         RegisterGameOutcomeServices();
 
@@ -433,6 +436,28 @@ public class GameInitializer : SceneInitializer
     }
 
     /// <summary>
+    /// BaseManager 서비스 등록 - Base 관리 시스템
+    /// </summary>
+    private void RegisterBaseManagerServices()
+    {
+        Log("Registering BaseManager services...");
+
+        if (baseManager != null)
+        {
+            // BaseManager는 GameServiceManager가 이미 Init()를 호출했다고 가정
+            // ServiceLocator에 등록만 수행
+            ServiceLocator.Register<IBaseManager>(baseManager);
+            Log("✅ IBaseManager registered");
+        }
+        else
+        {
+            LogError("❌ BaseManager not found - Base management services not registered");
+        }
+
+        Log("BaseManager services registration completed");
+    }
+
+    /// <summary>
     /// Game Outcome 관리 서비스 등록 - GameOutcomeManager와 GameUICoordinator를 통한 승/패 조건 관리 및 UI 연동
     /// </summary>
     private void RegisterGameOutcomeServices()
@@ -442,20 +467,10 @@ public class GameInitializer : SceneInitializer
         // GameOutcomeManager 등록
         if (gameOutcomeManager != null)
         {
-            // GameOutcomeManager 의존성 주입
-            IBaseManager baseManagerInterface = baseManager;
-
-            if (baseManagerInterface != null)
-            {
-                gameOutcomeManager.InjectDependencies(baseManagerInterface);
-                gameOutcomeManager.Initialize();
-                ServiceLocator.Register<IGameOutcomeManager>(gameOutcomeManager);
-                Log("✅ GameOutcomeManager initialized and registered");
-            }
-            else
-            {
-                LogError("❌ GameOutcomeManager dependency missing - BaseManager is null");
-            }
+            // ServiceLocator에서 자동으로 의존성을 가져오도록 변경
+            gameOutcomeManager.Initialize();
+            ServiceLocator.Register<IGameOutcomeManager>(gameOutcomeManager);
+            Log("✅ GameOutcomeManager initialized and registered");
         }
         else
         {
@@ -613,6 +628,12 @@ public class GameInitializer : SceneInitializer
         if (!ServiceLocator.IsRegistered<ITeamConfigurationManager>())
         {
             LogError("❌ Critical service missing: ITeamConfigurationManager");
+        }
+
+        // BaseManager 서비스 확인
+        if (!ServiceLocator.IsRegistered<IBaseManager>())
+        {
+            LogError("❌ Critical service missing: IBaseManager");
         }
 
         // Game Outcome 서비스 확인

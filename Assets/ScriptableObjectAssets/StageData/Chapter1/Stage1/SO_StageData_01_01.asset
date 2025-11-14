@@ -36,18 +36,18 @@ MonoBehaviour:
     cRankScore: 4000
     timeBonusTiers:
     - timeInSeconds: 60
-      bonusScore: 1000
+      bonusScore: 3000
     - timeInSeconds: 120
-      bonusScore: 500
+      bonusScore: 2000
     - timeInSeconds: 180
-      bonusScore: 200
+      bonusScore: 1000
     healthBonusTiers:
     - healthPercent: 100
-      bonusScore: 2000
+      bonusScore: 3000
     - healthPercent: 70
-      bonusScore: 1000
+      bonusScore: 1500
     - healthPercent: 40
-      bonusScore: 500
+      bonusScore: 1000
     comboMultiplier: 1.2
   rewards:
     baseCoin: 100

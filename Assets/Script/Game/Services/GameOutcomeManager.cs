@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Services;
+using Game.Core;
 
 namespace Game.Services
 {
@@ -21,12 +22,11 @@ namespace Game.Services
         [Header("Debug Settings")]
         [SerializeField] private bool enableLogging = true;
 
-        // Dependencies (injected)
+        // Dependencies (retrieved from ServiceLocator)
         private IBaseManager baseManager;
 
         // Initialization state
         private bool isInitialized = false;
-        private bool dependenciesInjected = false;
 
         #region Events
 
@@ -52,55 +52,28 @@ namespace Game.Services
 
         #endregion
 
-        #region Dependency Injection
+        #region Initialization
 
         /// <summary>
-        /// Injects required dependencies
-        /// Called by GameInitializer during service registration
-        /// </summary>
-        public void InjectDependencies(IBaseManager baseManager)
-        {
-            this.baseManager = baseManager;
-            dependenciesInjected = true;
-            Log("[GameOutcomeManager] Dependencies injected successfully");
-        }
-
-        /// <summary>
-        /// Validates that all dependencies are available
+        /// Validates that all dependencies are available from ServiceLocator
         /// </summary>
         private bool ValidateDependencies()
         {
-            if (!dependenciesInjected)
-            {
-                Debug.LogError("[GameOutcomeManager] Dependencies not injected!");
-                return false;
-            }
-
             if (baseManager == null)
             {
-                Debug.LogError("[GameOutcomeManager] IBaseManager is null!");
+                Debug.LogError("[GameOutcomeManager] IBaseManager not found in ServiceLocator!");
                 return false;
             }
 
             return true;
         }
 
-        #endregion
-
-        #region Initialization
-
         /// <summary>
-        /// Initializes the GameOutcomeManager and subscribes to BaseManager events
-        /// Called from GameInitializer after dependency injection
+        /// Initializes the GameOutcomeManager by retrieving dependencies from ServiceLocator
+        /// and subscribing to BaseManager events
         /// </summary>
         public void Initialize()
         {
-            if (!ValidateDependencies())
-            {
-                Debug.LogError("[GameOutcomeManager] Cannot initialize - dependency validation failed");
-                return;
-            }
-
             if (isInitialized)
             {
                 Log("[GameOutcomeManager] Already initialized");
@@ -108,6 +81,15 @@ namespace Game.Services
             }
 
             Log("[GameOutcomeManager] Initializing...");
+            
+            // Retrieve dependencies from ServiceLocator
+            baseManager = ServiceLocator.Get<IBaseManager>();
+
+            if (!ValidateDependencies())
+            {
+                Debug.LogError("[GameOutcomeManager] Cannot initialize - dependency validation failed");
+                return;
+            }
 
             // Subscribe to BaseManager events
             SubscribeToBaseManagerEvents();
