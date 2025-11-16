@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Game.Data.Modifiers;
+using Game.Data.Effects;
 
 namespace Game.Data
 {
@@ -24,6 +25,9 @@ namespace Game.Data
         [Header("능력 Modifiers")]
         [SerializeField] private List<ModifierData> modifiers = new List<ModifierData>();
 
+        [Header("Unit Effects")]
+        [SerializeField] private List<UnitEffectData> effects = new List<UnitEffectData>();
+
         // 읽기 전용 속성으로 안전한 외부 접근
         public string UnitName => unitName;
         public string Description => description;
@@ -33,6 +37,7 @@ namespace Game.Data
         public int AttackPower => attackPower;
         public int MovementRange => movementRange;
         public List<ModifierData> Modifiers => modifiers;
+        public List<UnitEffectData> Effects => effects;
 
         // 데이터 유효성 검증
         public bool IsValid()
@@ -42,14 +47,16 @@ namespace Game.Data
                    maxHealth > 0 &&
                    attackPower >= 0 &&
                    movementRange >= 0 &&
-                   modifiers != null;
+                   modifiers != null &&
+                   effects != null;
         }
 
         // 개발자용 디버그 정보
         public override string ToString()
         {
             int modifierCount = modifiers != null ? modifiers.Count : 0;
-            return $"UnitData[{unitName}, HP:{maxHealth}, ATK:{attackPower}, MOV:{movementRange}, Modifiers:{modifierCount}]";
+            int effectCount = effects != null ? effects.Count : 0;
+            return $"UnitData[{unitName}, HP:{maxHealth}, ATK:{attackPower}, MOV:{movementRange}, Modifiers:{modifierCount}, Effects:{effectCount}]";
         }
 
         // 에디터용 검증 (Unity Editor에서만 실행)

@@ -51,9 +51,6 @@ namespace Game.Components
         private bool isAlive = true;
         private bool isInvulnerable = false;
         private float invulnerabilityEndTime = 0f;
-
-        // ✅ 상태 이상 관리
-        private readonly List<StatusEffect> activeStatusEffects = new List<StatusEffect>();
         private float lastRegenerationTime;
 
         // ✅ 수정자 관리
@@ -77,13 +74,8 @@ namespace Game.Components
         public int TemporaryHealth => temporaryHealth;
         public int TotalEffectiveHealth => currentHealth + temporaryHealth;
         public bool IsInvulnerable => isInvulnerable && (invulnerabilityEndTime < 0f || Time.time < invulnerabilityEndTime);
-        public bool IsPoisoned => HasStatusEffect(StatusEffectType.Poison);
-        public bool IsBleeding => HasStatusEffect(StatusEffectType.Bleeding);
 
         public event Action<bool> OnInvulnerabilityChanged;
-        public event Action OnPoisonApplied;
-        public event Action OnBleedingApplied;
-        public event Action OnStatusEffectCleared;
 
         private void Awake()
         {
@@ -120,9 +112,6 @@ namespace Game.Components
                 ProcessRegeneration();
                 lastRegenerationTime = Time.time;
             }
-
-            // 상태 이상 업데이트
-            UpdateStatusEffects(Time.deltaTime);
         }
 
 
@@ -295,26 +284,6 @@ namespace Game.Components
             }
         }
 
-        public void ApplyPoison(int damagePerTick, float duration, float interval = 1f)
-        {
-            var poisonEffect = new StatusEffect(StatusEffectType.Poison, duration, interval, damagePerTick);
-            AddStatusEffect(poisonEffect);
-            OnPoisonApplied?.Invoke();
-        }
-
-        public void ApplyBleeding(int damagePerTick, float duration, float interval = 1f)
-        {
-            var bleedingEffect = new StatusEffect(StatusEffectType.Bleeding, duration, interval, damagePerTick);
-            AddStatusEffect(bleedingEffect);
-            OnBleedingApplied?.Invoke();
-        }
-
-        public void ClearAllStatusEffects()
-        {
-            activeStatusEffects.Clear();
-            OnStatusEffectCleared?.Invoke();
-        }
-
         // ✅ 방어력 관련 메서드들
         public void SetArmor(int newArmor)
         {
@@ -391,7 +360,6 @@ namespace Game.Components
         {
             isAlive = false;
             enableRegeneration = false; // 사망 시 재생 중단
-            ClearAllStatusEffects(); // 상태 이상 제거
 
             Debug.Log($"[HealthComponent] {gameObject.name} has died! Health: {currentHealth}/{MaxHealth}");
 
@@ -445,54 +413,6 @@ namespace Game.Components
             return Mathf.Min(reduction, maxDamageReduction);
         }
 
-        private void AddStatusEffect(StatusEffect effect)
-        {
-            // 기존 같은 타입 효과 제거
-            activeStatusEffects.RemoveAll(e => e.Type == effect.Type);
-            activeStatusEffects.Add(effect);
-        }
-
-        private bool HasStatusEffect(StatusEffectType type)
-        {
-            return activeStatusEffects.Exists(e => e.Type == type && !e.IsExpired);
-        }
-
-        private void UpdateStatusEffects(float deltaTime)
-        {
-            for (int i = activeStatusEffects.Count - 1; i >= 0; i--)
-            {
-                var effect = activeStatusEffects[i];
-                effect.Update(deltaTime);
-
-                if (effect.ShouldTick)
-                {
-                    ApplyStatusEffectDamage(effect);
-                    effect.ResetTick();
-                }
-
-                if (effect.IsExpired)
-                {
-                    activeStatusEffects.RemoveAt(i);
-                }
-            }
-        }
-
-        private void ApplyStatusEffectDamage(StatusEffect effect)
-        {
-            var damageInfo = new DamageInfo(effect.DamagePerTick, GetDamageTypeFromEffect(effect.Type), null, false, true);
-            ProcessDamage(damageInfo);
-        }
-
-        private DamageType GetDamageTypeFromEffect(StatusEffectType effectType)
-        {
-            return effectType switch
-            {
-                StatusEffectType.Poison => DamageType.Poison,
-                StatusEffectType.Bleeding => DamageType.Bleeding,
-                _ => DamageType.True
-            };
-        }
-
         // ✅ 디버깅용 메서드
         public override string ToString()
         {
@@ -507,53 +427,5 @@ namespace Game.Components
             regenerationInterval = Mathf.Max(0.1f, regenerationInterval);
             maxDamageReduction = Mathf.Clamp01(maxDamageReduction);
         }
-    }
-
-    /// <summary>
-    /// 상태 이상 효과 클래스
-    /// </summary>
-    [System.Serializable]
-    public class StatusEffect
-    {
-        public StatusEffectType Type { get; }
-        public float Duration { get; private set; }
-        public float Interval { get; }
-        public int DamagePerTick { get; }
-        public bool IsExpired => Duration <= 0f;
-        public bool ShouldTick => timeSinceLastTick >= Interval;
-
-        private float timeSinceLastTick;
-
-        public StatusEffect(StatusEffectType type, float duration, float interval, int damagePerTick)
-        {
-            Type = type;
-            Duration = duration;
-            Interval = interval;
-            DamagePerTick = damagePerTick;
-            timeSinceLastTick = 0f;
-        }
-
-        public void Update(float deltaTime)
-        {
-            Duration -= deltaTime;
-            timeSinceLastTick += deltaTime;
-        }
-
-        public void ResetTick()
-        {
-            timeSinceLastTick = 0f;
-        }
-    }
-
-    /// <summary>
-    /// 상태 이상 타입
-    /// </summary>
-    public enum StatusEffectType
-    {
-        Poison,
-        Bleeding,
-        Regeneration,
-        Burn,
-        Freeze
     }
 }

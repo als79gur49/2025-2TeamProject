@@ -3,6 +3,7 @@ using Game.Components;
 using Game.Components.Abilities;
 using Game.Core;
 using Game.Core.Modifiers;
+using Game.Core.Effects;
 using Game.Data;
 using Game.Interfaces;
 using Game.Services;
@@ -52,6 +53,9 @@ public class Unit : MonoBehaviour
     private ActionContext currentActionContext;
     private int stunTurns = 0;
 
+    // Effect System
+    private EffectManager effectManager;
+
     // Legacy system support
     private int legacyMaxHealth;
     
@@ -100,6 +104,9 @@ public class Unit : MonoBehaviour
         // Register action executors for each supported action type
         executorRegistry.RegisterExecutor(new Game.Core.Executors.AttackActionExecutor());
         executorRegistry.RegisterExecutor(new Game.Core.Executors.MovementActionExecutor());
+
+        // Initialize Effect system
+        effectManager = new EffectManager(this);
 
         // Legacy system fallback
         legacyMaxHealth = health;
@@ -185,6 +192,35 @@ public class Unit : MonoBehaviour
             else
             {
                 Debug.LogWarning($"[Unit] IModifierFactory not found in ServiceLocator - Cannot apply modifiers to {gameObject.name}");
+            }
+        }
+
+        // Effects 적용 (UnitData로부터)
+        if (unitData != null && unitData.Effects != null && unitData.Effects.Count > 0)
+        {
+            int appliedEffects = 0;
+            foreach (var effectData in unitData.Effects)
+            {
+                if (effectData == null) continue;
+
+                try
+                {
+                    var effect = effectData.CreateEffect(this);
+                    if (effect != null)
+                    {
+                        AddEffect(effect);
+                        appliedEffects++;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"[Unit] Failed to create effect from {effectData.name}: {ex.Message}");
+                }
+            }
+
+            if (appliedEffects > 0)
+            {
+                Debug.Log($"[Unit] {appliedEffects} effect(s) applied to {gameObject.name} from UnitData");
             }
         }
 
@@ -527,6 +563,12 @@ public class Unit : MonoBehaviour
     {
         currentTile = tile;
     }
+
+    public void OnPlaced(Tile tile)
+    {
+        SetCurrentTile(tile);
+        TriggerEffects(EffectTrigger.OnDeploy, new EffectContext());
+    }
     
     public void OnTurnStart()
     {
@@ -550,9 +592,25 @@ public class Unit : MonoBehaviour
         {
             movementComponent.StartTurn();
         }
+
+        // Effect: OnTurnStart 트리거
+        TriggerEffects(EffectTrigger.OnTurnStart, new EffectContext());
         
         Debug.Log($"[Unit] {gameObject.name} OnTurnStart - currentTile: {currentTile?.name} at ({currentTile?.X}, {currentTile?.Y}) - Turn initialized");
         // Act() 호출 제거 - 실제 행동은 Action Phase에서 별도로 처리
+    }
+
+    public void OnTurnEnd()
+    {
+        if (!IsAlive) return;
+
+        // Effect: OnTurnEnd 트리거
+        TriggerEffects(EffectTrigger.OnTurnEnd, new EffectContext());
+
+        // 지속 턴 감소 및 정리
+        effectManager?.TickDurationsAndCleanup();
+
+        Debug.Log($"[Unit] {gameObject.name} OnTurnEnd");
     }
     
     public void Act()
@@ -672,6 +730,9 @@ public class Unit : MonoBehaviour
             Debug.Log($"[Unit] Enemy killed event raised for {gameObject.name}");
         }
 
+        // Effect: OnDeath 트리거
+        TriggerEffects(EffectTrigger.OnDeath, new EffectContext());
+
         // DeathAnimationManager를 통한 죽음 처리
         if (deathAnimationManager != null)
         {
@@ -701,6 +762,9 @@ public class Unit : MonoBehaviour
             Debug.Log($"[Unit] Death notification already sent for {gameObject.name}, skipping");
             return;
         }
+
+        // Unit 사망 시 Effect 정리
+        effectManager?.ClearAllEffects();
 
         // Unit 사망 시 currentTile 정리
         CleanupCurrentTile();
@@ -1093,6 +1157,33 @@ public class Unit : MonoBehaviour
     {
         stunTurns = Mathf.Max(stunTurns, turns);
         Debug.Log($"[Unit] {gameObject.name} stunned for {stunTurns} turns");
+    }
+
+    #endregion
+
+    #region Effect System Integration
+
+    public void AddEffect(IEffect effect)
+    {
+        if (effect == null) return;
+        effectManager?.AddEffect(effect);
+    }
+
+    public void RemoveEffect(IEffect effect)
+    {
+        if (effect == null) return;
+        effectManager?.RemoveEffect(effect);
+    }
+
+    public void TriggerEffects(EffectTrigger trigger, EffectContext context)
+    {
+        if (effectManager == null) return;
+        effectManager.TriggerEffects(trigger, context ?? new EffectContext());
+    }
+
+    public bool HasEffect(string effectName)
+    {
+        return effectManager != null && effectManager.HasEffect(effectName);
     }
 
     #endregion

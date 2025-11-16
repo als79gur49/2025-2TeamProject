@@ -97,6 +97,7 @@ public class Tile : MonoBehaviour
         {
             unit.transform.position = transform.position + Vector3.up * 0.5f;
             unit.SetCurrentTile(this);
+            unit.OnPlaced(this);
         }
 
         UpdateVisuals();

@@ -401,7 +401,14 @@ namespace Game.Services
 
                 case TurnPhase.TurnEnd:
                     Debug.Log($"[UnitService] Turn end cleanup for unit: {unit.name}");
-                    // To-Do: unit.OnTurnEnd()와 같은 턴 종료 메서드 호출 필요
+                    try
+                    {
+                        unit.OnTurnEnd();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[UnitService] Error in OnTurnEnd for {unit?.name}: {ex.Message}");
+                    }
                     break;
 
                 // Summon 페이즈는 현재 처리할 유닛이 없으므로 호출되지 않음

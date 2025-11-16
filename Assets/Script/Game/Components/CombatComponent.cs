@@ -53,7 +53,6 @@ namespace Game.Components
         private bool isForceCritical = false;
 
         // 새로운 Action System 필드
-        private List<IAttackEffect> attackEffects = new List<IAttackEffect>();
         private ActionResult currentAttackResult;
         private ActionContext currentAttackContext;
 
@@ -960,16 +959,6 @@ namespace Game.Components
         #region New Action System Integration
 
         /// <summary>
-        /// 공격 효과 추가 (새로운 Action System용)
-        /// </summary>
-        public void AddAttackEffect(IAttackEffect effect)
-        {
-            if (effect == null) return;
-            attackEffects.Add(effect);
-            attackEffects.Sort((a, b) => b.Priority.CompareTo(a.Priority));
-        }
-
-        /// <summary>
         /// ActionResult를 사용한 공격 실행 (새로운 Action System용)
         /// </summary>
         public void ExecuteAttackWithResult(ActionResult result, ActionContext context)
@@ -1011,7 +1000,7 @@ namespace Game.Components
                     ApplyDamageToTarget(targetHealth.gameObject, modifierDamage);
             }
 
-            ApplyAttackEffects();
+            TriggerAttackEffects(currentAttackResult.ValidTiles, currentAttackContext);
         }
 
         /// <summary>
@@ -1035,14 +1024,15 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 공격 효과 적용 (Splash, Stun 등)
+        /// 공격 효과 트리거 (EffectManager 연동)
         /// </summary>
-        private void ApplyAttackEffects()
+        private void TriggerAttackEffects(System.Collections.Generic.List<Tile> tiles, ActionContext context)
         {
-            if (attackEffects.Count == 0 || currentAttackResult == null) return;
+            var unit = GetComponent<Unit>();
+            if (unit == null || tiles == null || tiles.Count == 0) return;
 
-            foreach (IAttackEffect effect in attackEffects)
-                effect.ApplyEffectToTiles(currentAttackResult.ValidTiles, currentAttackContext);
+            var effectContext = new Game.Core.Effects.EffectContext(tiles);
+            unit.TriggerEffects(Game.Core.Effects.EffectTrigger.OnAttack, effectContext);
         }
 
         /// <summary>

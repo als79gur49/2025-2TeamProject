@@ -58,16 +58,11 @@ namespace Game.Interfaces
         
         // ✅ 상태 이상
         bool IsInvulnerable { get; }
-        bool IsPoisoned { get; }
-        bool IsBleeding { get; }
         
         // ✅ 고급 체력 조작
         void AddTemporaryHealth(int amount);
         void RemoveTemporaryHealth(int amount);
         void SetInvulnerable(bool invulnerable, float duration = -1f);
-        void ApplyPoison(int damagePerTick, float duration, float interval = 1f);
-        void ApplyBleeding(int damagePerTick, float duration, float interval = 1f);
-        void ClearAllStatusEffects();
         
         // ✅ 방어력 조작
         void SetArmor(int newArmor);
@@ -83,9 +78,6 @@ namespace Game.Interfaces
         event Action<int> OnTemporaryHealthAdded;
         event Action<int> OnTemporaryHealthRemoved;
         event Action<bool> OnInvulnerabilityChanged;
-        event Action OnPoisonApplied;
-        event Action OnBleedingApplied;
-        event Action OnStatusEffectCleared;
     }
 
     /// <summary>
