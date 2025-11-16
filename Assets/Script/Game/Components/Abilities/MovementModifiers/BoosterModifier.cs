@@ -1,30 +1,39 @@
+using System.Linq;
 using UnityEngine;
-using Game.Interfaces;
 using Game.Core;
+using Game.Data.Modifiers;
+using Game.Interfaces;
+using Game.Services.Modifiers;
 
 namespace Game.Components.Abilities
 {
+    /// <summary>
+    /// 리팩토링된 부스터 이동 Modifier
+    /// 전체 맵 이동 가능
+    /// </summary>
     public class BoosterModifier : IMovementModifier
     {
-        public string ModifierName => "부스터";
-        public ActionType ActionType => ActionType.Movement;
-        public int Priority { get; private set; }
-        public ChainBehavior ChainBehavior => ChainBehavior.AlwaysTerminate;
+        public string ModifierName => config.Name;
+        public ActionType ActionType => config.ActionType;
+        public int Priority => config.Priority;
+        public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
-        public int MaxMoveRange => 99;
+        public int MaxMoveRange => int.MaxValue; // Unlimited range for booster
 
+        private readonly ModifierConfig config;
+        private readonly IModifierDependencies dependencies;
         private IActionModifier nextModifier;
-        private IGridManager gridManager;
-        private ITeamComponent teamComponent;
-        private IMovementSystem movementSystem;
 
-        public BoosterModifier(Unit owner, int priority = 20)
+        public BoosterModifier(Unit owner, ModifierConfig config, IModifierDependencies dependencies)
         {
-            Owner = owner;
-            Priority = priority;
-            gridManager = ServiceLocator.Get<IGridManager>();
-            teamComponent = owner.GetComponent<ITeamComponent>();
-            movementSystem = owner.GetComponent<IMovementSystem>();
+            Owner = owner ?? throw new System.ArgumentNullException(nameof(owner));
+            this.config = config;
+            this.dependencies = dependencies ?? throw new System.ArgumentNullException(nameof(dependencies));
+
+            if (!config.MovementConfig.HasValue)
+            {
+                throw new System.ArgumentException("BoosterModifier requires MovementConfig");
+            }
         }
 
         public void SetNext(IActionModifier next) => nextModifier = next;
@@ -37,17 +46,34 @@ namespace Game.Components.Abilities
                 ChainBehavior = this.ChainBehavior
             };
 
-            Vector2Int? moveTarget = FindMoveTarget(context.ActorPosition);
-
-            if (moveTarget.HasValue)
+            // 조건 체크
+            if (!CheckAllConditions(context))
             {
+                result.IsSuccess = false;
+                return HandleFailure(result, context);
+            }
+
+            // 전체 맵의 이동 가능한 타일 검색
+            var teamComponent = Owner.GetComponent<ITeamComponent>();
+            var selector = dependencies.TargetSelectorProvider.GetSelector(config.Type);
+            var allReachableTiles = selector.FindTargets(
+                context.ActorPosition,
+                config.TargetingParams,
+                teamComponent
+            );
+
+            if (allReachableTiles.Count > 0)
+            {
+                result.ValidTiles = allReachableTiles;
                 result.IsSuccess = true;
-                result.MoveDestination = moveTarget.Value;
                 result.SelectedModifier = this;
+
+                Debug.Log($"[BoosterModifier] {allReachableTiles.Count} tiles reachable");
             }
             else
             {
                 result.IsSuccess = false;
+                result = HandleFailure(result, context);
             }
 
             return result;
@@ -57,64 +83,26 @@ namespace Game.Components.Abilities
 
         public Vector2Int CalculateFinalDestination(Vector2Int intended, ActionContext context)
         {
-            Vector2Int direction = new Vector2Int(
-                Mathf.Clamp(intended.x - context.ActorPosition.x, -1, 1),
-                Mathf.Clamp(intended.y - context.ActorPosition.y, -1, 1)
-            );
-
-            Vector2Int finalPos = context.ActorPosition;
-
-            while (true)
-            {
-                Vector2Int nextPos = new Vector2Int(
-                    finalPos.x + direction.x,
-                    finalPos.y + direction.y
-                );
-
-                if (!gridManager.IsValidPosition(nextPos) || !gridManager.IsPositionWalkable(nextPos))
-                    break;
-
-                finalPos = nextPos;
-            }
-
-            return finalPos;
+            // Booster allows movement to any valid tile on the map
+            return intended;
         }
 
-        private Vector2Int? FindMoveTarget(Vector2Int currentPos)
+        private bool CheckAllConditions(ActionContext context)
         {
-            // Validate dependencies
-            if (movementSystem == null || gridManager == null)
+            if (config.Conditions == null || config.Conditions.Count == 0)
+                return true;
+
+            return config.Conditions.All(condition => condition.Evaluate(Owner, context));
+        }
+
+        private ActionResult HandleFailure(ActionResult result, ActionContext context)
+        {
+            if (ChainBehavior == ChainBehavior.FallbackOnFailure && nextModifier != null)
             {
-                Debug.LogWarning($"[BoosterModifier] Missing dependencies for {Owner?.name}");
-                return null;
+                return nextModifier.Evaluate(new ActionContext(context.ActorPosition));
             }
 
-            // Get all valid positions within current movement range
-            var validPositions = movementSystem.GetValidMovePositions();
-
-            if (validPositions.Count == 0)
-            {
-                return null;
-            }
-
-            // Determine team-based direction (Player: +Y, Enemy: -Y)
-            int direction = teamComponent?.Team == TeamType.Player ? 1 : -1;
-
-            // Find the furthest forward position (same logic as BasicUnitAI.GetForwardMovePosition)
-            Vector2Int? bestPosition = null;
-            int maxDistance = 0;
-
-            foreach (var pos in validPositions)
-            {
-                int distance = (pos.y - currentPos.y) * direction;
-                if (distance > maxDistance)
-                {
-                    maxDistance = distance;
-                    bestPosition = pos;
-                }
-            }
-
-            return bestPosition;
+            return result;
         }
     }
 }

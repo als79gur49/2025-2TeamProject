@@ -58,6 +58,7 @@ namespace Game.Interfaces
         public List<Tile> AttackTiles { get; set; }
         public int AttackRange { get; set; }
         public bool HasClearRow { get; set; }
+        public bool HasEnemyInRow { get; set; }
         public Vector2Int? TargetMovePosition { get; set; }
         public List<Vector2Int> MovePath { get; set; }
         public int MoveRange { get; set; }

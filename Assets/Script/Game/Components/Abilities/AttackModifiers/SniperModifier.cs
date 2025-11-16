@@ -1,30 +1,38 @@
+using System.Linq;
 using UnityEngine;
-using Game.Interfaces;
 using Game.Core;
-using System.Collections.Generic;
+using Game.Data.Modifiers;
+using Game.Interfaces;
+using Game.Services.Modifiers;
 
 namespace Game.Components.Abilities
 {
+    /// <summary>
+    /// 리팩토링된 스나이퍼 공격 Modifier
+    /// 항상 넥서스만 공격, 같은 행에 적이 없어야 함
+    /// </summary>
     public class SniperModifier : IAttackModifier
     {
-        public string ModifierName => "스나이퍼";
-        public ActionType ActionType => ActionType.Attack;
-        public int Priority { get; private set; }
-        public ChainBehavior ChainBehavior => ChainBehavior.FallbackOnFailure;
+        public string ModifierName => config.Name;
+        public ActionType ActionType => config.ActionType;
+        public int Priority => config.Priority;
+        public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
 
+        private readonly ModifierConfig config;
+        private readonly IModifierDependencies dependencies;
         private IActionModifier nextModifier;
-        private IGridManager gridManager;
-        private ITeamComponent teamComponent;
-        private ICombatSystem combatSystem;
 
-        public SniperModifier(Unit owner, int priority = 100)
+        public SniperModifier(Unit owner, ModifierConfig config, IModifierDependencies dependencies)
         {
-            Owner = owner;
-            Priority = priority;
-            gridManager = ServiceLocator.Get<IGridManager>();
-            teamComponent = owner.GetComponent<ITeamComponent>();
-            combatSystem = owner.GetComponent<ICombatSystem>();
+            Owner = owner ?? throw new System.ArgumentNullException(nameof(owner));
+            this.config = config;
+            this.dependencies = dependencies ?? throw new System.ArgumentNullException(nameof(dependencies));
+
+            if (!config.AttackConfig.HasValue)
+            {
+                throw new System.ArgumentException("SniperModifier requires AttackConfig");
+            }
         }
 
         public void SetNext(IActionModifier next) => nextModifier = next;
@@ -37,22 +45,34 @@ namespace Game.Components.Abilities
                 ChainBehavior = this.ChainBehavior
             };
 
-            bool hasEnemyInRow = CheckEnemyInSameRow(context.ActorPosition);
-            context.HasClearRow = !hasEnemyInRow;
-
-            if (!hasEnemyInRow)
+            // 조건 체크 (Clear Lane 포함)
+            if (!CheckAllConditions(context))
             {
-                Tile enemyNexusTile = GetEnemyNexusTile();
-                if (enemyNexusTile != null)
-                {
-                    result.ValidTiles.Add(enemyNexusTile);
-                    result.IsSuccess = true;
-                    result.SelectedModifier = this;
-                }
+                result.IsSuccess = false;
+                return HandleFailure(result, context);
+            }
+
+            // 넥서스 타겟 검색
+            var teamComponent = Owner.GetComponent<ITeamComponent>();
+            var selector = dependencies.TargetSelectorProvider.GetSelector(config.Type);
+            var targets = selector.FindTargets(
+                context.ActorPosition,
+                config.TargetingParams,
+                teamComponent
+            );
+
+            if (targets.Count > 0)
+            {
+                result.ValidTiles = targets;
+                result.IsSuccess = true;
+                result.SelectedModifier = this;
+
+                Debug.Log($"[SniperModifier] Nexus target acquired: {targets[0].X}, {targets[0].Y}");
             }
             else
             {
                 result.IsSuccess = false;
+                result = HandleFailure(result, context);
             }
 
             return result;
@@ -61,52 +81,33 @@ namespace Game.Components.Abilities
         public void Execute(ActionContext context) { }
 
         public int CalculateDamage(ActionContext context)
-            => combatSystem?.CurrentAttackPower ?? 0;
-
-        private bool CheckEnemyInSameRow(Vector2Int pos)
         {
-            var gridController = gridManager.GetGridController();
-            if (gridController == null) return false;
-            var gridSize = gridManager.GridSize;
+            var combatSystem = Owner.GetComponent<ICombatSystem>();
+            int baseDamage = combatSystem?.CurrentAttackPower ?? 0;
 
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                if (x == pos.x) continue;
-                var tile = gridController.GetTileAtPosition(new Vector2Int(x, pos.y));
-                if (tile == null) continue;
-
-                bool hasUnit = tile.OccupyingUnit != null && tile.OccupyingUnit.IsAlive;
-                bool hasBase = tile.OccupyingBase != null && tile.OccupyingBase.IsAlive;
-
-                if ((hasUnit || hasBase) && IsEnemy(hasUnit ? tile.OccupyingUnit.gameObject : tile.OccupyingBase.gameObject))
-                    return true;
-            }
-            return false;
+            return dependencies.CombatCalculator.CalculateDamage(
+                baseDamage,
+                config.AttackConfig.Value.DamageModifier
+            );
         }
 
-        private Tile GetEnemyNexusTile()
+        private bool CheckAllConditions(ActionContext context)
         {
-            var gridController = gridManager.GetGridController();
-            if (gridController == null) return null;
-            var gridSize = gridManager.GridSize;
+            if (config.Conditions == null || config.Conditions.Count == 0)
+                return true;
 
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                for (int y = 0; y < gridSize.y; y++)
-                {
-                    var tile = gridController.GetTileAtPosition(new Vector2Int(x, y));
-                    if (tile?.OccupyingBase != null && tile.OccupyingBase.IsAlive && IsEnemy(tile.OccupyingBase.gameObject))
-                        return tile;
-                }
-            }
-            return null;
+            return config.Conditions.All(condition => condition.Evaluate(Owner, context));
         }
 
-        private bool IsEnemy(GameObject target)
+        private ActionResult HandleFailure(ActionResult result, ActionContext context)
         {
-            if (teamComponent == null) return true;
-            var targetTeam = target.GetComponent<ITeamComponent>();
-            return targetTeam == null ? true : teamComponent.GetRelationTo(targetTeam) == TeamRelation.Enemy;
+            if (ChainBehavior == ChainBehavior.FallbackOnFailure && nextModifier != null)
+            {
+                Debug.Log($"[SniperModifier] Fallback to next modifier");
+                return nextModifier.Evaluate(new ActionContext(context.ActorPosition));
+            }
+
+            return result;
         }
     }
 }

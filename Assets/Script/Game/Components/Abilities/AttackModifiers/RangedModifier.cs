@@ -1,33 +1,41 @@
-using UnityEngine;
-using Game.Interfaces;
-using Game.Core;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using Game.Core;
+using Game.Data.Modifiers;
+using Game.Interfaces;
+using Game.Services.Modifiers;
 
 namespace Game.Components.Abilities
 {
+    /// <summary>
+    /// 리팩토링된 원거리 공격 Modifier
+    /// Config 기반으로 동작하며 의존성이 주입됨
+    /// </summary>
     public class RangedModifier : IAttackModifier
     {
-        public string ModifierName { get; private set; }
-        public ActionType ActionType => ActionType.Attack;
-        public int Priority { get; private set; }
-        public virtual ChainBehavior ChainBehavior => ChainBehavior.AlwaysContinue;
+        // IActionModifier 구현
+        public string ModifierName => config.Name;
+        public ActionType ActionType => config.ActionType;
+        public int Priority => config.Priority;
+        public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
 
-        protected int range;
+        // 내부 필드
+        private readonly ModifierConfig config;
+        private readonly IModifierDependencies dependencies;
         private IActionModifier nextModifier;
-        private IGridManager gridManager;
-        private ITeamComponent teamComponent;
-        private ICombatSystem combatSystem;
 
-        public RangedModifier(Unit owner, int range, int priority = 90)
+        public RangedModifier(Unit owner, ModifierConfig config, IModifierDependencies dependencies)
         {
-            Owner = owner;
-            this.range = range;
-            Priority = priority;
-            ModifierName = $"원거리({range})";
-            gridManager = ServiceLocator.Get<IGridManager>();
-            teamComponent = owner.GetComponent<ITeamComponent>();
-            combatSystem = owner.GetComponent<ICombatSystem>();
+            Owner = owner ?? throw new System.ArgumentNullException(nameof(owner));
+            this.config = config;
+            this.dependencies = dependencies ?? throw new System.ArgumentNullException(nameof(dependencies));
+
+            if (!config.AttackConfig.HasValue)
+            {
+                throw new System.ArgumentException("RangedModifier requires AttackConfig");
+            }
         }
 
         public void SetNext(IActionModifier next) => nextModifier = next;
@@ -40,78 +48,73 @@ namespace Game.Components.Abilities
                 ChainBehavior = this.ChainBehavior
             };
 
-            context.AttackRange = range;
-            List<Tile> tilesInRange = FindTilesInRange(context.ActorPosition);
-
-            if (tilesInRange.Count > 0)
+            // 조건 체크
+            if (!CheckAllConditions(context))
             {
-                result.ValidTiles = tilesInRange;
+                result.IsSuccess = false;
+                return HandleFailure(result, context);
+            }
+
+            // 타겟 검색
+            var teamComponent = Owner.GetComponent<ITeamComponent>();
+            var selector = dependencies.TargetSelectorProvider.GetSelector(config.Type);
+            var targets = selector.FindTargets(
+                context.ActorPosition,
+                config.TargetingParams,
+                teamComponent
+            );
+
+            if (targets.Count > 0)
+            {
+                result.ValidTiles = targets;
                 result.IsSuccess = true;
                 result.SelectedModifier = this;
 
-                Debug.Log($"[RangedModifier] Evaluate Result: {result.IsSuccess}," +
-                      $" TileCounts: {result.ValidTiles.Count}," +
-                      $" Modifier: {result.SelectedModifier.ModifierName}");
+                Debug.Log($"[RangedModifier] Found {targets.Count} targets in range {config.AttackConfig.Value.Range}");
             }
             else
             {
                 result.IsSuccess = false;
-
-                Debug.Log($"[RangedModifier] Evaluate Result: {result.IsSuccess}," +
-                      $" TileCounts: {result.ValidTiles.Count}");
+                result = HandleFailure(result, context);
             }
 
             return result;
         }
 
-        public void Execute(ActionContext context) { }
+        public void Execute(ActionContext context)
+        {
+            // 실제 실행은 CombatComponent에서 처리
+            // 필요 시 추가 로직 구현
+        }
 
         public int CalculateDamage(ActionContext context)
-            => combatSystem?.CurrentAttackPower ?? 0;
-
-        private List<Tile> FindTilesInRange(Vector2Int attackerPos)
         {
-            List<Tile> tiles = new List<Tile>();
-            var gridController = gridManager.GetGridController();
-            if (gridController == null) return tiles;
+            var combatSystem = Owner.GetComponent<ICombatSystem>();
+            int baseDamage = combatSystem?.CurrentAttackPower ?? 0;
 
-            int direction = teamComponent?.Team == TeamType.Player ? 1 : -1;
+            return dependencies.CombatCalculator.CalculateDamage(
+                baseDamage,
+                config.AttackConfig.Value.DamageModifier
+            );
+        }
 
-            for (int i = 1; i <= range; i++)
+        private bool CheckAllConditions(ActionContext context)
+        {
+            if (config.Conditions == null || config.Conditions.Count == 0)
+                return true;
+
+            return config.Conditions.All(condition => condition.Evaluate(Owner, context));
+        }
+
+        private ActionResult HandleFailure(ActionResult result, ActionContext context)
+        {
+            if (ChainBehavior == ChainBehavior.FallbackOnFailure && nextModifier != null)
             {
-                Vector2Int checkPos = new Vector2Int(attackerPos.x, attackerPos.y + (direction * i));
-                var tile = gridController.GetTileAtPosition(checkPos);
-                if (tile == null) continue;
-
-                bool hasUnit = tile.OccupyingUnit != null && tile.OccupyingUnit.IsAlive;
-                bool hasBase = tile.OccupyingBase != null && tile.OccupyingBase.IsAlive;
-
-                if (hasUnit || hasBase)
-                {
-                    var targetObj = hasUnit ? tile.OccupyingUnit.gameObject : tile.OccupyingBase.gameObject;
-                    if (IsEnemy(targetObj))
-                    {
-                        tiles.Add(tile);
-                        break;
-                    }
-                }
+                Debug.Log($"[RangedModifier] Fallback to next modifier");
+                return nextModifier.Evaluate(new ActionContext(context.ActorPosition));
             }
 
-            return tiles;
+            return result;
         }
-
-        private bool IsEnemy(GameObject target)
-        {
-            if (teamComponent == null) return true;
-            var targetTeam = target.GetComponent<ITeamComponent>();
-            return targetTeam == null ? true : teamComponent.GetRelationTo(targetTeam) == TeamRelation.Enemy;
-        }
-    }
-
-    public class RangedContinueModifier : RangedModifier
-    {
-        public override ChainBehavior ChainBehavior => ChainBehavior.AlwaysContinue;
-        public RangedContinueModifier(Unit owner, int range, int priority = 90)
-            : base(owner, range, priority) { }
     }
 }

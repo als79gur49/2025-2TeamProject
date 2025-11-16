@@ -9,6 +9,10 @@ using PlasticPipe.PlasticProtocol.Messages;
 using Game;
 using Game.Managers;
 using Game.Data;
+using Game.Core.Modifiers;
+using Game.Services.Modifiers;
+using Game.Services.Modifiers.TargetSelectors;
+using Game.Data.Modifiers;
 
 /// <summary>
 /// 게임 초기화 매니저 - 모든 서비스 등록 및 의존성 주입 설정
@@ -235,7 +239,7 @@ public class GameInitializer : SceneInitializer
         {
             // GridManager가 자체적으로 그리드 시스템을 초기화하도록 설정
             gridManager.InitializeForServiceLocator();
-            
+
             // GridManager에서 생성된 컴포넌트들을 가져와서 서비스 등록
             RegisterGridServices();
             Log("✅ Grid services registered via GridManager");
@@ -244,6 +248,9 @@ public class GameInitializer : SceneInitializer
         {
             LogError("❌ GridManager not found - Grid services not registered");
         }
+
+        // Modifier Services 등록 - ModifierFactory 및 의존성 등록
+        RegisterModifierServices();
 
         // Game Services 등록 - 직접 참조를 통한 안전한 등록
         RegisterGameServices();
@@ -563,6 +570,65 @@ public class GameInitializer : SceneInitializer
     }
 
     /// <summary>
+    /// Modifier 서비스 등록 - ModifierFactory 및 의존성 생성 및 등록
+    /// Non-MonoBehaviour 서비스이므로 new로 직접 생성하여 등록
+    /// </summary>
+    private void RegisterModifierServices()
+    {
+        Log("Registering Modifier services...");
+
+        // 1. 의존성 확인: IGridManager (이미 등록됨)
+        var gridManager = ServiceLocator.Get<IGridManager>();
+        if (gridManager == null)
+        {
+            LogError("❌ IGridManager not registered - Cannot register Modifier services");
+            return;
+        }
+
+        // 2. Non-MonoBehaviour 서비스 생성 (의존성 순서대로)
+        // 2-1. ICombatCalculator 생성 (의존성 없음)
+        var combatCalculator = new DefaultCombatCalculator();
+        Log("  ✓ DefaultCombatCalculator created");
+
+        // 2-2. ITargetSelector 구현들 생성 (IGridManager 필요)
+        var rangedSelector = new RangedTargetSelector(gridManager);
+        var meleeSelector = new MeleeTargetSelector(gridManager);
+        var movementSelector = new MovementTargetSelector(gridManager);
+        var nexusSelector = new NexusTargetSelector(gridManager);
+        Log("  ✓ RangedTargetSelector created");
+        Log("  ✓ MeleeTargetSelector created");
+        Log("  ✓ MovementTargetSelector created");
+        Log("  ✓ NexusTargetSelector created");
+
+        // 2-3. ITargetSelectorProvider 생성
+        var targetSelectorProvider = new TargetSelectorProvider(
+            rangedSelector,
+            meleeSelector,
+            movementSelector,
+            nexusSelector
+        );
+        Log("  ✓ TargetSelectorProvider created");
+
+        // 2-4. IModifierDependencies 생성
+        var modifierDependencies = new ModifierDependencies(
+            gridManager,
+            targetSelectorProvider,
+            combatCalculator
+        );
+        Log("  ✓ ModifierDependencies created");
+
+        // 2-5. IModifierFactory 생성
+        var modifierFactory = new ModifierFactory(modifierDependencies);
+        Log("  ✓ ModifierFactory created");
+
+        // 3. ServiceLocator에 등록
+        ServiceLocator.Register<IModifierFactory>(modifierFactory);
+        Log("✅ IModifierFactory registered");
+
+        Log("Modifier services registration completed");
+    }
+
+    /// <summary>
     /// 컴포넌트 서비스 등록
     /// </summary>
     private void RegisterComponentServices()
@@ -604,6 +670,12 @@ public class GameInitializer : SceneInitializer
         if (!ServiceLocator.IsRegistered<IGridManager>())
         {
             LogError("❌ Critical service missing: IGridManager");
+        }
+
+        // Modifier Factory 서비스 확인
+        if (!ServiceLocator.IsRegistered<IModifierFactory>())
+        {
+            LogError("❌ Critical service missing: IModifierFactory");
         }
 
         // Game 서비스 확인

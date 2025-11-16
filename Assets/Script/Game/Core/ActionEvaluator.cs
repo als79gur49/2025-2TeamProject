@@ -35,10 +35,9 @@ namespace Game.Core
 
         public ActionResult EvaluateNextAction(ActionContext context)
         {
-            // Reset()에서 이미 actionModifierChain으로 설정되므로 null 체크 간소화
             if (currentModifier == null)
             {
-                Debug.LogError($"[ActionEvaluator] currentModifier is null - ActionEvaluator not properly initialized");
+                Debug.LogWarning("[ActionEvaluator] No current modifier - no actions available for this unit");
                 return new ActionResult { IsSuccess = false };
             }
 

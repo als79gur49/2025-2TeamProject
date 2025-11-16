@@ -2,6 +2,7 @@ using Game;
 using Game.Components;
 using Game.Components.Abilities;
 using Game.Core;
+using Game.Core.Modifiers;
 using Game.Data;
 using Game.Interfaces;
 using Game.Services;
@@ -91,24 +92,20 @@ public class Unit : MonoBehaviour
         // Initialize component system
         InitializeComponents();
 
-        // Initialize new Action System
-        InitializeActionSystem();
-
-        // Legacy system fallback
-        legacyMaxHealth = health;
-    }
-
-    private void InitializeActionSystem()
-    {
+        // Initialize new Action System components
         actionEvaluator = new ActionEvaluator();
 
         executorRegistry = new ActionExecutorRegistry();
+
+        // Register action executors for each supported action type
         executorRegistry.RegisterExecutor(new Game.Core.Executors.AttackActionExecutor());
         executorRegistry.RegisterExecutor(new Game.Core.Executors.MovementActionExecutor());
 
-        AddActionModifier(new RangedModifier(this, range: 1, priority: 90));
-        AddActionModifier(new MeleeModifier(this, priority: 80));
-        AddActionModifier(new NormalMoveModifier(this, moveRange: 1, priority: 10));
+        // Legacy system fallback
+        legacyMaxHealth = health;
+
+        // Note: Modifiers should be added externally via ModifierFactory
+        // or through UnitData/CardData configuration
     }
     
     /// <summary>
@@ -155,6 +152,40 @@ public class Unit : MonoBehaviour
             }
 
             Debug.Log($"[Unit] {gameObject.name} initialized with UnitData: HP={unitData.MaxHealth}, ATK={unitData.AttackPower}, MOV={unitData.MovementRange}, Team={isPlayerUnit}");
+        }
+
+        // Modifiers 적용 (UnitData로부터)
+        if (unitData != null && unitData.Modifiers != null && unitData.Modifiers.Count > 0)
+        {
+            var modifierFactory = ServiceLocator.Get<IModifierFactory>();
+            if (modifierFactory != null)
+            {
+                int appliedCount = 0;
+                foreach (var modifierData in unitData.Modifiers)
+                {
+                    if (modifierData != null)
+                    {
+                        try
+                        {
+                            var modifier = modifierFactory.CreateFromData(modifierData, this);
+                            if (modifier != null)
+                            {
+                                AddActionModifier(modifier);
+                                appliedCount++;
+                            }
+                        }
+                        catch (System.Exception ex)
+                        {
+                            Debug.LogError($"[Unit] Failed to create modifier from {modifierData.name}: {ex.Message}");
+                        }
+                    }
+                }
+                Debug.Log($"[Unit] {appliedCount} modifier(s) applied to {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[Unit] IModifierFactory not found in ServiceLocator - Cannot apply modifiers to {gameObject.name}");
+            }
         }
 
         // ServiceLocator에서 GridManager 가져오기 (등록은 외부에서 처리)

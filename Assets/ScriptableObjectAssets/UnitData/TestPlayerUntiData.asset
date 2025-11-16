@@ -19,3 +19,6 @@ MonoBehaviour:
   maxHealth: 150
   attackPower: 60
   movementRange: 2
+  modifiers:
+  - {fileID: 11400000, guid: 17de4cb34274f994dbf1382f8dfa2849, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}

@@ -219,13 +219,11 @@ namespace Game.Interfaces
     {
         [SerializeField] private bool canMoveWhileDamaged = true;
         [SerializeField] private bool canMoveWhileInCombat = true;
-        [SerializeField] private bool requiresLineOfSight = false;
         [SerializeField] private int minimumMovementRange = 0;
         [SerializeField] private int maximumMovementRange = int.MaxValue;
 
         public bool CanMoveWhileDamaged => canMoveWhileDamaged;
         public bool CanMoveWhileInCombat => canMoveWhileInCombat;
-        public bool RequiresLineOfSight => requiresLineOfSight;
         public int MinimumMovementRange => minimumMovementRange;
         public int MaximumMovementRange => maximumMovementRange;
 

@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections.Generic;
+using Game.Data.Modifiers;
 
 namespace Game.Data
 {
@@ -19,6 +21,9 @@ namespace Game.Data
         [SerializeField] private int attackPower = 10;
         [SerializeField] private int movementRange = 3;
 
+        [Header("능력 Modifiers")]
+        [SerializeField] private List<ModifierData> modifiers = new List<ModifierData>();
+
         // 읽기 전용 속성으로 안전한 외부 접근
         public string UnitName => unitName;
         public string Description => description;
@@ -27,6 +32,7 @@ namespace Game.Data
         public int MaxHealth => maxHealth;
         public int AttackPower => attackPower;
         public int MovementRange => movementRange;
+        public List<ModifierData> Modifiers => modifiers;
 
         // 데이터 유효성 검증
         public bool IsValid()
@@ -35,13 +41,15 @@ namespace Game.Data
                    prefab != null &&
                    maxHealth > 0 &&
                    attackPower >= 0 &&
-                   movementRange >= 0;
+                   movementRange >= 0 &&
+                   modifiers != null;
         }
 
         // 개발자용 디버그 정보
         public override string ToString()
         {
-            return $"UnitData[{unitName}, HP:{maxHealth}, ATK:{attackPower}, MOV:{movementRange}]";
+            int modifierCount = modifiers != null ? modifiers.Count : 0;
+            return $"UnitData[{unitName}, HP:{maxHealth}, ATK:{attackPower}, MOV:{movementRange}, Modifiers:{modifierCount}]";
         }
 
         // 에디터용 검증 (Unity Editor에서만 실행)
