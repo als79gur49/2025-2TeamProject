@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cards:
   - {fileID: 11400000, guid: 3cabebd7d3435dd4e9b3013299a570c8, type: 2}
-  - {fileID: 11400000, guid: ecee8dab67fe2f7488569badf187c826, type: 2}
+  - {fileID: 11400000, guid: e7dbffe757117604e93dc71ee491a5cc, type: 2}
   initialHandSize: 3
   selectionType: 0
   rarityWeightSettings:

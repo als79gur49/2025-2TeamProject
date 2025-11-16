@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86ed6efdce0c0774b93c1db30ea51c2c, type: 3}
-  m_Name: SplashEffect
+  m_Script: {fileID: 11500000, guid: bef57d89d11625a4d98526f8bea19820, type: 3}
+  m_Name: SO_SelfDamageDebuff
   m_EditorClassIdentifier: 
-  effectName: "\uBC29\uC0AC"
-  trigger: 3
-  priority: 50
+  effectName: "\uC790\uD574"
+  trigger: 2
+  priority: 10
   durationTurns: -1
-  splashDamage: 5
+  damagePerTurn: 1

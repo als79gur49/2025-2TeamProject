@@ -15,13 +15,10 @@ MonoBehaviour:
   unitName: "\uC801\uAD70\uC720\uB2DB"
   description: "\uC801\uAD70\uC720\uB2DB\uD14C\uC2A4\uD2B8"
   icon: {fileID: 0}
-  prefab: {fileID: 4673968368137477462, guid: 15abd9d8b0b6a404da52317c6f9e06cf, type: 3}
-  maxHealth: 100
+  prefab: {fileID: 771025333167915155, guid: e0304548a9870ae4ca7e213f3cc44190, type: 3}
+  maxHealth: 1
   attackPower: 30
   movementRange: 1
-  modifiers:
-  - {fileID: 11400000, guid: 17de4cb34274f994dbf1382f8dfa2849, type: 2}
-  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
-  - {fileID: 11400000, guid: 11c0d7a7d8a3dc64bbc6ef6236a5704e, type: 2}
+  modifiers: []
   effects:
-  - {fileID: 11400000, guid: 1bc417f7ef0fe374788775cd1e4717d4, type: 2}
+  - {fileID: 11400000, guid: 515517e5aaba87b4a873f32f62b19549, type: 2}

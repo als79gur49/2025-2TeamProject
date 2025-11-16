@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
+  m_Name: SO_RedConeSummonData
+  m_EditorClassIdentifier: 
+  cardID: SO_RedConeSummonData
+  cardName: "\uB808\uB4DC\uCF58 \uC18C\uD658"
+  description: "\uB808\uB4DC\uCF58\uC744 \uC804\uC7A5\uC5D0 \uC18C\uD658\uD55C\uB2E4."
+  cardArt: {fileID: 21300000, guid: cf0ece4edcee4cb47a1897f083d79270, type: 3}
+  iconSprite: {fileID: 0}
+  rarity: 0
+  manaCost: 3
+  targetType: 4
+  targetRange: 0
+  keywords: []
+  effectDataList:
+  - type: 2
+    value: 1
+    priority: 0
+    affectedType: 0
+    affectedRange: 0
+    unitToSummon: {fileID: 11400000, guid: cc3f014a5ead151408e746eb1b34f0e6, type: 2}
+    ignoreArmor: 0
+    duration: 0
+    vfxData: {fileID: 11400000, guid: 02319e1dd1d1e294ca47558ec393ac8e, type: 2}
+    initialized: 1
+  maxCopiesInDeck: 3
+  isPlayableFromHand: 1
+  requiredTags: []

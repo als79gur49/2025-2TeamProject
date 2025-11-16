@@ -1007,7 +1007,9 @@ MonoBehaviour:
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
   playerStartPositions:
   - {x: 0, y: 6}
-  - {x: 3, y: 6}
+  - {x: 3, y: 4}
+  - {x: 1, y: 2}
+  - {x: 0, y: 2}
   enemyStartPositions: []
 --- !u!114 &1899378046 stripped
 MonoBehaviour:
@@ -1442,7 +1444,7 @@ PrefabInstance:
     - target: {fileID: 1512948453413360610, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 156.81
       objectReference: {fileID: 0}
     - target: {fileID: 1512948453413360610, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
@@ -1532,7 +1534,7 @@ PrefabInstance:
     - target: {fileID: 2957732048660785737, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 134.93
       objectReference: {fileID: 0}
     - target: {fileID: 2957732048660785737, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
@@ -1557,7 +1559,7 @@ PrefabInstance:
     - target: {fileID: 4239786195150257570, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 275.48
       objectReference: {fileID: 0}
     - target: {fileID: 4239786195150257570, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
