@@ -31,7 +31,6 @@ public class GameInitializer : SceneInitializer
     [SerializeField] private CardServiceManager cardServiceManager; // 신규 참조 추가
     [SerializeField] private ResourceManager resourceManager; // Phase 2: 자원 관리 서비스 추가
     [SerializeField] private Game.VFX.SpellEffectExecutor spellEffectExecutor; // VFX 서비스 추가
-    [SerializeField] private TeamConfigurationManager teamConfigurationManager; // 팀별 설정 관리 서비스 추가
     [SerializeField] private BaseManager baseManager; // Base 관리 서비스 추가
     [SerializeField] private GameOutcomeManager gameOutcomeManager; // 승/패 조건 관리 서비스 추가
     [SerializeField] private GameUICoordinator gameUICoordinator; // 게임-UI 이벤트 중재 서비스 추가
@@ -264,9 +263,6 @@ public class GameInitializer : SceneInitializer
         // VFX Services 등록 - SpellEffectExecutor를 통한 VFX 시스템 등록
         RegisterVFXServices();
 
-        // Team Configuration Services 등록 - TeamConfigurationManager를 통한 팀별 설정 시스템 등록
-        RegisterTeamConfigurationServices();
-
         // BaseManager Services 등록 - Base 관리 시스템 등록
         RegisterBaseManagerServices();
 
@@ -418,28 +414,6 @@ public class GameInitializer : SceneInitializer
         }
 
         Log("VFX services registration completed");
-    }
-
-    /// <summary>
-    /// 팀별 설정 서비스 등록 - TeamConfigurationManager를 통한 팀별 Material 등 설정 관리
-    /// </summary>
-    private void RegisterTeamConfigurationServices()
-    {
-        Log("Registering team configuration services via TeamConfigurationManager...");
-
-        // TeamConfigurationManager 등록
-        if (teamConfigurationManager != null)
-        {
-            teamConfigurationManager.Initialize();
-            ServiceLocator.Register<ITeamConfigurationManager>(teamConfigurationManager);
-            Log("✅ TeamConfigurationManager initialized and registered");
-        }
-        else
-        {
-            LogError("❌ TeamConfigurationManager not found - Team configuration services not registered");
-        }
-
-        Log("Team configuration services registration completed");
     }
 
     /// <summary>
@@ -694,12 +668,6 @@ public class GameInitializer : SceneInitializer
         if (!ServiceLocator.IsRegistered<Game.VFX.ISpellEffectExecutor>())
         {
             LogError("❌ Critical service missing: ISpellEffectExecutor");
-        }
-
-        // Team Configuration 서비스 확인
-        if (!ServiceLocator.IsRegistered<ITeamConfigurationManager>())
-        {
-            LogError("❌ Critical service missing: ITeamConfigurationManager");
         }
 
         // BaseManager 서비스 확인

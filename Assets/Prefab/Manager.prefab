@@ -194,54 +194,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableLogging: 1
---- !u!1 &933384976428390964
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3298449015070163565}
-  - component: {fileID: 1171948340127793672}
-  m_Layer: 0
-  m_Name: TeamConfigurationManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3298449015070163565
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933384976428390964}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -51.44341, y: -39.10463, z: 77.85623}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6025138373759218341}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1171948340127793672
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933384976428390964}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27e9bfb93327ed141b7b319fd1989b5a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerMaterial: {fileID: 2100000, guid: 9b3829dea0950824a96caddef56ee6a6, type: 2}
-  enemyMaterial: {fileID: 2100000, guid: e6bec3e2ec0184f47bb89c27755f24b4, type: 2}
-  enableLogging: 1
-  showDebugInfo: 0
 --- !u!1 &4772136837757994731
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,7 +271,6 @@ Transform:
   - {fileID: 4732970996858181546}
   - {fileID: 2510075176088162934}
   - {fileID: 3883146496267213376}
-  - {fileID: 3298449015070163565}
   - {fileID: 474701564039091478}
   - {fileID: 8991476614512703600}
   - {fileID: 6872462905064015439}
