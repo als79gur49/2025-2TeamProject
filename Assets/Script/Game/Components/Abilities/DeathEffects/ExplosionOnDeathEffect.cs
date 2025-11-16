@@ -19,6 +19,7 @@ namespace Game.Components.Abilities
         private readonly int damage;
         private readonly int radius;
         private readonly IGridManager gridManager;
+        private readonly ITeamComponent teamComponent;
 
         public ExplosionOnDeathEffect(Unit owner, int damage, int radius, EffectTrigger trigger, int priority, int durationTurns)
         {
@@ -30,6 +31,7 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
 
             gridManager = ServiceLocator.Get<IGridManager>();
+            teamComponent = owner.GetComponent<ITeamComponent>();
         }
 
         public void TickDuration()
@@ -56,13 +58,20 @@ namespace Game.Components.Abilities
             foreach (var tile in tilesInRange)
             {
                 var target = tile.GetDamageableTarget();
-                if (target != null && target.IsAlive && target.gameObject != Owner.gameObject)
+                if (target != null && target.IsAlive && target.gameObject != Owner.gameObject && IsEnemy(target.gameObject))
                 {
                     target.TakeDamage(damage);
                 }
             }
 
             Debug.Log($"[ExplosionOnDeathEffect] {Owner.name} exploded for {damage} damage in radius {radius}");
+        }
+
+        private bool IsEnemy(GameObject target)
+        {
+            if (teamComponent == null) return true;
+            var targetTeam = target.GetComponent<ITeamComponent>();
+            return targetTeam == null ? true : teamComponent.GetRelationTo(targetTeam) == TeamRelation.Enemy;
         }
     }
 }

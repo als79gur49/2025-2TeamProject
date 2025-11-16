@@ -1175,6 +1175,11 @@ public class Unit : MonoBehaviour
         return effectManager != null && effectManager.HasEffect(effectName);
     }
 
+    public bool HasEffect<T>() where T : class, Game.Core.Effects.IEffect
+    {
+        return effectManager != null && effectManager.HasEffect<T>();
+    }
+
     public void AddStun(int turns)
     {
         if (turns <= 0) return;
@@ -1191,7 +1196,8 @@ public class Unit : MonoBehaviour
 
     public bool IsStunned()
     {
-        return HasEffect("스턴");
+        // 스턴 상태 여부는 이름이 아닌 타입 기반으로 판정
+        return HasEffect<Game.Components.Abilities.StunStatusEffect>();
     }
 
     #endregion

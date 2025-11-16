@@ -109,6 +109,45 @@ namespace Game.Core.Effects
             }
             return false;
         }
+
+        /// <summary>
+        /// 특정 타입의 Effect가 하나라도 존재하는지 확인합니다.
+        /// </summary>
+        public bool HasEffect<T>() where T : class, IEffect
+        {
+            foreach (var kv in effectsByTrigger)
+            {
+                var list = kv.Value;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i] is T)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 런타임 타입으로 Effect 존재 여부를 확인합니다.
+        /// </summary>
+        public bool HasEffect(Type effectType)
+        {
+            if (effectType == null || !typeof(IEffect).IsAssignableFrom(effectType))
+                return false;
+
+            foreach (var kv in effectsByTrigger)
+            {
+                var list = kv.Value;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var effect = list[i];
+                    if (effect != null && effectType.IsInstanceOfType(effect))
+                        return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
-
