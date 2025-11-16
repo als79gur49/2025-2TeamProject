@@ -23,25 +23,27 @@ namespace Game.Services.Modifiers.Conditions
         {
             if (owner == null || context == null || gridManager == null) return false;
 
-            var gridController = gridManager.GetGridController();
-            if (gridController == null) return false;
+            var teamComponent = owner.GetComponent<ITeamComponent>();
+            if (teamComponent == null || teamComponent.Team == TeamType.None) return false;
+
+            var actorTeam = teamComponent.Team;
 
             // 행위자의 행(row) 번호 가져오기
-            int actorRow = context.ActorPosition.y;
+            int actorRow = context.ActorPosition.x;
 
             // 그리드 너비 가져오기
-            int gridWidth = gridManager.GridSize.x;
+            int gridWidth = gridManager.GridSize.y;
 
             // 같은 행의 모든 칸을 순회하며 적 유닛 확인
-            for (int x = 0; x < gridWidth; x++)
+            for (int y = 0; y < gridWidth; y++)
             {
-                var checkPosition = new Vector2Int(x, actorRow);
+                var checkPosition = new Vector2Int(actorRow, y);
 
                 // 행위자 자신의 위치는 건너뛰기
                 if (checkPosition == context.ActorPosition) continue;
 
-                // 해당 위치에 적 유닛이 있는지 확인
-                if (gridController.HasEnemyUnit(checkPosition))
+                // 해당 위치에 적 유닛이 있는지 확인 (행위자 기준 적군)
+                if (gridManager.HasUnitWithRelation(checkPosition, actorTeam, TeamRelation.Enemy))
                 {
                     // 같은 행에 적이 있으면 조건 실패
                     return false;

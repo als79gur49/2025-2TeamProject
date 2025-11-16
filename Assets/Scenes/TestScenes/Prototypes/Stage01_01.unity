@@ -1006,10 +1006,8 @@ MonoBehaviour:
   playerUnitData: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
   playerStartPositions:
-  - {x: 0, y: 0}
-  - {x: 1, y: 0}
-  - {x: 2, y: 0}
-  - {x: 3, y: 0}
+  - {x: 0, y: 6}
+  - {x: 3, y: 6}
   enemyStartPositions: []
 --- !u!114 &1899378046 stripped
 MonoBehaviour:

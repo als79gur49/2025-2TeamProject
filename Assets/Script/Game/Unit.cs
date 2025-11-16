@@ -51,7 +51,6 @@ public class Unit : MonoBehaviour
     private bool isExecutingAction = false;
     private ActionResult currentActionResult;
     private ActionContext currentActionContext;
-    private int stunTurns = 0;
 
     // Effect System
     private EffectManager effectManager;
@@ -1043,10 +1042,9 @@ public class Unit : MonoBehaviour
     /// </summary>
     public void ExecuteAITurn()
     {
-        if (stunTurns > 0)
+        if (IsStunned())
         {
-            stunTurns--;
-            Debug.Log($"[Unit] {gameObject.name} is stunned, turns remaining: {stunTurns}");
+            Debug.Log($"[Unit] {gameObject.name} is stunned and skips its turn");
             return;
         }
 
@@ -1150,15 +1148,6 @@ public class Unit : MonoBehaviour
         Debug.Log($"[Unit] {gameObject.name} completed all actions and released GameFlowLock");
     }
 
-    /// <summary>
-    /// 스턴 효과 추가
-    /// </summary>
-    public void AddStun(int turns)
-    {
-        stunTurns = Mathf.Max(stunTurns, turns);
-        Debug.Log($"[Unit] {gameObject.name} stunned for {stunTurns} turns");
-    }
-
     #endregion
 
     #region Effect System Integration
@@ -1184,6 +1173,25 @@ public class Unit : MonoBehaviour
     public bool HasEffect(string effectName)
     {
         return effectManager != null && effectManager.HasEffect(effectName);
+    }
+
+    public void AddStun(int turns)
+    {
+        if (turns <= 0) return;
+        var stunEffect = new Game.Components.Abilities.StunStatusEffect(
+            this,
+            turns,
+            EffectTrigger.OnTurnStart,
+            priority: 999,
+            durationTurns: turns
+        );
+        AddEffect(stunEffect);
+        Debug.Log($"[Unit] {gameObject.name} stunned for {turns} turns");
+    }
+
+    public bool IsStunned()
+    {
+        return HasEffect("스턴");
     }
 
     #endregion

@@ -31,7 +31,19 @@ namespace Game.Components.Abilities
         public void TickDuration()
         {
             if (RemainingDuration > 0)
+            {
                 RemainingDuration--;
+
+                // 지속 시간이 끝나는 시점에 공격력 보너스 해제
+                if (RemainingDuration == 0 && Owner != null)
+                {
+                    var combat = Owner.GetComponent<ICombatSystem>();
+                    if (combat != null && attackBonus != 0)
+                    {
+                        combat.ModifyAttackPower(-attackBonus);
+                    }
+                }
+            }
         }
 
         public bool CanApply(EffectContext context)
@@ -52,11 +64,11 @@ namespace Game.Components.Abilities
 
             if (combat != null && attackBonus != 0)
             {
-                combat.SetBaseAttackPower(combat.CurrentAttackPower + attackBonus);
+                // 현재 공격력 대신, 기본 공격력에 델타를 적용
+                combat.ModifyAttackPower(attackBonus);
             }
 
             Debug.Log($"[DeployBonusEffect] {Owner.name} gained +{healthBonus} HP, +{attackBonus} ATK on deploy");
         }
     }
 }
-

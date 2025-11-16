@@ -421,6 +421,10 @@ public class GridManager : MonoBehaviour, IGridManager
     // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
     public bool RemoveUnit(GameObject unit) => GetController()?.RemoveUnit(unit) ?? false;
 
+    // 특정 위치에 특정 관계의 유닛이 있는지 확인
+    public bool HasUnitWithRelation(Vector2Int position, TeamType relativeTo, TeamRelation relation)
+        => GetController()?.HasUnitWithRelation(position, relativeTo, relation) ?? false;
+
     // 유닛 이동 (가장 중요한 기능들)
     public bool CanMoveUnit(GameObject unit, Vector2Int targetPosition) => GetController()?.CanMoveUnit(unit, targetPosition) ?? false;
     public bool MoveUnit(GameObject unit, Vector2Int newPosition) => GetController()?.MoveUnit(unit, newPosition) ?? false;

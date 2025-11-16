@@ -1,28 +1,53 @@
-using UnityEngine;
-using Game.Interfaces;
 using Game.Core;
+using Game.Core.Effects;
+using Game.Interfaces;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Components.Abilities
 {
-    public class StunEffect : IAttackEffect
+    /// <summary>
+    /// 공격 적중 시 대상에게 스턴 상태를 부여하는 Effect입니다.
+    /// </summary>
+    public class StunEffect : IEffect
     {
         public string EffectName => "스턴";
         public int Priority { get; private set; }
         public Unit Owner { get; private set; }
+        public EffectTrigger Trigger { get; private set; }
+        public int RemainingDuration { get; private set; }
 
-        private int stunDuration;
+        private readonly int stunDuration;
 
-        public StunEffect(Unit owner, int duration = 1, int priority = 5)
+        public StunEffect(Unit owner, int stunDuration, EffectTrigger trigger, int priority, int durationTurns)
         {
             Owner = owner;
-            stunDuration = duration;
+            this.stunDuration = stunDuration;
+            Trigger = trigger;
             Priority = priority;
+            RemainingDuration = durationTurns;
         }
 
-        public void ApplyEffectToTiles(List<Tile> primaryTiles, ActionContext context)
+        public void TickDuration()
         {
-            foreach (var tile in primaryTiles)
+            if (RemainingDuration > 0)
+                RemainingDuration--;
+        }
+
+        public bool CanApply(EffectContext context)
+        {
+            return Owner != null && Owner.IsAlive &&
+                   Trigger == EffectTrigger.OnAttack &&
+                   context != null &&
+                   context.AffectedTiles != null &&
+                   context.AffectedTiles.Count > 0;
+        }
+
+        public void Apply(EffectContext context)
+        {
+            if (context == null || context.AffectedTiles == null) return;
+
+            foreach (var tile in context.AffectedTiles)
             {
                 if (tile == null) continue;
 
@@ -31,7 +56,9 @@ namespace Game.Components.Abilities
                 {
                     var targetUnit = targetHealth.gameObject.GetComponent<Unit>();
                     if (targetUnit != null)
+                    {
                         targetUnit.AddStun(stunDuration);
+                    }
                 }
             }
         }

@@ -194,6 +194,37 @@ namespace Game.Components
             return gridState?.GetUnitsInRange(center, range) ?? new List<GameObject>();
         }
 
+        /// <summary>
+        /// 정사각형 범위 내 모든 타일 컴포넌트 반환 (Chebyshev distance)
+        /// radius 0: 1개 (1x1), radius 1: 9개 (3x3), radius 2: 25개 (5x5)
+        /// </summary>
+        public List<Tile> GetTilesInRange(Vector2Int center, int radius)
+        {
+            List<Tile> tiles = new List<Tile>();
+
+            // Chebyshev distance로 정사각형 범위 순회
+            for (int x = center.x - radius; x <= center.x + radius; x++)
+            {
+                for (int y = center.y - radius; y <= center.y + radius; y++)
+                {
+                    Vector2Int position = new Vector2Int(x, y);
+
+                    // 유효한 그리드 위치인지 확인
+                    if (!IsValidPosition(position))
+                        continue;
+
+                    // 해당 위치의 Tile 컴포넌트 가져오기
+                    Tile tile = GetTileAtPosition(position);
+                    if (tile != null)
+                    {
+                        tiles.Add(tile);
+                    }
+                }
+            }
+
+            return tiles;
+        }
+
         #region 팀 기반 유닛 조회 메서드들 (IGridTeamQuery 구현)
 
         /// <summary>
@@ -202,22 +233,6 @@ namespace Game.Components
         public bool HasUnit(Vector2Int position)
         {
             return GetUnitAtPosition(position) != null;
-        }
-
-        /// <summary>
-        /// 해당 위치에 플레이어 유닛이 있는지 확인
-        /// </summary>
-        public bool HasPlayerUnit(Vector2Int position)
-        {
-            return HasUnitWithTeam(position, TeamType.Player);
-        }
-
-        /// <summary>
-        /// 해당 위치에 적군 유닛이 있는지 확인
-        /// </summary>
-        public bool HasEnemyUnit(Vector2Int position)
-        {
-            return HasUnitWithTeam(position, TeamType.Enemy);
         }
 
         /// <summary>
@@ -243,9 +258,11 @@ namespace Game.Components
             var teamComponent = unit.GetComponent<ITeamComponent>();
             if (teamComponent == null) return false;
 
-            // 임시 TeamComponent 생성하여 관계 확인
-            var relativeTeamComponent = new TempTeamComponent(relativeTo);
-            return teamComponent.GetRelationTo(relativeTeamComponent) == relation;
+            var targetTeam = teamComponent.Team;
+            if (relativeTo == TeamType.None || targetTeam == TeamType.None) return false;
+
+            var actualRelation = TeamRelationMatrix.GetRelation(relativeTo, targetTeam);
+            return actualRelation == relation;
         }
 
         /// <summary>
@@ -258,47 +275,6 @@ namespace Game.Components
 
             var teamComponent = unit.GetComponent<ITeamComponent>();
             return teamComponent?.Team ?? TeamType.None;
-        }
-
-        /// <summary>
-        /// 임시 팀 컴포넌트 (관계 확인용)
-        /// </summary>
-        private class TempTeamComponent : ITeamComponent
-        {
-            public TeamType Team { get; set; }
-            public string TeamName => Team.ToString();
-            public Color TeamColor => Color.white;
-
-            public event Action<TeamType, TeamType> OnTeamChanged;
-
-            public TempTeamComponent(TeamType team)
-            {
-                Team = team;
-            }
-
-            public TeamRelation GetRelationTo(ITeamComponent other)
-            {
-                if (other == null) return TeamRelation.Neutral;
-                if (other == this) return TeamRelation.Self;
-
-                return TeamRelationMatrix.GetRelation(Team, other.Team);
-            }
-
-            public bool IsSameTeam(ITeamComponent other)
-            {
-                return other != null && Team == other.Team && Team != TeamType.None;
-            }
-
-            public bool IsEnemy(ITeamComponent other)
-            {
-                return GetRelationTo(other) == TeamRelation.Enemy;
-            }
-
-            public bool IsAlly(ITeamComponent other)
-            {
-                var relation = GetRelationTo(other);
-                return relation == TeamRelation.Ally || relation == TeamRelation.Self;
-            }
         }
 
         #endregion

@@ -220,6 +220,9 @@ namespace Game.Services
         /// <param name="isPlayerUnit">플레이어가 사용하는 카드인지 여부</param>
         private bool ValidatePlacementTarget(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit)
         {
+            // 카드 사용자 기준 팀 계산
+            var userTeam = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
+
             // 배치 대상 타입에 따른 검증
             switch (cardData.Target)
             {
@@ -234,29 +237,19 @@ namespace Game.Services
 
                 case CardData.TargetType.Enemy:
                     // 카드 사용자 관점에서 적군 유닛이 있는 위치에만 배치 가능
-                    if (isPlayerUnit)
-                    {
-                        // 플레이어가 사용 → Enemy 팀이 적
-                        return gridController?.HasEnemyUnit(targetPosition) ?? true;
-                    }
-                    else
-                    {
-                        // 적군 AI가 사용 → Player 팀이 적
-                        return gridController?.HasPlayerUnit(targetPosition) ?? true;
-                    }
+                    return gridController?.HasUnitWithRelation(
+                        targetPosition,
+                        userTeam,
+                        TeamRelation.Enemy
+                    ) ?? true;
 
                 case CardData.TargetType.Ally:
                     // 카드 사용자 관점에서 아군 유닛이 있는 위치에만 배치 가능
-                    if (isPlayerUnit)
-                    {
-                        // 플레이어가 사용 → Player 팀이 아군
-                        return gridController?.HasPlayerUnit(targetPosition) ?? true;
-                    }
-                    else
-                    {
-                        // 적군 AI가 사용 → Enemy 팀이 아군
-                        return gridController?.HasEnemyUnit(targetPosition) ?? true;
-                    }
+                    return gridController?.HasUnitWithRelation(
+                        targetPosition,
+                        userTeam,
+                        TeamRelation.Ally
+                    ) ?? true;
 
                 case CardData.TargetType.Any:
                     // 아군/적군 상관없이 유닛이 있는 위치에 배치 가능

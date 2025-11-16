@@ -138,6 +138,8 @@ namespace Game.Interfaces
         bool TryGetPositionToAttackTarget(GameObject target, out Vector2Int position);
         // 🔧 FIX: Unit death에서 GridState 정리를 위한 RemoveUnit 메서드 추가
         bool RemoveUnit(GameObject unit);
+        /// <summary>특정 위치에 특정 관계의 유닛이 있는지 확인</summary>
+        bool HasUnitWithRelation(Vector2Int position, TeamType relativeTo, TeamRelation relation);
         
         // ✅ 유닛 이동
         bool CanMoveUnit(GameObject unit, Vector2Int targetPosition);
@@ -250,8 +252,6 @@ namespace Game.Interfaces
     {
         // 팀별 유닛 존재 확인
         bool HasUnit(Vector2Int position);
-        bool HasPlayerUnit(Vector2Int position);
-        bool HasEnemyUnit(Vector2Int position);
 
         // 확장성을 위한 일반화된 메서드들
         bool HasUnitWithTeam(Vector2Int position, TeamType team);
@@ -370,6 +370,12 @@ namespace Game.Interfaces
         /// Get Tile component at specified grid position (for Unit currentTile setup)
         /// </summary>
         Tile GetTileAtPosition(Vector2Int gridPosition);
+
+        /// <summary>
+        /// Get all Tile components within square range (Chebyshev distance)
+        /// radius 0: 1 tile (center), radius 1: 9 tiles (3x3), radius 2: 25 tiles (5x5)
+        /// </summary>
+        List<Tile> GetTilesInRange(Vector2Int center, int radius);
 
         // 이벤트들
         event System.Action<GameObject, Vector2Int, Vector2Int> OnUnitMoved;

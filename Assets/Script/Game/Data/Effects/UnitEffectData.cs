@@ -15,7 +15,7 @@ namespace Game.Data.Effects
         [SerializeField] private int priority = 0;
 
         [Header("지속 시간 (턴 단위)")]
-        [Tooltip("-1이면 무한, 0이면 즉시 제거됩니다.")]
+        [Tooltip("-1이면 무한, 1 이상만 사용합니다.")]
         [SerializeField] private int durationTurns = -1;
 
         public string EffectName => effectName;
@@ -35,8 +35,17 @@ namespace Game.Data.Effects
             {
                 effectName = name;
             }
+
+            // 0은 허용하지 않음: 1 이상 또는 -1(무한)만 사용
+            if (durationTurns == 0)
+            {
+                durationTurns = 1;
+            }
+            else if (durationTurns < -1)
+            {
+                durationTurns = -1;
+            }
         }
 #endif
     }
 }
-

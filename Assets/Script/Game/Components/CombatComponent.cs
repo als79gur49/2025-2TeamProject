@@ -991,13 +991,18 @@ namespace Game.Components
 
             int modifierDamage = attackModifier.CalculateDamage(currentAttackContext);
 
+            // 동일 HealthComponent(특히 Base)가 여러 타일에 걸쳐 있어도 한 번만 피해 적용
+            var uniqueTargets = new HashSet<HealthComponent>();
+
             foreach (var tile in currentAttackResult.ValidTiles)
             {
                 if (tile == null) continue;
 
                 var targetHealth = tile.GetDamageableTarget();
-                if (targetHealth != null && targetHealth.IsAlive)
+                if (targetHealth != null && targetHealth.IsAlive && uniqueTargets.Add(targetHealth))
+                {
                     ApplyDamageToTarget(targetHealth.gameObject, modifierDamage);
+                }
             }
 
             TriggerAttackEffects(currentAttackResult.ValidTiles, currentAttackContext);

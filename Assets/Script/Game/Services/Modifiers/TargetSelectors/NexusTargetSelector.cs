@@ -27,19 +27,20 @@ namespace Game.Services.Modifiers.TargetSelectors
 
             var gridSize = gridManager.GridSize;
 
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                for (int y = 0; y < gridSize.y; y++)
-                {
-                    var tile = gridController.GetTileAtPosition(new Vector2Int(x, y));
-                    if (tile?.OccupyingBase == null || !tile.OccupyingBase.IsAlive) continue;
+            // 스나이퍼는 자신의 행(row)에서만 넥서스를 탐색
+            int actorRow = origin.x;
+            if (actorRow < 0 || actorRow >= gridSize.x) return foundTargets;
 
-                    // 적 넥서스인지 확인 (팀당 베이스가 하나뿐이므로 IsAlive + 팀 관계 체크로 충분)
-                    if (IsValidRelation(tile.OccupyingBase.gameObject, teamComponent, parameters.TargetRelation))
-                    {
-                        foundTargets.Add(tile);
-                        break; // 넥서스는 하나만 있으므로 찾으면 종료
-                    }
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                var tile = gridController.GetTileAtPosition(new Vector2Int(actorRow, y));
+                if (tile?.OccupyingBase == null || !tile.OccupyingBase.IsAlive) continue;
+
+                // 적 넥서스인지 확인 (팀당 베이스가 하나뿐이므로 IsAlive + 팀 관계 체크로 충분)
+                if (IsValidRelation(tile.OccupyingBase.gameObject, teamComponent, parameters.TargetRelation))
+                {
+                    foundTargets.Add(tile);
+                    break; // 같은 행에서 첫 번째 넥서스 타일만 타겟
                 }
             }
 
