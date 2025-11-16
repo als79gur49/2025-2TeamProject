@@ -98,19 +98,7 @@ namespace Game
                 Debug.LogWarning($"[UnitGameServiceTest] 위치 ({position.x}, {position.y})에서 Tile을 찾을 수 없습니다.");
             }
 
-            // 6. TeamConfigurationManager를 통한 Material 적용
-            var teamConfigManager = ServiceLocator.Get<ITeamConfigurationManager>();
-            if (teamConfigManager != null)
-            {
-                TeamType teamType = isPlayer ? TeamType.Player : TeamType.Enemy;
-                teamConfigManager.ApplyTeamMaterialToUnit(unit, teamType);
-            }
-            else
-            {
-                Debug.LogWarning("[UnitGameServiceTest] TeamConfigurationManager not found in ServiceLocator - Material not applied");
-            }
-
-            // 7. 턴 시작
+            // 6. 턴 시작
             unit.OnTurnStart();
 
             Debug.Log($"[UnitGameServiceTest] {(isPlayer ? "Player" : "Enemy")} 유닛 소환 완료: {unit.name} at ({position.x}, {position.y})");

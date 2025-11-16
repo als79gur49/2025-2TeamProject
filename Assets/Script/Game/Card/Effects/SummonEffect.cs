@@ -173,18 +173,6 @@ namespace Game.Card.Effects
             scale.z *= isPlayerUnit ? 1f : -1f;
             unitObject.transform.localScale = scale;
 
-            // TeamConfigurationManager를 통한 Material 적용
-            var teamConfigManager = Core.ServiceLocator.Get<ITeamConfigurationManager>();
-            if (teamConfigManager != null)
-            {
-                TeamType teamType = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
-                teamConfigManager.ApplyTeamMaterialToUnit(unit, teamType);
-            }
-            else
-            {
-                Debug.LogWarning("[SummonEffect] TeamConfigurationManager not found in ServiceLocator - Material not applied");
-            }
-
             Debug.Log($"[SummonEffect] Unit spawned at tile {tile.GetGridPosition()}");
         }
 

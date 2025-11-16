@@ -60,13 +60,13 @@ namespace Game.Components.Abilities
             }
 
             var movementSystem = Owner.GetComponent<IMovementSystem>();
-            if (movementSystem == null || !movementSystem.CanMove || movementSystem.CurrentMovementPoints <= 0)
+            if (movementSystem == null || !movementSystem.CanMove)
             {
                 result.IsSuccess = false;
                 return HandleFailure(result, context);
             }
 
-            int maxRange = Mathf.Min(movementSystem.MovementRange, movementSystem.CurrentMovementPoints);
+            int maxRange = movementSystem.MovementRange;
             if (maxRange <= 0)
             {
                 result.IsSuccess = false;

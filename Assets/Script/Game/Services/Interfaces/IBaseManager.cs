@@ -25,8 +25,7 @@ namespace Game.Services
         /// Injects dependencies and initializes both Player and Enemy bases
         /// </summary>
         /// <param name="gridManager">Grid management service</param>
-        /// <param name="teamConfigManager">Team configuration management service</param>
-        void Init(IGridManager gridManager, ITeamConfigurationManager teamConfigManager);
+        void Init(IGridManager gridManager);
 
         /// <summary>
         /// Cleans up Base objects for game restart

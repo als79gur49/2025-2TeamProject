@@ -68,7 +68,11 @@ namespace Game.Components.Abilities
                 result.IsSuccess = true;
                 result.SelectedModifier = this;
 
-                Debug.Log($"[BoosterModifier] {allReachableTiles.Count} tiles reachable");
+                // 가장 먼 거리의 타일을 목적지로 선택
+                var furthestTile = allReachableTiles[allReachableTiles.Count - 1];
+                result.MoveDestination = new Vector2Int(furthestTile.X, furthestTile.Y);
+
+                Debug.Log($"[BoosterModifier] {allReachableTiles.Count} tiles reachable, destination: ({furthestTile.X}, {furthestTile.Y})");
             }
             else
             {

@@ -25,12 +25,6 @@ namespace Game.Services.Modifiers.TargetSelectors
             var gridController = gridManager?.GetGridController();
             if (gridController == null) return movableTiles;
 
-            // 무제한 범위 (부스터) 처리
-            if (parameters.Range >= 99)
-            {
-                return FindAllWalkableTiles(origin, gridController);
-            }
-
             if (teamComponent == null)
                 return movableTiles;
 
@@ -48,8 +42,11 @@ namespace Game.Services.Modifiers.TargetSelectors
             if (direction == 0)
                 return movableTiles;
 
+            // Booster(무제한 범위)는 그리드 끝까지, 일반 이동은 range까지만 전방 직선 탐색
+            int maxDistance = parameters.Range >= 99 ? gridManager.GridSize.y : parameters.Range;
+
             // 한 방향으로만 직선 탐색, 막히면 중단
-            for (int distance = 1; distance <= parameters.Range; distance++)
+            for (int distance = 1; distance <= maxDistance; distance++)
             {
                 Vector2Int checkPos = new Vector2Int(origin.x, origin.y + (direction * distance));
                 var tile = gridController.GetTileAtPosition(checkPos);

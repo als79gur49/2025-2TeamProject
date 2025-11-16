@@ -144,13 +144,9 @@ namespace Game.UI
             }
 
             // MovementComponent 이벤트 구독
-            if (movementComponent != null && showMovement)
+            if (movementComponent != null && showMovement && showDebugInfo)
             {
-                movementComponent.OnMovementPointsChanged += OnMovementPointsChanged;
-                movementComponent.OnMovementRefreshed += OnMovementRefreshed;
-
-                if (showDebugInfo)
-                    Debug.Log($"[UnitStatsUI] Subscribed to MovementComponent events for {gameObject.name}");
+                Debug.Log($"[UnitStatsUI] MovementComponent found for {gameObject.name}");
             }
         }
 
@@ -175,11 +171,7 @@ namespace Game.UI
             }
 
             // MovementComponent 이벤트 구독 해제
-            if (movementComponent != null)
-            {
-                movementComponent.OnMovementPointsChanged -= OnMovementPointsChanged;
-                movementComponent.OnMovementRefreshed -= OnMovementRefreshed;
-            }
+            // (이동력 포인트 이벤트 제거됨)
 
             if (showDebugInfo)
                 Debug.Log($"[UnitStatsUI] Unsubscribed from all events for {gameObject.name}");
@@ -231,28 +223,6 @@ namespace Game.UI
 
             if (showDebugInfo)
                 Debug.Log($"[UnitStatsUI] Attack power changed to {newAttackPower}");
-        }
-
-        /// <summary>
-        /// 이동력 변경 이벤트 핸들러
-        /// </summary>
-        private void OnMovementPointsChanged(int newMovementPoints)
-        {
-            UpdateMovementUI();
-
-            if (showDebugInfo)
-                Debug.Log($"[UnitStatsUI] Movement points changed to {newMovementPoints}");
-        }
-
-        /// <summary>
-        /// 이동력 갱신 이벤트 핸들러 (턴 시작 등)
-        /// </summary>
-        private void OnMovementRefreshed()
-        {
-            UpdateMovementUI();
-
-            if (showDebugInfo)
-                Debug.Log($"[UnitStatsUI] Movement refreshed");
         }
 
         /// <summary>
@@ -321,7 +291,7 @@ namespace Game.UI
             if (!showMovement || movementText == null || movementComponent == null)
                 return;
 
-            int currentMovement = movementComponent.CurrentMovementPoints;
+            int currentMovement = movementComponent.MovementRange;
 
             // 텍스트 업데이트
             movementText.text = string.Format(movementFormat, currentMovement);
@@ -468,7 +438,7 @@ namespace Game.UI
                 Debug.Log($"Current Attack: {combatComponent.CurrentAttackPower}");
 
             if (movementComponent != null)
-                Debug.Log($"Current Movement: {movementComponent.CurrentMovementPoints}/{movementComponent.MaxMovementPoints}");
+                Debug.Log($"Current Movement Range: {movementComponent.MovementRange}");
         }
 
         [ContextMenu("Test Event Subscription")]

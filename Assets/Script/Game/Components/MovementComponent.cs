@@ -95,8 +95,6 @@ namespace Game.Components
         [SerializeField] private MovementConstraints constraints = new MovementConstraints();
 
         // 런타임 상태
-        private int currentMovementPoints;
-        private int maxMovementPoints;
         private bool hasMovedThisTurn = false;
         private bool isMoving = false;
         private int lastTeleportTurn = -999;
@@ -130,10 +128,6 @@ namespace Game.Components
             combatSystem = GetComponent<ICombatSystem>();
             teamComponent = GetComponent<ITeamComponent>();
             animationController = GetComponent<IAnimationController>();
-
-            // 초기 이동력 설정
-            maxMovementPoints = movementRange;
-            currentMovementPoints = maxMovementPoints;
 
             // 애니메이션 이벤트 구독
             if (animationController != null)
@@ -179,41 +173,28 @@ namespace Game.Components
         #region IMovementSystem Implementation
 
         public int MovementRange => GetModifiedMovementRange();
-        public int CurrentMovementPoints => currentMovementPoints;
-        public int MaxMovementPoints => maxMovementPoints;
         public MovementType MovementType => movementType;
         // Phase 2: Transform 보간 완료까지 다음 이동 차단
         // Phase 5: 순차 이동 진행 중에도 다음 이동 차단
-        public bool CanMove => healthComponent?.IsAlive == true && currentMovementPoints > 0 && !isMoving && !isTransformMoving && !isSequentialMoving;
+        public bool CanMove => healthComponent?.IsAlive == true && !isMoving && !isTransformMoving && !isSequentialMoving;
         public bool IsMoving => isMoving || isSequentialMoving; // Phase 5: 순차 이동 중에도 isMoving true
         public bool HasMovedThisTurn => hasMovedThisTurn;
 
         public bool CanMoveTo(Vector2Int targetPosition)
         {
-            //if (!CanMove) return false;
-            //if (gridManager == null) return false;
-
             if (!CanMove)
             {
-                Debug.LogError($"healthComponent is alive {healthComponent?.IsAlive} " +
-                    $"| currentMovementPoints {currentMovementPoints}" +
-                    $"| isMoveing {isMoving}");
-
                 return false;
             }
 
             if (gridManager == null)
             {
-                Debug.LogError($"gridManager is null");
-
+                Debug.LogError($"[MovementComponent] Cannot move - gridManager is null");
                 return false;
             }
 
             var currentPosition = gridManager.GetUnitPosition(gameObject);
             int distance = currentPosition.GetManhattanDistance(targetPosition);
-
-            // 이동 거리 확인
-            if (distance > currentMovementPoints) return false;
 
             // 제약 조건 확인
             if (!constraints.IsMovementAllowed(healthComponent, combatSystem, distance)) return false;
@@ -243,11 +224,6 @@ namespace Game.Components
             return path != null && path.Count > 0;
         }
 
-        public bool CanMoveDistance(int distance)
-        {
-            return CanMove && distance <= currentMovementPoints && distance >= 0;
-        }
-
         /// <summary>
         /// 좌우 방향으로만 이동 가능한 위치 탐색 (Y축만 허용, X축 및 대각선 금지)
         /// </summary>
@@ -259,7 +235,7 @@ namespace Game.Components
             if (gridManager == null) return validPositions;
 
             var currentPosition = gridManager.GetUnitPosition(gameObject);
-            int range = currentMovementPoints;
+            int range = MovementRange;
 
             // 좌우 방향으로만 탐색 (Y축만, X축 고정)
             if (direction > 0)
@@ -363,10 +339,10 @@ namespace Game.Components
 
         public MovementResult MoveTo(Vector2Int targetPosition)
         {
-            return MoveToPosition(targetPosition, true);
+            return MoveToPosition(targetPosition);
         }
 
-        public MovementResult MoveToPosition(Vector2Int targetPosition, bool useMovementPoints = true)
+        public MovementResult MoveToPosition(Vector2Int targetPosition)
         {
             var startPosition = gridManager?.GetUnitPosition(gameObject) ?? Vector2Int.zero;
 
@@ -389,13 +365,6 @@ namespace Game.Components
                     return MovementResult.Failed(startPosition, "No valid path found");
                 }
                 movementCost = path.Count - 1; // 시작 위치 제외한 칸 수
-            }
-
-            // 이동력 검증
-            if (useMovementPoints && movementCost > currentMovementPoints)
-            {
-                return MovementResult.Failed(startPosition,
-                    $"Insufficient movement points: need {movementCost}, have {currentMovementPoints}");
             }
 
             // 목표 위치 점유 확인
@@ -424,7 +393,7 @@ namespace Game.Components
 
             // 이동 시작 성공 반환 (실제 완료는 코루틴에서 비동기 처리)
             var result = MovementResult.Succeeded(startPosition, targetPosition, path,
-                                                movementCost, 0f, "Sequential movement started");
+                                                0f, "Sequential movement started");
 
             // Phase 5: OnMovementCompleted는 코루틴 완료 시 발생 (MoveAlongPathSequentially 내부)
             // isMoving은 코루틴 완료 시 자동으로 false 처리됨
@@ -472,13 +441,7 @@ namespace Game.Components
 
         public void SetMovementRange(int newRange)
         {
-            var oldRange = movementRange;
             movementRange = Mathf.Max(0, newRange);
-            
-            if (oldRange != movementRange)
-            {
-                RefreshMovementPoints();
-            }
         }
 
         public void ModifyMovementRange(int modifier)
@@ -486,52 +449,14 @@ namespace Game.Components
             SetMovementRange(movementRange + modifier);
         }
 
-        public void ConsumeMovementPoints(int points)
-        {
-            int oldPoints = currentMovementPoints;
-            currentMovementPoints = Mathf.Max(0, currentMovementPoints - points);
-            
-            if (oldPoints != currentMovementPoints)
-            {
-                OnMovementPointsChanged?.Invoke(currentMovementPoints);
-            }
-        }
-
-        public void RestoreMovementPoints(int points)
-        {
-            int oldPoints = currentMovementPoints;
-            currentMovementPoints = Mathf.Min(maxMovementPoints, currentMovementPoints + points);
-            
-            if (oldPoints != currentMovementPoints)
-            {
-                OnMovementPointsChanged?.Invoke(currentMovementPoints);
-            }
-        }
-
-        public void RefreshMovementPoints()
-        {
-            int oldMax = maxMovementPoints;
-            int oldCurrent = currentMovementPoints;
-            
-            maxMovementPoints = MovementRange;
-            currentMovementPoints = maxMovementPoints;
-            
-            if (oldMax != maxMovementPoints || oldCurrent != currentMovementPoints)
-            {
-                OnMovementPointsChanged?.Invoke(currentMovementPoints);
-                OnMovementRefreshed?.Invoke();
-            }
-        }
-
         public void StartTurn()
         {
             // 🔧 방어적 상태 초기화 - 적 처치 후 이동 불가 문제 해결
             isMoving = false;                    // 강제로 이동 중 플래그 초기화
             hasMovedThisTurn = false;           // 턴 행동 상태 초기화
-            RefreshMovementPoints();            // 이동력 포인트 복구
             
             Debug.Log($"[MovementComponent] {gameObject.name} StartTurn() - CanMove: {CanMove}, " +
-                     $"MovementPoints: {currentMovementPoints}, IsMoving: {isMoving}");
+                     $"IsMoving: {isMoving}");
         }
 
         public void EndTurn()
@@ -557,11 +482,8 @@ namespace Game.Components
                 var currentGridPos = gridManager.GetUnitPosition(gameObject);
                 transform.position = gridManager.CalculateWorldPositionWithHeight(currentGridPos);
             }
-
-            RefreshMovementPoints();
-
-            Debug.Log($"[MovementComponent] {gameObject.name} Movement fully reset - " +
-                     $"CanMove: {CanMove}, MovementPoints: {currentMovementPoints}");
+            
+            Debug.Log($"[MovementComponent] {gameObject.name} Movement fully reset - CanMove: {CanMove}");
         }
 
         #endregion
@@ -615,7 +537,7 @@ namespace Game.Components
             lastTeleportTurn = (int)Time.fixedTime;
             OnTeleportUsed?.Invoke(targetPosition);
 
-            return MoveToPosition(targetPosition, false); // 텔레포트는 이동력 소모 없음
+            return MoveToPosition(targetPosition);
         }
 
         public MovementResult Jump(Vector2Int targetPosition)
@@ -722,8 +644,6 @@ namespace Game.Components
         public event Action<Vector2Int, Vector2Int> OnMovementStarted;
         public event Action<Vector2Int, Vector2Int> OnMovementCompleted;
         public event Action<Vector2Int> OnMovementCancelled;
-        public event Action<int> OnMovementPointsChanged;
-        public event Action OnMovementRefreshed;
         public event Action<Vector2Int> OnTeleportUsed;
         public event Action<Vector2Int> OnJumpPerformed;
         public event Action<MovementAbility, bool> OnMovementAbilityChanged;
@@ -755,7 +675,6 @@ namespace Game.Components
             if (modifier != null)
             {
                 movementRangeModifiers.Add(modifier);
-                RefreshMovementPoints();
             }
         }
 
@@ -763,7 +682,6 @@ namespace Game.Components
         {
             if (movementRangeModifiers.Remove(modifier))
             {
-                RefreshMovementPoints();
             }
         }
 
@@ -772,7 +690,6 @@ namespace Game.Components
             if (movementRangeModifiers.Count > 0)
             {
                 movementRangeModifiers.Clear();
-                RefreshMovementPoints();
             }
         }
 
@@ -979,10 +896,7 @@ namespace Game.Components
                     yield return null;
                 }
 
-                // 이동력 1 소비
-                ConsumeMovementPoints(1);
-
-                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} completed, remaining points: {currentMovementPoints}");
+                Debug.Log($"[MovementComponent] {gameObject.name}: Step {i}/{path.Count - 1} completed");
 
                 // 선택적: 각 스텝 사이에 짧은 대기 시간 추가 (시각적 효과)
                 // yield return new WaitForSeconds(0.1f);

@@ -52,7 +52,6 @@ namespace Game.Services
 
         // Dependencies (injected)
         private IGridManager gridManager;
-        private ITeamConfigurationManager teamConfigManager;
 
         // Base instances
         private Base playerBase;
@@ -102,11 +101,10 @@ namespace Game.Services
         /// Manual initialization with dependency injection - called by GameServiceManager
         /// Injects dependencies and initializes both Player and Enemy bases
         /// </summary>
-        public void Init(IGridManager gridManager, ITeamConfigurationManager teamConfigManager)
+        public void Init(IGridManager gridManager)
         {
             // Phase 1: Inject dependencies from parameters
             this.gridManager = gridManager;
-            this.teamConfigManager = teamConfigManager;
 
             // Phase 2: Validate dependencies
             if (!ValidateDependencies())
@@ -212,33 +210,12 @@ namespace Game.Services
                 }
             }
 
-            // Apply team visuals
-            ApplyTeamVisuals(baseComponent, team);
-
             // Set world position
             Vector3 worldPos = gridManager.GridToWorldPosition(gridPosition);
             baseObject.transform.position = worldPos;
 
             Log($"[BaseManager] {teamName} Base created successfully");
             return baseComponent;
-        }
-
-        /// <summary>
-        /// Applies team-specific visuals to Base
-        /// </summary>
-        private void ApplyTeamVisuals(Base baseComponent, TeamType team)
-        {
-            if (teamConfigManager == null) return;
-
-            Material teamMaterial = teamConfigManager.GetTeamMaterial(team);
-            if (teamMaterial != null)
-            {
-                Renderer renderer = baseComponent.GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    renderer.material = teamMaterial;
-                }
-            }
         }
 
         #endregion

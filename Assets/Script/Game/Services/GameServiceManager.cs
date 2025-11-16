@@ -264,20 +264,19 @@ namespace Game.Services
                 LogEvent("❌ GameService is null - cannot initialize");
             }
 
-            // 5. BaseManager (depends on GridManager, TeamConfigurationManager)
+            // 5. BaseManager (depends on GridManager)
             if (baseManager != null)
             {
                 IGridManager gridManager = ServiceLocator.Get<IGridManager>();
-                ITeamConfigurationManager teamConfigManager = ServiceLocator.Get<ITeamConfigurationManager>();
 
-                if (gridManager != null && teamConfigManager != null)
+                if (gridManager != null)
                 {
-                    baseManager.Init(gridManager, teamConfigManager);
+                    baseManager.Init(gridManager);
                     LogEvent("✅ BaseManager initialized with dependencies");
                 }
                 else
                 {
-                    LogEvent("❌ Cannot initialize BaseManager - GridManager or TeamConfigurationManager not available in ServiceLocator");
+                    LogEvent("❌ Cannot initialize BaseManager - GridManager not available in ServiceLocator");
                 }
             }
             else

@@ -11,8 +11,6 @@ namespace Game.Interfaces
     {
         // ✅ 기본 이동 정보
         int MovementRange { get; }
-        int CurrentMovementPoints { get; }
-        int MaxMovementPoints { get; }
         MovementType MovementType { get; }
         
         // ✅ 이동 상태
@@ -22,20 +20,16 @@ namespace Game.Interfaces
         
         // ✅ 이동 가능성 확인
         bool CanMoveTo(Vector2Int targetPosition);
-        bool CanMoveDistance(int distance);
         List<Vector2Int> GetValidMovePositions(int direction = 0);
         
         // ✅ 이동 실행
         MovementResult MoveTo(Vector2Int targetPosition);
-        MovementResult MoveToPosition(Vector2Int targetPosition, bool useMovementPoints = true);
+        MovementResult MoveToPosition(Vector2Int targetPosition);
         MovementResult MoveInDirection(Vector2Int direction, int distance = 1);
         
-        // ✅ 이동력 관리
+        // ✅ 이동 범위 관리
         void SetMovementRange(int newRange);
         void ModifyMovementRange(int modifier);
-        void ConsumeMovementPoints(int points);
-        void RestoreMovementPoints(int points);
-        void RefreshMovementPoints();
         
         // ✅ 턴 관리
         void StartTurn();
@@ -46,8 +40,6 @@ namespace Game.Interfaces
         event Action<Vector2Int, Vector2Int> OnMovementStarted;  // 시작위치, 목표위치
         event Action<Vector2Int, Vector2Int> OnMovementCompleted; // 시작위치, 최종위치
         event Action<Vector2Int> OnMovementCancelled;
-        event Action<int> OnMovementPointsChanged;
-        event Action OnMovementRefreshed;
     }
 
     /// <summary>
@@ -109,28 +101,26 @@ namespace Game.Interfaces
         public readonly Vector2Int StartPosition;
         public readonly Vector2Int EndPosition;
         public readonly List<Vector2Int> Path;
-        public readonly int MovementPointsUsed;
         public readonly float TimeTaken;
         public readonly string Message;
 
         public MovementResult(bool success, Vector2Int startPosition, Vector2Int endPosition,
-                             List<Vector2Int> path, int movementPointsUsed, float timeTaken, string message = "")
+                             List<Vector2Int> path, float timeTaken, string message = "")
         {
             Success = success;
             StartPosition = startPosition;
             EndPosition = endPosition;
             Path = path ?? new List<Vector2Int>();
-            MovementPointsUsed = movementPointsUsed;
             TimeTaken = timeTaken;
             Message = message ?? "";
         }
 
         public static MovementResult Failed(Vector2Int position, string message) =>
-            new MovementResult(false, position, position, null, 0, 0f, message);
+            new MovementResult(false, position, position, null, 0f, message);
 
         public static MovementResult Succeeded(Vector2Int start, Vector2Int end, List<Vector2Int> path, 
-                                              int pointsUsed, float time, string message = "") =>
-            new MovementResult(true, start, end, path, pointsUsed, time, message);
+                                              float time, string message = "") =>
+            new MovementResult(true, start, end, path, time, message);
     }
 
     /// <summary>
