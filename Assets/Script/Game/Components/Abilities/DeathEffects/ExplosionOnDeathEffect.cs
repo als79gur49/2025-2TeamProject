@@ -42,7 +42,7 @@ namespace Game.Components.Abilities
 
         public bool CanApply(EffectContext context)
         {
-            return Owner != null && Trigger == EffectTrigger.OnDeath;
+            return Owner != null;
         }
 
         public void Apply(EffectContext context)

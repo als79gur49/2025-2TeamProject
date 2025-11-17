@@ -51,7 +51,6 @@ var gameService = ServiceLocator.Get<IGameServiceManager>();
 - `ICardServiceManager` - Card spawning and effects
 - `IModifierFactory` - Creates ability modifiers from data
 - `IResourceManager` - Resource/mana management
-- `ITeamConfigurationManager` - Team-specific configurations
 - `IBaseManager` - Player/enemy base management
 - `IGameOutcomeManager` - Victory/defeat conditions
 - `IDeathAnimationManager` - Death animation sequencing

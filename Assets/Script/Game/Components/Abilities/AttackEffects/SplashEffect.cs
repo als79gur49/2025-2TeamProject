@@ -43,7 +43,6 @@ namespace Game.Components.Abilities
         public bool CanApply(EffectContext context)
         {
             return Owner != null && Owner.IsAlive &&
-                   Trigger == EffectTrigger.OnAttack &&
                    context != null &&
                    context.AffectedTiles != null &&
                    context.AffectedTiles.Count > 0;

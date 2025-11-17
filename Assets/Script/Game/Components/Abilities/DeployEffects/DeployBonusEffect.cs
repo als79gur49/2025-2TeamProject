@@ -48,7 +48,7 @@ namespace Game.Components.Abilities
 
         public bool CanApply(EffectContext context)
         {
-            return Owner != null && Trigger == EffectTrigger.OnDeploy;
+            return Owner != null;
         }
 
         public void Apply(EffectContext context)

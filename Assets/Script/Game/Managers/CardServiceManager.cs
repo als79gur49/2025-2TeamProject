@@ -657,6 +657,49 @@ namespace Game.Services
         }
 
         /// <summary>
+        /// 특정 팀의 카드 풀에서 카드를 드로우합니다.
+        /// Player 팀은 CardHandManager, Enemy 팀은 EnemyAIController를 사용합니다.
+        /// </summary>
+        public void DrawCardsForTeam(TeamType team, int amount)
+        {
+            if (amount <= 0)
+            {
+                LogError($"❌ DrawCardsForTeam called with invalid amount: {amount}");
+                return;
+            }
+
+            switch (team)
+            {
+                case TeamType.Player:
+                    if (cardHandManager == null)
+                    {
+                        LogError("❌ CardHandManager is null - cannot draw cards for Player");
+                        return;
+                    }
+
+                    for (int i = 0; i < amount; i++)
+                    {
+                        cardHandManager.DrawRandomCard();
+                    }
+                    break;
+
+                case TeamType.Enemy:
+                    if (enemyAIController == null)
+                    {
+                        LogError("❌ EnemyAIController is null - cannot draw cards for Enemy");
+                        return;
+                    }
+
+                    enemyAIController.DrawCard(amount);
+                    break;
+
+                default:
+                    Log($"⚠️ DrawCardsForTeam called for unsupported team: {team}");
+                    break;
+            }
+        }
+
+        /// <summary>
         /// GridManager 패턴을 따라 하위 서비스들에 대한 접근 제공
         /// </summary>
         public ICardHandManager GetCardHandManager() => cardHandManager;
