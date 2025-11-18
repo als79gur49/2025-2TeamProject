@@ -441,7 +441,11 @@ namespace Game.Components
 
         public void SetMovementRange(int newRange)
         {
-            movementRange = Mathf.Max(0, newRange);
+            var clamped = Mathf.Max(0, newRange);
+            if (movementRange == clamped) return;
+
+            movementRange = clamped;
+            OnMovementRangeChanged?.Invoke(MovementRange);
         }
 
         public void ModifyMovementRange(int modifier)
@@ -644,6 +648,7 @@ namespace Game.Components
         public event Action<Vector2Int, Vector2Int> OnMovementStarted;
         public event Action<Vector2Int, Vector2Int> OnMovementCompleted;
         public event Action<Vector2Int> OnMovementCancelled;
+        public event Action<int> OnMovementRangeChanged;
         public event Action<Vector2Int> OnTeleportUsed;
         public event Action<Vector2Int> OnJumpPerformed;
         public event Action<MovementAbility, bool> OnMovementAbilityChanged;
@@ -675,6 +680,7 @@ namespace Game.Components
             if (modifier != null)
             {
                 movementRangeModifiers.Add(modifier);
+                OnMovementRangeChanged?.Invoke(MovementRange);
             }
         }
 
@@ -682,6 +688,7 @@ namespace Game.Components
         {
             if (movementRangeModifiers.Remove(modifier))
             {
+                OnMovementRangeChanged?.Invoke(MovementRange);
             }
         }
 
@@ -690,6 +697,7 @@ namespace Game.Components
             if (movementRangeModifiers.Count > 0)
             {
                 movementRangeModifiers.Clear();
+                OnMovementRangeChanged?.Invoke(MovementRange);
             }
         }
 

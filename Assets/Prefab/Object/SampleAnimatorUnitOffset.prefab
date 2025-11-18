@@ -1040,7 +1040,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   startingHealth: -1
-  canHealAboveMax: 0
+  canHealAboveMax: 1
   canRevive: 0
   baseArmor: 0
   maxDamageReduction: 0.8
@@ -1072,7 +1072,6 @@ MonoBehaviour:
   constraints:
     canMoveWhileDamaged: 1
     canMoveWhileInCombat: 1
-    requiresLineOfSight: 0
     minimumMovementRange: 0
     maximumMovementRange: 2147483647
 --- !u!114 &7410512118251473500

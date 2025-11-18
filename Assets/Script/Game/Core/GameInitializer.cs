@@ -48,6 +48,9 @@ public class GameInitializer : SceneInitializer
     [SerializeField] private DamageDisplayEventChannelSO damageDisplayEventChannel; // 데미지 표시 EventChannel
     [SerializeField] private GameObject damagePopupPrefab; // 데미지 팝업 프리팹
 
+    [Header("Coordinators")]
+    [SerializeField] private UnitPlacementCoordinator unitPlacementCoordinator; // 유닛 배치/OnDeploy 연동 Coordinator
+
     // Stage Context - 초기화 시점에 로드하여 서비스들에 전달
     private string currentStageId;
     private StageDataSO currentStageData;
@@ -920,6 +923,9 @@ public class GameInitializer : SceneInitializer
             LogError("❌ GameResultCoordinator not found - Game result processing not available");
         }
 
+        // UnitPlacementCoordinator 초기화 (유닛 배치 시 OnDeploy 트리거 연결)
+        InitializeUnitPlacementCoordinator();
+
         // SettingsCoordinator 초기화
         InitializeSettingsCoordinator();
 
@@ -985,6 +991,28 @@ public class GameInitializer : SceneInitializer
         coordinator.Initialize(settingsPanel);
 
         Log($"   ✅ SettingsCoordinator initialized and connected to {settingsPanel.GetType().Name}");
+    }
+
+    /// <summary>
+    /// UnitPlacementCoordinator 초기화 - 유닛 배치 이벤트를 Unit.OnPlaced와 연결
+    /// </summary>
+    private void InitializeUnitPlacementCoordinator()
+    {
+        Log("   Initializing UnitPlacementCoordinator...");
+
+        var coordinator = unitPlacementCoordinator;
+
+        // 씬에 미리 배치되지 않았다면 런타임에 생성
+        if (coordinator == null)
+        {
+            var coordinatorGO = new GameObject("UnitPlacementCoordinator");
+            coordinatorGO.transform.SetParent(transform);
+            coordinator = coordinatorGO.AddComponent<UnitPlacementCoordinator>();
+            Log("   Created UnitPlacementCoordinator GameObject");
+        }
+
+        coordinator.Initialize();
+        Log("   ✅ UnitPlacementCoordinator initialized and subscribed to grid placement events");
     }
 
     #endregion

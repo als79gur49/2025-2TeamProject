@@ -32,6 +32,13 @@ namespace Game.Core.Effects
             {
                 list.Add(effect);
                 list.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+
+                // IImmediateEffect를 구현한 Effect는 추가 시점에 한 번 즉시 적용합니다.
+                if (effect is IImmediateEffect immediateEffect)
+                {
+                    var context = new EffectContext();
+                    immediateEffect.ApplyImmediately(context);
+                }
             }
         }
 

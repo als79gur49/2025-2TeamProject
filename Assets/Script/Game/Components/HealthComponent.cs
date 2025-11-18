@@ -21,7 +21,7 @@ namespace Game.Components
         [Header("기본 설정")]
         [SerializeField] private int maxHealth = 100;
         [SerializeField] private int startingHealth = -1; // -1이면 maxHealth로 시작
-        [SerializeField] private bool canHealAboveMax = false;
+        [SerializeField] private bool canHealAboveMax = true;
         [SerializeField] private bool canRevive = false;
 
         [Header("방어 설정")]

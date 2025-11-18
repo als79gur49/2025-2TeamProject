@@ -40,6 +40,7 @@ namespace Game.Interfaces
         event Action<Vector2Int, Vector2Int> OnMovementStarted;  // 시작위치, 목표위치
         event Action<Vector2Int, Vector2Int> OnMovementCompleted; // 시작위치, 최종위치
         event Action<Vector2Int> OnMovementCancelled;
+        event Action<int> OnMovementRangeChanged;  // 새 이동 범위
     }
 
     /// <summary>

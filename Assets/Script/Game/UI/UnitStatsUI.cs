@@ -144,9 +144,12 @@ namespace Game.UI
             }
 
             // MovementComponent 이벤트 구독
-            if (movementComponent != null && showMovement && showDebugInfo)
+            if (movementComponent != null && showMovement)
             {
-                Debug.Log($"[UnitStatsUI] MovementComponent found for {gameObject.name}");
+                movementComponent.OnMovementRangeChanged += OnMovementRangeChanged;
+
+                if (showDebugInfo)
+                    Debug.Log($"[UnitStatsUI] Subscribed to MovementComponent events for {gameObject.name}");
             }
         }
 
@@ -171,7 +174,10 @@ namespace Game.UI
             }
 
             // MovementComponent 이벤트 구독 해제
-            // (이동력 포인트 이벤트 제거됨)
+            if (movementComponent != null)
+            {
+                movementComponent.OnMovementRangeChanged -= OnMovementRangeChanged;
+            }
 
             if (showDebugInfo)
                 Debug.Log($"[UnitStatsUI] Unsubscribed from all events for {gameObject.name}");
@@ -223,6 +229,17 @@ namespace Game.UI
 
             if (showDebugInfo)
                 Debug.Log($"[UnitStatsUI] Attack power changed to {newAttackPower}");
+        }
+
+        /// <summary>
+        /// 이동력 범위 변경 이벤트 핸들러
+        /// </summary>
+        private void OnMovementRangeChanged(int newMovementRange)
+        {
+            UpdateMovementUI();
+
+            if (showDebugInfo)
+                Debug.Log($"[UnitStatsUI] Movement range changed to {newMovementRange}");
         }
 
         /// <summary>

@@ -567,6 +567,8 @@ public class Unit : MonoBehaviour
     {
         SetCurrentTile(tile);
         TriggerEffects(EffectTrigger.OnDeploy, new EffectContext());
+
+        Debug.Log($"[Unit] OnPlaced is called to {gameObject.name}");
     }
     
     public void OnTurnStart()
@@ -1166,7 +1168,12 @@ public class Unit : MonoBehaviour
 
     public void TriggerEffects(EffectTrigger trigger, EffectContext context)
     {
-        if (effectManager == null) return;
+        if (effectManager == null)
+        {
+            Debug.LogError($"[Unit] TriggerEffects() is called, but no effectManager");
+            return;
+        }
+        
         effectManager.TriggerEffects(trigger, context ?? new EffectContext());
     }
 
