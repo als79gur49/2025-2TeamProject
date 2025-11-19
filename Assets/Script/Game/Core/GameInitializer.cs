@@ -572,17 +572,20 @@ public class GameInitializer : SceneInitializer
         var meleeSelector = new MeleeTargetSelector(gridManager);
         var movementSelector = new MovementTargetSelector(gridManager);
         var nexusSelector = new NexusTargetSelector(gridManager);
+        var directionalSelector = new DirectionalLineTargetSelector(gridManager);
         Log("  ✓ RangedTargetSelector created");
         Log("  ✓ MeleeTargetSelector created");
         Log("  ✓ MovementTargetSelector created");
         Log("  ✓ NexusTargetSelector created");
+        Log("  ✓ DirectionalLineTargetSelector created");
 
         // 2-3. ITargetSelectorProvider 생성
         var targetSelectorProvider = new TargetSelectorProvider(
             rangedSelector,
             meleeSelector,
             movementSelector,
-            nexusSelector
+            nexusSelector,
+            directionalSelector
         );
         Log("  ✓ TargetSelectorProvider created");
 

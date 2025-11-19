@@ -5,30 +5,44 @@ using Game.Interfaces;
 namespace Game.Data.Modifiers
 {
     /// <summary>
-    /// 근접 공격 Modifier 데이터
+    /// 퀸 공격 Modifier 데이터
+    /// 정면 + 대각선 방향으로 무제한(사실상 보드 끝까지) 공격
     /// </summary>
-    [CreateAssetMenu(fileName = "MeleeModifier", menuName = "Game/Modifiers/Attack/Melee", order = 2)]
-    public class MeleeModifierData : AttackModifierData
+    [CreateAssetMenu(fileName = "QueenModifier", menuName = "Game/Modifiers/Attack/Queen", order = 5)]
+    public class QueenModifierData : AttackModifierData
     {
+        [Header("퀸 설정")]
+        [SerializeField, Range(1, 99)]
+        private int attackRange = 99;
+
+        [SerializeField]
+        private bool piercing = false;
+
+        [SerializeField]
+        private AttackDirectionFlags directions =
+            AttackDirectionFlags.Forward |
+            AttackDirectionFlags.DiagonalUp |
+            AttackDirectionFlags.DiagonalDown;
+
         public override ModifierConfig ToConfig()
         {
             var attackConfig = new AttackConfig(
-                range: 1,
+                range: attackRange,
                 damageModifier: damageAdded,
-                piercing: false,
+                piercing: piercing,
                 requiresClearLane: false,
                 targetNexusOnly: false
             );
 
             var targetingParams = new TargetingParams(
-                range: 1,
-                piercing: false,
-                diagonalAllowed: false,
+                range: attackRange,
+                piercing: piercing,
+                diagonalAllowed: true,
                 requiresClearLane: false,
                 targetRelation: TeamRelation.Enemy,
                 targetType: TargetType.Both,
                 targetNexusOnly: false,
-                directions: AttackDirectionFlags.Forward
+                directions: directions
             );
 
             return new ModifierConfig(
@@ -36,7 +50,7 @@ namespace Game.Data.Modifiers
                 priority: priority,
                 chainBehavior: chainBehavior,
                 actionType: actionType,
-                type: ModifierType.MeleeAttack,
+                type: ModifierType.QueenAttack,
                 conditions: BuildConditions(),
                 targetingParams: targetingParams,
                 attackConfig: attackConfig,
@@ -48,8 +62,15 @@ namespace Game.Data.Modifiers
         protected override void OnValidate()
         {
             base.OnValidate();
-            modifierName = "근접";
+
+            attackRange = Mathf.Clamp(attackRange, 1, 99);
+
+            if (string.IsNullOrEmpty(modifierName) || modifierName == "Unnamed Modifier")
+            {
+                modifierName = "퀸";
+            }
         }
 #endif
     }
 }
+

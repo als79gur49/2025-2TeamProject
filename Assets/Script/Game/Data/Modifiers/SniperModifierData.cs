@@ -37,7 +37,8 @@ namespace Game.Data.Modifiers
                 requiresClearLane: requiresClearLane,
                 targetRelation: TeamRelation.Enemy,
                 targetType: TargetType.Base,
-                targetNexusOnly: true
+                targetNexusOnly: true,
+                directions: AttackDirectionFlags.Forward
             );
 
             return new ModifierConfig(

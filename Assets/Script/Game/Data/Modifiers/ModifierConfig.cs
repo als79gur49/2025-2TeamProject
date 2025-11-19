@@ -7,6 +7,19 @@ using Game.Services.Modifiers;
 namespace Game.Data.Modifiers
 {
     /// <summary>
+    /// 공격 방향 플래그 (복수 선택 가능)
+    /// (x, y)에서 x는 상/하, y는 좌/우를 의미
+    /// </summary>
+    [System.Flags]
+    public enum AttackDirectionFlags
+    {
+        None         = 0,
+        Forward      = 1 << 0, // 팀 기준 전진 방향
+        DiagonalUp   = 1 << 1, // 전진 + 위쪽
+        DiagonalDown = 1 << 2  // 전진 + 아래쪽
+    }
+
+    /// <summary>
     /// Modifier 타입 열거형
     /// Registry에서 Modifier 생성 시 사용
     /// </summary>
@@ -15,6 +28,8 @@ namespace Game.Data.Modifiers
         RangedAttack,
         MeleeAttack,
         SniperAttack,
+        BishopAttack,
+        QueenAttack,
         NormalMovement,
         BoosterMovement
     }
@@ -142,6 +157,7 @@ namespace Game.Data.Modifiers
         public readonly TeamRelation TargetRelation;
         public readonly TargetType TargetType;
         public readonly bool TargetNexusOnly;
+        public readonly AttackDirectionFlags Directions;
 
         public TargetingParams(
             int range = 1,
@@ -150,7 +166,8 @@ namespace Game.Data.Modifiers
             bool requiresClearLane = false,
             TeamRelation targetRelation = TeamRelation.Enemy,
             TargetType targetType = TargetType.Both,
-            bool targetNexusOnly = false)
+            bool targetNexusOnly = false,
+            AttackDirectionFlags directions = AttackDirectionFlags.Forward)
         {
             Range = range;
             Piercing = piercing;
@@ -159,6 +176,7 @@ namespace Game.Data.Modifiers
             TargetRelation = targetRelation;
             TargetType = targetType;
             TargetNexusOnly = targetNexusOnly;
+            Directions = directions;
         }
     }
 

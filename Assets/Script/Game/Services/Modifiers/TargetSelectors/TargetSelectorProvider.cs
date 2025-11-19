@@ -16,13 +16,16 @@ namespace Game.Services.Modifiers.TargetSelectors
             ITargetSelector rangedSelector,
             ITargetSelector meleeSelector,
             ITargetSelector movementSelector,
-            ITargetSelector nexusSelector)
+            ITargetSelector nexusSelector,
+            ITargetSelector directionalSelector)
         {
             selectorMap = new Dictionary<ModifierType, ITargetSelector>
             {
                 { ModifierType.RangedAttack, rangedSelector },
                 { ModifierType.MeleeAttack, meleeSelector },
                 { ModifierType.SniperAttack, nexusSelector },
+                { ModifierType.BishopAttack, directionalSelector },
+                { ModifierType.QueenAttack, directionalSelector },
                 { ModifierType.NormalMovement, movementSelector },
                 { ModifierType.BoosterMovement, movementSelector }
             };
@@ -43,4 +46,3 @@ namespace Game.Services.Modifiers.TargetSelectors
         }
     }
 }
-

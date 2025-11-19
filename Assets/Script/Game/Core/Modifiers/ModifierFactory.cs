@@ -41,6 +41,12 @@ namespace Game.Core.Modifiers
             creators[ModifierType.SniperAttack] = (config, owner) =>
                 new SniperModifier(owner, config, dependencies);
 
+            creators[ModifierType.BishopAttack] = (config, owner) =>
+                new BishopModifier(owner, config, dependencies);
+
+            creators[ModifierType.QueenAttack] = (config, owner) =>
+                new QueenModifier(owner, config, dependencies);
+
             // 이동 Modifiers
             creators[ModifierType.NormalMovement] = (config, owner) =>
                 new NormalMoveModifier(owner, config, dependencies);

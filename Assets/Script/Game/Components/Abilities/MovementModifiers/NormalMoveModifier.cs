@@ -84,7 +84,8 @@ namespace Game.Components.Abilities
                 requiresClearLane: baseParams.RequiresClearLane,
                 targetRelation: baseParams.TargetRelation,
                 targetType: baseParams.TargetType,
-                targetNexusOnly: baseParams.TargetNexusOnly
+                targetNexusOnly: baseParams.TargetNexusOnly,
+                directions: baseParams.Directions
             );
 
             var movableTiles = selector.FindTargets(

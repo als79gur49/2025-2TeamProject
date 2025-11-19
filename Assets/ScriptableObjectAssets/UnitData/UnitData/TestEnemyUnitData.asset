@@ -16,9 +16,11 @@ MonoBehaviour:
   description: "\uC801\uAD70\uC720\uB2DB\uD14C\uC2A4\uD2B8"
   icon: {fileID: 0}
   prefab: {fileID: 771025333167915155, guid: e0304548a9870ae4ca7e213f3cc44190, type: 3}
-  maxHealth: 80
-  attackPower: 30
-  movementRange: 1
-  modifiers: []
+  maxHealth: 150
+  attackPower: 200
+  movementRange: 3
+  modifiers:
+  - {fileID: 11400000, guid: 11c0d7a7d8a3dc64bbc6ef6236a5704e, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
   effects:
-  - {fileID: 11400000, guid: d6068f5b049100b408e10c283817d75e, type: 2}
+  - {fileID: 11400000, guid: 4aaddc7253556ac41bb11996b2e9dbec, type: 2}

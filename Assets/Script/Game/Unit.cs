@@ -52,6 +52,11 @@ public class Unit : MonoBehaviour
     private ActionResult currentActionResult;
     private ActionContext currentActionContext;
 
+    // Frenzy (광란) 상태
+    private bool frenzyEligibleForNextAction = false;
+    private int frenzyExtraActionsUsedThisTurn = 0;
+    private int frenzyMaxExtraActionsPerTurn = 5;
+
     // Effect System
     private EffectManager effectManager;
 
@@ -89,6 +94,11 @@ public class Unit : MonoBehaviour
 
     // Component access methods
     public IAnimationController GetAnimationController() => animationController;
+
+    public void MarkFrenzyEligibleForNextAction()
+    {
+        frenzyEligibleForNextAction = true;
+    }
     
     private void Awake()
     {
@@ -574,6 +584,8 @@ public class Unit : MonoBehaviour
     public void OnTurnStart()
     {
         if (!IsAlive) return;
+
+        ResetFrenzyStateForNewTurn();
         
         // Ensure currentTile is set before initializing turn
         if (currentTile == null)
@@ -610,6 +622,8 @@ public class Unit : MonoBehaviour
 
         // 지속 턴 감소 및 정리
         effectManager?.TickDurationsAndCleanup();
+
+        frenzyEligibleForNextAction = false;
 
         Debug.Log($"[Unit] {gameObject.name} OnTurnEnd");
     }
@@ -1030,6 +1044,64 @@ public class Unit : MonoBehaviour
 
     #region New Action System Integration
 
+    private void ResetFrenzyStateForNewTurn()
+    {
+        frenzyEligibleForNextAction = false;
+        frenzyExtraActionsUsedThisTurn = 0;
+    }
+
+    private void BeginNewActionChain(bool isFrenzyExtra)
+    {
+        if (gridManager == null)
+        {
+            Debug.LogError($"[Unit] {gameObject.name} cannot start action chain - gridManager is null");
+            globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
+            return;
+        }
+
+        frenzyEligibleForNextAction = false;
+
+        var myPosition = gridManager.GetUnitPosition(gameObject);
+        currentActionContext = new ActionContext(myPosition);
+
+        isExecutingAction = true;
+        actionEvaluator.Reset();
+
+        Debug.Log($"[Unit] {gameObject.name} starting action chain (frenzyExtra: {isFrenzyExtra})");
+
+        EvaluateAndExecuteNextAction();
+    }
+
+    private void StartFrenzyExtraActionChain()
+    {
+        if (frenzyExtraActionsUsedThisTurn >= frenzyMaxExtraActionsPerTurn)
+        {
+            Debug.Log($"[Unit] {gameObject.name} cannot start Frenzy extra action - limit {frenzyMaxExtraActionsPerTurn} reached");
+            return;
+        }
+
+        if (gridManager == null)
+        {
+            Debug.LogError($"[Unit] {gameObject.name} cannot start Frenzy extra action - gridManager is null");
+            return;
+        }
+
+        if (!IsAlive)
+        {
+            Debug.Log($"[Unit] {gameObject.name} cannot start Frenzy extra action - unit is dead");
+            return;
+        }
+
+        if (IsStunned())
+        {
+            Debug.Log($"[Unit] {gameObject.name} cannot start Frenzy extra action - unit is stunned");
+            return;
+        }
+
+        frenzyExtraActionsUsedThisTurn++;
+        BeginNewActionChain(true);
+    }
+
     /// <summary>
     /// 행동 수정자 추가 (새로운 Action System용)
     /// </summary>
@@ -1060,15 +1132,7 @@ public class Unit : MonoBehaviour
         globalStateManager?.SetBusy(this, BusyType.GameFlowLock, timeout: 15f);
         Debug.Log($"[Unit] {gameObject.name} set GameFlowLock for action chain execution");
 
-        var myPosition = gridManager.GetUnitPosition(gameObject);
-        currentActionContext = new ActionContext(myPosition);
-
-        isExecutingAction = true;
-        actionEvaluator.Reset();
-
-        Debug.Log($"[Unit] {gameObject.name} ExecuteAITurn");
-
-        EvaluateAndExecuteNextAction();
+        BeginNewActionChain(false);
     }
 
     /// <summary>
@@ -1076,6 +1140,20 @@ public class Unit : MonoBehaviour
     /// </summary>
     private void EvaluateAndExecuteNextAction()
     {
+        if (!IsAlive)
+        {
+            Debug.Log($"[Unit] {gameObject.name} is dead - ending action chain");
+            OnAllActionsCompleted();
+            return;
+        }
+
+        if (IsStunned())
+        {
+            Debug.Log($"[Unit] {gameObject.name} is stunned during action chain - ending remaining actions");
+            OnAllActionsCompleted();
+            return;
+        }
+
         ActionResult result = actionEvaluator.EvaluateNextAction(currentActionContext);
 
         if (result.IsSuccess)
@@ -1143,6 +1221,21 @@ public class Unit : MonoBehaviour
         currentActionResult = null;
         currentActionContext = null;
         actionEvaluator.Reset();
+
+        bool startedFrenzyExtraAction = false;
+
+        if (frenzyEligibleForNextAction && IsAlive && !IsStunned())
+        {
+            int before = frenzyExtraActionsUsedThisTurn;
+            StartFrenzyExtraActionChain();
+            startedFrenzyExtraAction = frenzyExtraActionsUsedThisTurn > before;
+        }
+
+        if (startedFrenzyExtraAction)
+        {
+            Debug.Log($"[Unit] {gameObject.name} started Frenzy extra action ({frenzyExtraActionsUsedThisTurn}/{frenzyMaxExtraActionsPerTurn})");
+            return;
+        }
 
         // Release GameFlowLock after action chain completes
         globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
