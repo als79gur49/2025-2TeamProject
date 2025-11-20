@@ -56,8 +56,8 @@ namespace Game.Card.Effects
                 }
             }
 
-            // 우선순위별로 정렬 (낮은 값일수록 먼저 실행)
-            effects.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+            // 우선순위별로 정렬 (높은 값일수록 먼저 실행)
+            effects.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
             return effects;
         }

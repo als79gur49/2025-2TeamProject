@@ -65,7 +65,7 @@ namespace Game.VFX
                 return;
             }
 
-            var sortedEffects = effectDefinitions.OrderBy(e => e.Priority).ToList();
+            var sortedEffects = effectDefinitions.OrderByDescending(e => e.Priority).ToList();
 
             var vfxData = sortedEffects[0].VFX;
 

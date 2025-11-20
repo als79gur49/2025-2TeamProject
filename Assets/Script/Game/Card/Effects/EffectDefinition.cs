@@ -10,6 +10,7 @@ namespace Game.Card.Effects
     {
         [Header("공통 메타 정보")]
         [SerializeField] private EffectType effectType = EffectType.Damage;
+        [Tooltip("효과 실행 우선순위 (높은 값일수록 먼저 실행, 일반적으로 0-200 범위)")]
         [SerializeField] private int priority = 0;
         [SerializeField] private EffectTargetScope targetScope = EffectTargetScope.TileBased;
 

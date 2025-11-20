@@ -15,7 +15,7 @@ MonoBehaviour:
   effectType: 0
   priority: 45
   targetScope: 0
-  areaShape: {fileID: 11400000, guid: 24b1dfa21de04f74e98e49744a7a12d3, type: 2}
+  areaShape: {fileID: 11400000, guid: 3425d18c9bcb29044a56a2ac25ef1048, type: 2}
   targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
   vfx: {fileID: 11400000, guid: 732577c733982c345993bb18ce91f0f3, type: 2}
   damageAmount: 49

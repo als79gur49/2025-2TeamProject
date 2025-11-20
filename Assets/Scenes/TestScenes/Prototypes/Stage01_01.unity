@@ -1342,6 +1342,17 @@ PrefabInstance:
       propertyPath: handUIParent
       value: 
       objectReference: {fileID: 603449451}
+    - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
+        type: 3}
+      propertyPath: initialHandCards.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[4]
+      value: 
+      objectReference: {fileID: 11400000, guid: c65229d91aeb39d4db2dc836ca530cd0,
+        type: 2}
     - target: {fileID: 8455207172729962887, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: enemyBaseHealthUI

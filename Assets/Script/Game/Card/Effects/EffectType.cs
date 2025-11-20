@@ -13,6 +13,21 @@ namespace Game.Card.Effects
         Heal,
 
         /// <summary>대상 위치에 유닛을 소환합니다</summary>
-        Summon
+        Summon,
+
+        /// <summary>유닛의 체력/공격력/이동력을 변경하는 버프/디버프입니다</summary>
+        Buff,
+
+        /// <summary>특정 팀이 카드를 드로우합니다</summary>
+        DrawCards,
+
+        /// <summary>유닛을 기절(스턴) 상태로 만듭니다</summary>
+        Stun,
+
+        /// <summary>베이스(넥서스)의 체력을 회복합니다</summary>
+        HealBase,
+
+        /// <summary>베이스(넥서스)에 피해를 줍니다</summary>
+        DamageBase
     }
 }

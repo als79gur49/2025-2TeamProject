@@ -403,7 +403,7 @@ namespace Game.AI
             foreach (var def in card.EffectDefinitions)
             {
                 if (def == null) continue;
-
+                
                 switch (def)
                 {
                     case SummonEffectDefinition summonDef:
@@ -414,6 +414,21 @@ namespace Game.AI
                         break;
                     case HealEffectDefinition healDef:
                         totalValue += CalculateHealValue(card, healDef, position);
+                        break;
+                    case Game.Card.Effects.MultiStatBuffEffectDefinition buffDef:
+                        totalValue += CalculateBuffValue(card, buffDef, position);
+                        break;
+                    case Game.Card.Effects.StunEffectDefinition stunDef:
+                        totalValue += CalculateStunValue(card, stunDef, position);
+                        break;
+                    case Game.Card.Effects.DrawCardsEffectDefinition drawDef:
+                        totalValue += CalculateDrawCardsValue(card, drawDef);
+                        break;
+                    case Game.Card.Effects.HealBaseEffectDefinition healBaseDef:
+                        totalValue += CalculateHealBaseValue(card, healBaseDef);
+                        break;
+                    case Game.Card.Effects.DamageBaseEffectDefinition dmgBaseDef:
+                        totalValue += CalculateDamageBaseValue(card, dmgBaseDef);
                         break;
                 }
             }
@@ -478,6 +493,74 @@ namespace Game.AI
             }
 
             return healCount * def.HealAmount;
+        }
+
+        private int CalculateBuffValue(CardData card, Game.Card.Effects.MultiStatBuffEffectDefinition def, Vector2Int position)
+        {
+            if (gridController == null || def.AreaShape == null)
+                return 0;
+
+            var tiles = def.AreaShape.GetTiles(position, gridController);
+            int targetCount = 0;
+
+            foreach (var tile in tiles)
+            {
+                if (tile == null || tile.OccupyingUnit == null) continue;
+
+                var teamComponent = tile.OccupyingUnit.GetComponent<ITeamComponent>();
+                if (teamComponent == null) continue;
+
+                // 적 유닛 기준으로, 아군(Enemy 팀)에게 버프가 들어가는 경우만 가치 있음
+                bool isAlly = teamComponent.Team == TeamType.Enemy;
+                if (isAlly) targetCount++;
+            }
+
+            int statSum = Mathf.Abs(def.HealthDelta) + Mathf.Abs(def.AttackDelta) * 2 + Mathf.Abs(def.MovementDelta);
+            return targetCount * statSum;
+        }
+
+        private int CalculateStunValue(CardData card, Game.Card.Effects.StunEffectDefinition def, Vector2Int position)
+        {
+            if (gridController == null || def.AreaShape == null)
+                return 0;
+
+            var tiles = def.AreaShape.GetTiles(position, gridController);
+            int stunCount = 0;
+
+            foreach (var tile in tiles)
+            {
+                if (tile == null || tile.OccupyingUnit == null) continue;
+
+                var teamComponent = tile.OccupyingUnit.GetComponent<ITeamComponent>();
+                if (teamComponent == null) continue;
+
+                // 적 유닛(Player 팀)을 스턴시키는 경우 가치 부여
+                bool isEnemy = teamComponent.Team == TeamType.Player;
+                if (isEnemy) stunCount++;
+            }
+
+            return stunCount * Mathf.Max(1, def.StunTurns) * 3;
+        }
+
+        private int CalculateDrawCardsValue(CardData card, Game.Card.Effects.DrawCardsEffectDefinition def)
+        {
+            // 적 AI 입장에서: Enemy 팀 카드 드로우만 가치가 있다고 가정
+            // DrawCardsEffectDefinition.TargetRelation 해석은 실제 적용 시점에 이뤄지므로,
+            // 여기서는 단순히 드로우 수에 비례한 가치만 부여
+            return def.DrawCount * 2;
+        }
+
+        private int CalculateHealBaseValue(CardData card, Game.Card.Effects.HealBaseEffectDefinition def)
+        {
+            // 적 AI는 자신의 베이스를 회복하는 카드에만 관심이 있음
+            // AI 체력 상황을 고려한 가중치는 추후 확장 가능
+            return def.HealAmount;
+        }
+
+        private int CalculateDamageBaseValue(CardData card, Game.Card.Effects.DamageBaseEffectDefinition def)
+        {
+            // 적 AI는 플레이어 베이스에 피해를 주는 카드를 매우 가치 있게 평가
+            return def.DamageAmount * 2;
         }
 
         #endregion

@@ -17,7 +17,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prefab: {fileID: 4673968368137477462, guid: 15abd9d8b0b6a404da52317c6f9e06cf, type: 3}
   maxHealth: 150
-  attackPower: 1
+  attackPower: 200
   movementRange: 2
   modifiers:
   - {fileID: 11400000, guid: 17de4cb34274f994dbf1382f8dfa2849, type: 2}

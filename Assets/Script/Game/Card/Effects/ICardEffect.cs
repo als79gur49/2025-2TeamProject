@@ -29,7 +29,7 @@ namespace Game.Card.Effects
         EffectType EffectType { get; }
 
         /// <summary>
-        /// 효과의 우선순위를 반환합니다. (낮은 값일수록 먼저 실행)
+        /// 효과의 우선순위를 반환합니다. (높은 값일수록 먼저 실행)
         /// </summary>
         int Priority { get; }
     }
