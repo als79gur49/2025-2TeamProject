@@ -240,13 +240,13 @@ namespace Game.Data
     }
 
     /// <summary>
-    /// 시간 보너스 등급
+    /// 턴 보너스 등급
     /// </summary>
     [System.Serializable]
-    public class TimeBonusTier
+    public class TurnBonusTier
     {
-        [Tooltip("클리어 시간 임계값 (초) - 이 시간 이하로 클리어 시 보너스 획득")]
-        public float timeInSeconds;
+        [Tooltip("클리어 턴 수 임계값 - 이 턴 수 이하로 클리어 시 보너스 획득")]
+        public int turnCount;
 
         [Tooltip("부여되는 보너스 점수")]
         public int bonusScore;
@@ -282,13 +282,13 @@ namespace Game.Data
         public int bRankScore = 6000;   // B랭크
         public int cRankScore = 4000;   // C랭크
 
-        [Header("Time Bonus Tiers")]
-        [Tooltip("시간 보너스 등급 (3등급) - 빠른 클리어 시간순으로 정렬됨")]
-        public TimeBonusTier[] timeBonusTiers = new TimeBonusTier[]
+        [Header("Turn Bonus Tiers")]
+        [Tooltip("턴 보너스 등급 (3등급) - 적은 턴 수순으로 정렬됨")]
+        public TurnBonusTier[] turnBonusTiers = new TurnBonusTier[]
         {
-            new TimeBonusTier { timeInSeconds = 60f, bonusScore = 1000 },   // 1분 이하: 1000점
-            new TimeBonusTier { timeInSeconds = 120f, bonusScore = 500 },   // 2분 이하: 500점
-            new TimeBonusTier { timeInSeconds = 180f, bonusScore = 200 }    // 3분 이하: 200점
+            new TurnBonusTier { turnCount = 5, bonusScore = 1000 },   // 5턴 이하: 1000점
+            new TurnBonusTier { turnCount = 10, bonusScore = 500 },   // 10턴 이하: 500점
+            new TurnBonusTier { turnCount = 15, bonusScore = 200 }    // 15턴 이하: 200점
         };
 
         [Header("Health Bonus Tiers")]
@@ -333,10 +333,10 @@ namespace Game.Data
             if (maxScore < starThresholds[starThresholds.Length - 1])
                 maxScore = starThresholds[starThresholds.Length - 1] + 100;
 
-            // 시간 보너스 등급 정렬 (시간 오름차순)
-            if (timeBonusTiers != null && timeBonusTiers.Length > 0)
+            // 턴 보너스 등급 정렬 (턴 수 오름차순)
+            if (turnBonusTiers != null && turnBonusTiers.Length > 0)
             {
-                System.Array.Sort(timeBonusTiers, (a, b) => a.timeInSeconds.CompareTo(b.timeInSeconds));
+                System.Array.Sort(turnBonusTiers, (a, b) => a.turnCount.CompareTo(b.turnCount));
             }
 
             // 체력 보너스 등급 정렬 (체력 내림차순)
@@ -355,38 +355,31 @@ namespace Game.Data
     {
         [Header("Clear Rewards")]
         public int baseCoin = 100;
-        public int baseExp = 50;
-        public List<string> clearItems = new List<string>();
 
         [Header("Star Rewards")]
         public int[] starBonusCoins = new int[] { 50, 100, 200 };  // 1,2,3성 추가 보상
-        
+
         [Header("First Clear Bonus")]
         public int firstClearBonus = 500;
-        public List<string> firstClearItems = new List<string>();
 
         public StageRewardResult Calculate(int score, int stars, bool isFirstClear)
         {
             var result = new StageRewardResult();
-            
+
             result.coins = baseCoin;
-            result.exp = baseExp;
-            
+
             // 별 보너스
             if (stars > 0 && stars <= starBonusCoins.Length)
             {
                 result.coins += starBonusCoins[stars - 1];
             }
-            
+
             // 첫 클리어 보너스
             if (isFirstClear)
             {
                 result.coins += firstClearBonus;
-                result.items.AddRange(firstClearItems);
             }
-            
-            result.items.AddRange(clearItems);
-            
+
             return result;
         }
     }
@@ -397,8 +390,6 @@ namespace Game.Data
     public class StageRewardResult
     {
         public int coins;
-        public int exp;
-        public List<string> items = new List<string>();
     }
 
     /// <summary>

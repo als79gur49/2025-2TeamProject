@@ -29,11 +29,11 @@ namespace Game.Services
         int CalculateComboBonus(int comboCount);
 
         /// <summary>
-        /// 시간 보너스 점수 계산
+        /// 턴 보너스 점수 계산
         /// </summary>
-        /// <param name="clearTime">클리어 시간 (초)</param>
-        /// <returns>계산된 시간 보너스 점수</returns>
-        int CalculateTimeBonus(float clearTime);
+        /// <param name="turnCount">클리어 턴 수 (0-indexed)</param>
+        /// <returns>계산된 턴 보너스 점수</returns>
+        int CalculateTurnBonus(int turnCount);
 
         /// <summary>
         /// 체력 보너스 점수 계산

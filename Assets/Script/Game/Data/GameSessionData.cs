@@ -41,6 +41,11 @@ namespace Game.Data
         public DateTime endTime;
 
         /// <summary>
+        /// 세션 결과 (승리/패배/중단 등)
+        /// </summary>
+        public SessionOutcome outcome = SessionOutcome.Unknown;
+
+        /// <summary>
         /// 생성자
         /// </summary>
         public GameSessionData()

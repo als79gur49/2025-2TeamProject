@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Game.Data;
 using Game.Services;
+using Game.Core;
 
 namespace Game.Managers
 {
@@ -86,7 +87,7 @@ namespace Game.Managers
             if (isSessionActive)
             {
                 Debug.LogWarning($"[GameSessionManager] Session already active for stage: {currentStageId}. Ending previous session.");
-                EndSession();
+                EndSessionAborted();
             }
 
             currentStageId = stageId;
@@ -128,7 +129,31 @@ namespace Game.Managers
         /// 게임 세션 종료 및 최종 데이터 반환
         /// </summary>
         /// <returns>게임 세션 데이터</returns>
-        public GameSessionData EndSession()
+        public GameSessionData EndSessionWithVictory()
+        {
+            return EndSession(Game.Data.SessionOutcome.Victory);
+        }
+
+        /// <summary>
+        /// 패배로 인한 게임 세션 종료 및 최종 데이터 반환
+        /// </summary>
+        public GameSessionData EndSessionWithDefeat()
+        {
+            return EndSession(Game.Data.SessionOutcome.Defeat);
+        }
+
+        /// <summary>
+        /// 중단(강제 종료 등)으로 인한 게임 세션 종료 및 최종 데이터 반환
+        /// </summary>
+        public GameSessionData EndSessionAborted()
+        {
+            return EndSession(Game.Data.SessionOutcome.Aborted);
+        }
+
+        /// <summary>
+        /// 내부 공통 종료 처리
+        /// </summary>
+        private GameSessionData EndSession(Game.Data.SessionOutcome outcome)
         {
             if (!isSessionActive)
             {
@@ -148,7 +173,8 @@ namespace Game.Managers
                 statistics = new Dictionary<string, int>(currentStatistics),
                 playTime = finalPlayTime,
                 startTime = sessionStartTime,
-                endTime = DateTime.Now
+                endTime = DateTime.Now,
+                outcome = outcome
             };
 
             // 세션 상태 리셋
@@ -293,7 +319,7 @@ namespace Game.Managers
 
         /// <summary>
         /// 승리 보너스 계산 및 적용
-        /// HP 보너스와 시간 보너스를 자동으로 계산하여 점수에 추가
+        /// HP 보너스와 턴 보너스를 자동으로 계산하여 점수에 추가
         /// </summary>
         /// <param name="playerHealthPercent">플레이어 베이스 HP 퍼센트 (0-100)</param>
         public void ApplyVictoryBonus(float playerHealthPercent)
@@ -313,28 +339,46 @@ namespace Game.Managers
             // 1. HP 보너스 계산
             int healthBonus = scoringService.CalculateNoDamageBonus(playerHealthPercent);
 
-            // 2. 시간 보너스 계산 (PlayTime 자체 계산)
-            float clearTime = PlayTime;
-            int timeBonus = 0;
-            if (stageData != null && stageData.Scoring != null)
+            // 2. 턴 보너스 계산
+            int turnBonus = 0;
+            int finalTurnCount = 0;
+
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+            if (gameServiceManager != null)
             {
-                timeBonus = scoringService.CalculateTimeBonus(clearTime);
+                var turnService = gameServiceManager.GetTurnService();
+                finalTurnCount = turnService.TurnCount;  // 0-indexed
+
+                turnBonus = scoringService.CalculateTurnBonus(finalTurnCount);
+
+                Debug.Log($"[GameSessionManager] Turn bonus calculated: {turnBonus} points " +
+                          $"(cleared in {finalTurnCount} turns)");
+            }
+            else
+            {
+                Debug.LogError("[GameSessionManager] Cannot access GameServiceManager for turn count!");
             }
 
             // 3. 점수 추가
-            int totalBonus = healthBonus + timeBonus;
+            int totalBonus = healthBonus + turnBonus;
             AddScore(totalBonus);
 
             // 4. 통계 기록
             SetStatistic("health_bonus", healthBonus);
-            SetStatistic("time_bonus", timeBonus);
+            SetStatistic("turn_bonus", turnBonus);           // 턴 보너스 점수
+            SetStatistic("final_turn_count", finalTurnCount); // 최종 턴 수
             SetStatistic("total_bonus", totalBonus);
+
+            // 시간 통계는 보너스와 무관하게 기록 (통계 추적용)
+            int clearTime = (int)PlayTime;
+            SetStatistic("clear_time", clearTime);
 
             Debug.Log($"[GameSessionManager] Victory bonus applied:\n" +
                       $"  HP Bonus: {healthBonus} (HP: {playerHealthPercent:F1}%)\n" +
-                      $"  Time Bonus: {timeBonus} (Time: {clearTime:F2}s)\n" +
+                      $"  Turn Bonus: {turnBonus} (Turns: {finalTurnCount})\n" +
                       $"  Total Bonus: {totalBonus}\n" +
-                      $"  Final Score: {currentScore}");
+                      $"  Final Score: {currentScore}\n" +
+                      $"  Clear Time: {clearTime:F1}s (statistics only, no bonus)");
         }
 
         #endregion
@@ -367,7 +411,7 @@ namespace Game.Managers
             if (isSessionActive)
             {
                 Debug.LogWarning("[GameSessionManager] Session still active on destroy. Ending session.");
-                EndSession();
+                EndSessionAborted();
             }
         }
 

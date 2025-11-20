@@ -154,7 +154,7 @@ namespace Game.Coordinators
             }
 
             // 3. 세션 데이터 수집
-            GameSessionData sessionData = sessionManager.EndSession();
+            GameSessionData sessionData = sessionManager.EndSessionWithVictory();
             if (sessionData == null)
             {
                 Debug.LogError("[GameResultCoordinator] Failed to retrieve session data!");
@@ -208,7 +208,7 @@ namespace Game.Coordinators
             // 세션 종료 (데이터 수집하지만 저장하지 않음)
             if (sessionManager != null && sessionManager.IsSessionActive)
             {
-                GameSessionData sessionData = sessionManager.EndSession();
+                GameSessionData sessionData = sessionManager.EndSessionWithDefeat();
 
                 if (enableDebugLogs && sessionData != null)
                 {

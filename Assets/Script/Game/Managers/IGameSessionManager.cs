@@ -65,7 +65,19 @@ namespace Game.Managers
         /// 게임 세션 종료 및 최종 데이터 반환
         /// </summary>
         /// <returns>게임 세션 데이터</returns>
-        GameSessionData EndSession();
+        GameSessionData EndSessionWithVictory();
+        
+        /// <summary>
+        /// 패배로 인한 게임 세션 종료 및 최종 데이터 반환
+        /// </summary>
+        /// <returns>게임 세션 데이터</returns>
+        GameSessionData EndSessionWithDefeat();
+        
+        /// <summary>
+        /// 중단(강제 종료 등)으로 인한 게임 세션 종료 및 최종 데이터 반환
+        /// </summary>
+        /// <returns>게임 세션 데이터</returns>
+        GameSessionData EndSessionAborted();
         #endregion
 
         #region Data Update Methods

@@ -340,11 +340,11 @@ namespace Game.Managers
         private void ProcessRewards(StageRewardResult rewards)
         {
             // 여기서 실제 보상 처리 로직 구현
-            // 예: PlayerDataManager를 통한 코인/경험치 추가
-            
+            // 예: PlayerDataManager를 통한 코인 추가
+
             if (debugMode)
             {
-                Debug.Log($"[StageProgressManager] Rewards: Coins={rewards.coins}, Exp={rewards.exp}, Items={string.Join(",", rewards.items)}");
+                Debug.Log($"[StageProgressManager] Rewards: Coins={rewards.coins}");
             }
         }
 

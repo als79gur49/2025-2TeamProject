@@ -35,13 +35,13 @@ MonoBehaviour:
     aRankScore: 8000
     bRankScore: 6000
     cRankScore: 4000
-    timeBonusTiers:
-    - timeInSeconds: 60
-      bonusScore: 3000
-    - timeInSeconds: 120
+    turnBonusTiers:
+    - turnCount: 20
+      bonusScore: 6000
+    - turnCount: 30
+      bonusScore: 4500
+    - turnCount: 40
       bonusScore: 2000
-    - timeInSeconds: 180
-      bonusScore: 1000
     healthBonusTiers:
     - healthPercent: 100
       bonusScore: 3000
@@ -51,11 +51,8 @@ MonoBehaviour:
       bonusScore: 1000
     comboMultiplier: 1.2
   rewards:
-    baseCoin: 100
-    baseExp: 50
-    clearItems: []
-    starBonusCoins: 3200000064000000c8000000
-    firstClearBonus: 500
-    firstClearItems: []
+    baseCoin: 50
+    starBonusCoins: 14000000280000003c000000
+    firstClearBonus: 0
   tags: []
   themeColor: {r: 1, g: 1, b: 1, a: 1}

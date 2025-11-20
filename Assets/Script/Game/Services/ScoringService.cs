@@ -64,27 +64,34 @@ namespace Game.Services
         }
 
         /// <summary>
-        /// 시간 보너스 점수 계산 (등급 기반)
+        /// 턴 보너스 점수 계산 (등급 기반)
         /// </summary>
-        /// <param name="clearTime">클리어 시간 (초)</param>
-        /// <returns>계산된 시간 보너스 점수</returns>
-        public int CalculateTimeBonus(float clearTime)
+        /// <param name="turnCount">클리어 턴 수 (0-indexed)</param>
+        /// <returns>계산된 턴 보너스 점수</returns>
+        public int CalculateTurnBonus(int turnCount)
         {
             if (!ValidateInitialization()) return 0;
 
-            var timeTiers = stageData.Scoring.timeBonusTiers;
-            if (timeTiers == null || timeTiers.Length == 0) return 0;
-
-            // 가장 높은 등급부터 확인 (시간 오름차순 정렬 가정)
-            for (int i = 0; i < timeTiers.Length; i++)
+            var turnTiers = stageData.Scoring.turnBonusTiers;
+            if (turnTiers == null || turnTiers.Length == 0)
             {
-                if (clearTime <= timeTiers[i].timeInSeconds)
+                Debug.LogWarning("[ScoringService] Turn bonus tiers not configured");
+                return 0;
+            }
+
+            // 가장 높은 등급부터 확인 (턴 수 오름차순 정렬 가정)
+            for (int i = 0; i < turnTiers.Length; i++)
+            {
+                if (turnCount <= turnTiers[i].turnCount)
                 {
-                    return timeTiers[i].bonusScore;
+                    Debug.Log($"[ScoringService] Turn bonus: {turnTiers[i].bonusScore} points " +
+                              $"(cleared in {turnCount} turns, threshold: ≤{turnTiers[i].turnCount})");
+                    return turnTiers[i].bonusScore;
                 }
             }
 
             // 어떤 등급도 만족하지 못함
+            Debug.Log($"[ScoringService] No turn bonus (cleared in {turnCount} turns)");
             return 0;
         }
 
