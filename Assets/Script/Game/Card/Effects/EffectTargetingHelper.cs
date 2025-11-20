@@ -16,35 +16,60 @@ namespace Game.Card.Effects
         #region Public API - 타일 기반 VFX 통합
 
         /// <summary>
-        /// [타일 기반] EffectData 기반으로 대상 타일들을 반환
-        /// SpellEffectExecutor.CalculateAllPotentialTiles()에서 호출됨
+        /// [타일 기반] 새로운 EffectDefinition 기반으로 대상 타일들을 반환
+        /// AreaShape + TargetFilter 조합을 사용합니다.
         /// </summary>
-        /// <param name="center">중심 위치 (카드 드롭 위치)</param>
-        /// <param name="effectData">효과 데이터 (AffectedType, AffectedRange)</param>
-        /// <param name="context">게임 컨텍스트 (GridController, CasterTeam)</param>
-        /// <returns>필터링된 타겟 타일 리스트 (동기 반환)</returns>
         public static List<Tile> GetTargetTiles(
             Vector2Int center,
-            EffectData effectData,
+            EffectDefinition definition,
             GameContext context)
         {
+            var result = new List<Tile>();
+
             if (context?.GridController == null)
             {
                 Debug.LogError("[EffectTargeting] GridController null");
-                return new List<Tile>();
+                return result;
             }
 
-            // 1. 범위 내 모든 타일 수집 (동기)
-            var tilesInRange = GetTilesInRange(
-                center,
-                effectData.AffectedRange,
-                context.GridController);
+            if (definition == null)
+            {
+                Debug.LogError("[EffectTargeting] EffectDefinition null");
+                return result;
+            }
 
-            // 2. AffectedType으로 타일 필터링 (동기)
-            return FilterTilesByAffectedType(
-                tilesInRange,
-                effectData.AffectedType,
-                context.CasterTeam);
+            if (definition.TargetScope == EffectTargetScope.Global)
+            {
+                // 전역 효과는 타일 기반 타겟을 사용하지 않습니다.
+                return result;
+            }
+
+            if (definition.AreaShape == null)
+            {
+                Debug.LogWarning("[EffectTargeting] AreaShape가 null입니다. 타겟 타일이 없습니다.");
+                return result;
+            }
+
+            var tilesInRange = definition.AreaShape.GetTiles(center, context.GridController);
+
+            if (definition.TargetFilter == null)
+            {
+                result.AddRange(tilesInRange);
+                return result;
+            }
+
+            foreach (var tile in tilesInRange)
+            {
+                if (tile == null) continue;
+                var unit = tile.OccupyingUnit;
+
+                if (definition.TargetFilter.Matches(tile, unit, context))
+                {
+                    result.Add(tile);
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -114,57 +139,6 @@ namespace Game.Card.Effects
             }
 
             return tiles;
-        }
-
-        /// <summary>
-        /// AffectedType에 따라 타일 필터링 (동기)
-        /// 타일 기반 설계: 모든 필터링은 타일의 상태를 기준으로 수행
-        /// </summary>
-        private static List<Tile> FilterTilesByAffectedType(
-            List<Tile> tiles,
-            AffectedType affectedType,
-            TeamType casterTeam)
-        {
-            return affectedType switch
-            {
-                // None: 필터링 없음 - Range 내 모든 타일 반환
-                AffectedType.None => tiles,
-
-                // Ally: 아군 유닛이 있는 타일만
-                AffectedType.Ally => tiles.Where(t =>
-                    t.OccupyingUnit != null &&
-                    IsSameTeam(t.OccupyingUnit, casterTeam)
-                ).ToList(),
-
-                // Enemy: 적군 유닛이 있는 타일만
-                AffectedType.Enemy => tiles.Where(t =>
-                    t.OccupyingUnit != null &&
-                    !IsSameTeam(t.OccupyingUnit, casterTeam)
-                ).ToList(),
-
-                // Any: 유닛이 있는 모든 타일 (팀 무관)
-                AffectedType.Any => tiles.Where(t =>
-                    t.OccupyingUnit != null
-                ).ToList(),
-
-                // NotAny: 유닛이 없는 빈 타일만
-                AffectedType.NotAny => tiles.Where(t =>
-                    t.OccupyingUnit == null
-                ).ToList(),
-
-                _ => tiles
-            };
-        }
-
-        /// <summary>
-        /// 유닛이 시전자와 같은 팀인지 확인
-        /// </summary>
-        private static bool IsSameTeam(Unit unit, TeamType casterTeam)
-        {
-            if (unit == null) return false;
-
-            TeamType unitTeam = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
-            return unitTeam == casterTeam;
         }
 
         #endregion

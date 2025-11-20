@@ -7,7 +7,7 @@ namespace Game.Interfaces
 {
     /// <summary>
     /// 리팩토링된 카드 소환 서비스 인터페이스
-    /// EffectData 기반 통합 카드 처리 시스템
+    /// EffectDefinition 기반 통합 카드 처리 시스템
     /// </summary>
     public interface ICardSpawnService
     {

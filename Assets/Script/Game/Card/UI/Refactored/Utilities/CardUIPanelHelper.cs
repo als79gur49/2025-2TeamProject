@@ -1,4 +1,6 @@
 using Game.Data;
+using System.Linq;
+using Game.Card.Effects;
 
 namespace Game.Card.UI.Refactored
 {
@@ -20,7 +22,8 @@ namespace Game.Card.UI.Refactored
         public static void UpdateUnitStatPanels(CardUIViewData viewData, CardData cardData, bool visible)
         {
             bool hasUnitStats = visible && cardData != null &&
-                                cardData.HasEffectType(Game.Card.Effects.EffectType.Summon);
+                                cardData.EffectDefinitions != null &&
+                                cardData.EffectDefinitions.Any(d => d is SummonEffectDefinition s && s.UnitToSummon != null);
 
             if (viewData.AttackParent != null)
                 viewData.AttackParent.SetActive(hasUnitStats);

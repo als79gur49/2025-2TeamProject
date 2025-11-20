@@ -4,7 +4,7 @@ namespace Game.VFX
 {
     /// <summary>
     /// VFX 설정 데이터 (ScriptableObject)
-    /// EffectData에 참조되어 VFX 정보를 관리합니다.
+    /// EffectDefinition에 참조되어 VFX 정보를 관리합니다.
     /// </summary>
     [CreateAssetMenu(fileName = "New VFXData", menuName = "Game/VFX/VFXData")]
     public class VFXData : ScriptableObject

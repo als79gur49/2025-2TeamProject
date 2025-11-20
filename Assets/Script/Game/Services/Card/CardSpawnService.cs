@@ -13,8 +13,7 @@ namespace Game.Services
 {
     /// <summary>
     /// 리팩토링된 카드 소환 서비스
-    /// EffectData 기반의 통합 카드 처리 시스템
-    /// CardData의 EffectData 리스트를 순회하며 팩토리를 통해 ICardEffect를 생성하고 실행하는 단순 실행자 역할
+    /// EffectDefinition 기반의 통합 카드 처리 시스템
     /// </summary>
     public class CardSpawnService : MonoBehaviour, ICardSpawnService
     {
@@ -36,15 +35,6 @@ namespace Game.Services
 
         /// <summary>소환 서비스가 초기화되었는지 여부</summary>
         public bool IsInitialized => isInitialized;
-
-        #region Unity Lifecycle
-
-        private void Awake()
-        {
-            // CardServiceManager에 의해 초기화되므로 여기서는 초기화하지 않음
-        }
-
-        #endregion
 
         #region CardServiceManager 호출 메서드
 
@@ -174,10 +164,10 @@ namespace Game.Services
                 return false;
             }
 
-            // Check if card uses effect system
+            // Check if card uses effect system (EffectDefinition 기반)
             if (!cardData.IsEffectBasedCard)
             {
-                LogError($"Card {cardData.CardName} does not use effect system (no EffectData)");
+                LogError($"Card {cardData.CardName} does not use effect system (no EffectDefinitions)");
                 return false;
             }
 
@@ -231,83 +221,71 @@ namespace Game.Services
         }
 
         /// <summary>
+        /// <summary>
         /// 카드의 모든 효과를 실행하는 핵심 메서드
-        /// VFX가 있는 경우 SpellEffectExecutor에게 위임, 없는 경우 즉시 실행
+        /// EffectDefinition 기반 시스템만 사용합니다.
         /// </summary>
-        /// <param name="cardData">카드 데이터</param>
-        /// <param name="targetPosition">대상 위치</param>
-        /// <param name="casterTeam">카드를 사용한 팀</param>
-        /// <returns>모든 효과 실행 성공 여부</returns>
         private bool ExecuteAllCardEffects(CardData cardData, Vector2Int targetPosition, TeamType casterTeam)
         {
-            var effectDataList = cardData.EffectDataList;
-            if (effectDataList.Count == 0)
+            var effectDefinitions = cardData.EffectDefinitions;
+
+            if (effectDefinitions.Count > 0)
             {
-                LogError($"Card {cardData.CardName} has no effects to execute");
-                return false;
-            }
+                Log($"🔄 Executing {effectDefinitions.Count} EffectDefinitions for {cardData.CardName}");
 
-            Log($"🔄 Executing {effectDataList.Count} effects for {cardData.CardName}");
-
-            // ✅ VFX 체크: VFXData가 있는 효과가 하나라도 있는지 확인
-            bool hasVFX = effectDataList.Any(e => e.VFXData != null && e.VFXData.VFXPrefab != null);
-
-            if (hasVFX)
-            {
-                // VFX 기반 실행 - SpellEffectExecutor에게 위임
-                var executor = ServiceLocator.Get<ISpellEffectExecutor>();
-                if (executor != null)
+                bool hasVFXNew = effectDefinitions.Any(e => e != null && e.VFX != null && e.VFX.VFXPrefab != null);
+                if (hasVFXNew)
                 {
-                    Log($"🎬 VFX detected - delegating to SpellEffectExecutor for {cardData.CardName}");
-                    executor.ExecuteBatch(effectDataList, targetPosition, gameContext);
-                    return true; // fire-and-forget (비동기 실행)
-                }
-                else
-                {
-                    LogError("❌ ISpellEffectExecutor not found in ServiceLocator, falling back to immediate execution");
-                    // ServiceLocator에 등록되지 않은 경우 즉시 실행으로 fallback
-                }
-            }
-
-            // VFX 없음 또는 executor 없음 - 즉시 실행 (기존 로직)
-            Log($"⚡ No VFX or executor unavailable - executing effects immediately for {cardData.CardName}");
-
-            // 팩토리를 통해 ICardEffect 인스턴스들을 생성
-            var cardEffects = CardEffectFactory.CreateEffects(effectDataList);
-            if (cardEffects.Count == 0)
-            {
-                LogError($"Failed to create any effects for {cardData.CardName}");
-                return false;
-            }
-
-            // 우선순위 순으로 모든 효과 실행
-            int successCount = 0;
-            foreach (var effect in cardEffects)
-            {
-                try
-                {
-                    // 효과 실행 가능 여부 확인
-                    if (!effect.CanExecute(targetPosition, gameContext))
+                    var executor = ServiceLocator.Get<ISpellEffectExecutor>();
+                    if (executor != null)
                     {
-                        LogError($"❌ Effect {effect.GetType().Name} cannot be executed at {targetPosition}");
-                        continue; // 다음 효과로 진행 (부분 실패 허용)
+                        Log($"🎬 VFX detected (EffectDefinition) - delegating to SpellEffectExecutor for {cardData.CardName}");
+                        executor.ExecuteBatch(effectDefinitions, targetPosition, gameContext);
+                        return true;
                     }
-
-                    // 효과 실행
-                    effect.Execute(targetPosition, gameContext);
-                    Log($"✅ Effect {effect.GetType().Name} executed successfully");
-                    successCount++;
+                    else
+                    {
+                        LogError("❌ ISpellEffectExecutor not found in ServiceLocator (EffectDefinition), falling back to immediate execution");
+                    }
                 }
-                catch (System.Exception ex)
+
+                Log($"⚡ No VFX or executor unavailable (EffectDefinition) - executing effects immediately for {cardData.CardName}");
+                var cardEffects = CardEffectFactory.CreateEffects(effectDefinitions);
+                if (cardEffects.Count == 0)
                 {
-                    LogError($"❌ Exception executing effect {effect.GetType().Name}: {ex.Message}");
-                    // 예외 발생 시 계속 진행하지 않음
+                    LogError($"Failed to create any effects from EffectDefinitions for {cardData.CardName}");
                     return false;
                 }
+
+                int successCount = 0;
+                foreach (var effect in cardEffects)
+                {
+                    try
+                    {
+                        if (!effect.CanExecute(targetPosition, gameContext))
+                        {
+                            LogError($"❌ Effect {effect.GetType().Name} cannot be executed at {targetPosition}");
+                            continue;
+                        }
+
+                        effect.Execute(targetPosition, gameContext);
+                        Log($"✅ Effect {effect.GetType().Name} executed successfully");
+                        successCount++;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        LogError($"❌ Exception executing effect {effect.GetType().Name} (EffectDefinition): {ex.Message}");
+                        return false;
+                    }
+                }
+
+                Log($"📊 {successCount}/{cardEffects.Count} EffectDefinition-based effects executed successfully for {cardData.CardName}");
+                return successCount > 0;
             }
 
-            Log($"📊 {successCount}/{cardEffects.Count} effects executed successfully for {cardData.CardName}");
-            return successCount > 0; // 최소 하나의 효과는 성공해야 함
+            // EffectDefinitions가 비어있는 카드는 효과가 없는 것으로 간주
+            LogError($"Card {cardData.CardName} has no EffectDefinitions to execute");
+            return false;
         }
 
         #endregion

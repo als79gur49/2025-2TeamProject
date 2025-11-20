@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
   m_Name: TestSummonData
   m_EditorClassIdentifier: 
+  cardID: TestSummonData
   cardName: "\uC720\uB2DB \uC18C\uD658\uCE74\uB4DC"
   description: "\uD2B9\uC815 \uC720\uB2DB\uC744 \uC18C\uD658\uD55C\uB2E4."
   cardArt: {fileID: 21300000, guid: cf0ece4edcee4cb47a1897f083d79270, type: 3}
@@ -21,17 +22,8 @@ MonoBehaviour:
   targetType: 4
   targetRange: 0
   keywords: []
-  effectDataList:
-  - type: 2
-    value: 1
-    priority: 0
-    affectedType: 0
-    affectedRange: 0
-    unitToSummon: {fileID: 11400000, guid: 12c8b01c800b19244927fd31e34d7663, type: 2}
-    ignoreArmor: 0
-    duration: 0
-    vfxData: {fileID: 11400000, guid: 02319e1dd1d1e294ca47558ec393ac8e, type: 2}
-    initialized: 1
+  effectDefinitions:
+  - {fileID: 11400000, guid: 0991cac72fb3b8540b0f1ee9cc12c722, type: 2}
   maxCopiesInDeck: 3
   isPlayableFromHand: 1
   requiredTags: []

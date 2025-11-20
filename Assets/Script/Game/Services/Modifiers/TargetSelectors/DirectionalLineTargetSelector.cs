@@ -79,26 +79,30 @@ namespace Game.Services.Modifiers.TargetSelectors
 
         private IEnumerable<Vector2Int> GetDirectionVectors(TeamType team, AttackDirectionFlags flags)
         {
-            // Self/Ally(Player/Ally) → +X(오른쪽), Enemy → -X(왼쪽)
-            int forwardX;
+            // 기존 Ranged/Movement 셀렉터와 동일하게
+            // 전진 방향은 Y축 기준으로 결정
+            int forwardY;
             if (team == TeamType.Enemy)
             {
-                forwardX = -1;
+                forwardY = -1;
             }
             else
             {
-                // Player, Ally, Neutral, None 모두 +X를 기본 전진 방향으로 사용
-                forwardX = 1;
+                // Player, Ally, Neutral, None 모두 +Y를 기본 전진 방향으로 사용
+                forwardY = 1;
             }
 
+            // Forward: (0, forwardY)
             if (flags.HasFlag(AttackDirectionFlags.Forward))
-                yield return new Vector2Int(forwardX, 0);
+                yield return new Vector2Int(0, forwardY);
 
+            // DiagonalUp: (+1, forwardY)  → 상단 대각
             if (flags.HasFlag(AttackDirectionFlags.DiagonalUp))
-                yield return new Vector2Int(forwardX, +1);
+                yield return new Vector2Int(+1, forwardY);
 
+            // DiagonalDown: (-1, forwardY) → 하단 대각
             if (flags.HasFlag(AttackDirectionFlags.DiagonalDown))
-                yield return new Vector2Int(forwardX, -1);
+                yield return new Vector2Int(-1, forwardY);
         }
 
         private bool IsValidRelation(GameObject target, ITeamComponent teamComponent, TeamRelation desiredRelation)
@@ -113,4 +117,3 @@ namespace Game.Services.Modifiers.TargetSelectors
         }
     }
 }
-

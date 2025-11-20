@@ -248,12 +248,12 @@ namespace Game.Card.UI.Refactored
             if (battleContext?.SpawnValidator == null || context.CardData == null)
                 return false;
 
-            //if (context.CardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            //if (context.CardData.EffectDefinitions.Any(d => d is Game.Card.Effects.SummonEffectDefinition))
             //{
             //    return battleContext.SpawnValidator.CanSpawnUnitFromCard(context.CardData, gridPosition);
             //}
-            //else if (context.CardData.HasEffectType(Game.Card.Effects.EffectType.Damage) ||
-            //         context.CardData.HasEffectType(Game.Card.Effects.EffectType.Heal))
+            //else if (context.CardData.EffectDefinitions.Any(d => d is Game.Card.Effects.DamageEffectDefinition) ||
+            //         context.CardData.EffectDefinitions.Any(d => d is Game.Card.Effects.HealEffectDefinition))
             //{
             //    return battleContext.SpawnValidator.CanUseSpell(context.CardData, gridPosition);
             //}
@@ -339,20 +339,29 @@ namespace Game.Card.UI.Refactored
 
             var viewData = context.ViewData;
 
-            if (context.CardData.HasEffectType(Game.Card.Effects.EffectType.Summon))
+            Game.Card.Effects.SummonEffectDefinition summonDef = null;
+            if (context.CardData.EffectDefinitions != null)
             {
-                var summonEffects = context.CardData.GetEffectsByType(Game.Card.Effects.EffectType.Summon);
-                if (summonEffects.Count > 0 && summonEffects[0].UnitToSummon != null)
+                foreach (var def in context.CardData.EffectDefinitions)
                 {
-                    var unitData = summonEffects[0].UnitToSummon;
-
-                    if (viewData.AttackText != null)
-                        viewData.AttackText.text = unitData.AttackPower.ToString();
-                    if (viewData.HpText != null)
-                        viewData.HpText.text = unitData.MaxHealth.ToString();
-                    if (viewData.MovementText != null)
-                        viewData.MovementText.text = unitData.MovementRange.ToString();
+                    if (def is Game.Card.Effects.SummonEffectDefinition s && s.UnitToSummon != null)
+                    {
+                        summonDef = s;
+                        break;
+                    }
                 }
+            }
+
+            if (summonDef != null)
+            {
+                var unitData = summonDef.UnitToSummon;
+
+                if (viewData.AttackText != null)
+                    viewData.AttackText.text = unitData.AttackPower.ToString();
+                if (viewData.HpText != null)
+                    viewData.HpText.text = unitData.MaxHealth.ToString();
+                if (viewData.MovementText != null)
+                    viewData.MovementText.text = unitData.MovementRange.ToString();
             }
         }
 

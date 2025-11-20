@@ -14,26 +14,21 @@ namespace Game.Card.Effects
     /// </summary>
     public class DamageEffect : IVFXAwareEffect
     {
-        private readonly EffectData _effectData;
+        private readonly DamageEffectDefinition _definition;
 
         public EffectType EffectType => EffectType.Damage;
-        public int Priority => _effectData?.Priority ?? 0;
+        public int Priority => _definition?.Priority ?? 0;
 
-        public DamageEffect(EffectData effectData)
+        public DamageEffect(DamageEffectDefinition definition)
         {
-            _effectData = effectData ?? throw new System.ArgumentNullException(nameof(effectData));
-
-            if (_effectData.Type != EffectType.Damage)
-            {
-                throw new System.ArgumentException($"EffectData의 타입이 Damage가 아닙니다: {_effectData.Type}");
-            }
+            _definition = definition ?? throw new System.ArgumentNullException(nameof(definition));
         }
 
         public bool CanExecute(Vector2Int targetPos, GameContext context)
         {
-            if (_effectData == null || !_effectData.IsValid())
+            if (_definition == null)
             {
-                Debug.LogWarning("DamageEffect: 유효하지 않은 EffectData입니다.");
+                Debug.LogWarning("DamageEffect: 유효하지 않은 DamageEffectDefinition입니다.");
                 return false;
             }
 
@@ -59,7 +54,7 @@ namespace Game.Card.Effects
                 return;
             }
 
-            var damageAmount = _effectData.Value;
+            int damageAmount = _definition.DamageAmount;
 
             // ✅ 중복 제거용 HashSet
             HashSet<HealthComponent> damagedTargets = new HashSet<HealthComponent>();
@@ -104,7 +99,7 @@ namespace Game.Card.Effects
 
             if (targetHealth != null && targetHealth.IsAlive)
             {
-                var damageAmount = _effectData.Value;
+                int damageAmount = _definition.DamageAmount;
                 targetHealth.TakeDamage(damageAmount);
 
                 Debug.Log($"[DamageEffect] {damageAmount} damage to target at {triggerData.TileGridPosition}");
@@ -146,7 +141,7 @@ namespace Game.Card.Effects
 
         public override string ToString()
         {
-            return $"DamageEffect[Value: {_effectData?.Value}, AffectedType: {_effectData?.AffectedType}, Range: {_effectData?.AffectedRange}]";
+            return $"DamageEffect[Value: {_definition?.DamageAmount}, Scope: {_definition?.TargetScope}]";
         }
     }
 }

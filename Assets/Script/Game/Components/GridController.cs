@@ -261,6 +261,12 @@ namespace Game.Components
             var targetTeam = teamComponent.Team;
             if (relativeTo == TeamType.None || targetTeam == TeamType.None) return false;
 
+            // TeamRelation.Any: 피아 구분 없이 유닛이 존재하기만 하면 true
+            if (relation == TeamRelation.Any)
+            {
+                return true;
+            }
+
             var actualRelation = TeamRelationMatrix.GetRelation(relativeTo, targetTeam);
             return actualRelation == relation;
         }
@@ -281,82 +287,10 @@ namespace Game.Components
 
         #region Phase 2.12: GetAffectedUnits() 메서드 구현
 
-        /// <summary>
-        /// Phase 2.12: AffectedType과 AffectedRange를 기반으로 영향받을 유닛 리스트를 반환합니다.
-        /// 카드 효과 시스템에서 사용되는 핵심 메서드입니다.
-        /// </summary>
-        /// <param name="targetPosition">효과의 중심 위치</param>
-        /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
-        /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
-        /// <param name="casterTeam">효과를 발동시킨 팀 (팀 구분용)</param>
-        /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
-        public List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam)
-        {
-            var affectedUnits = new List<GameObject>();
-
-            if (affectedType == AffectedType.None)
-            {
-                return affectedUnits; // 아무도 영향받지 않음
-            }
-
-            List<Vector2Int> positionsToCheck;
-
-            // Phase 2.12: AffectedRange 기반 위치 계산
-            if (affectedRange == 0)
-            {
-                // 단일 대상: 타겟 위치만
-                positionsToCheck = new List<Vector2Int> { targetPosition };
-                Debug.Log($"LLLLL {positionsToCheck.Count}");
-            }
-            else
-            {
-                // 범위 효과: 맨하탄 거리 기반 범위 내 모든 위치
-                positionsToCheck = GetPositionsInRange(targetPosition, affectedRange, true);
-            }
-
-            // 각 위치의 유닛들을 확인하여 조건에 맞는 유닛 수집
-            foreach (var position in positionsToCheck)
-            {
-                var unit = GetUnitAtPosition(position);
-                if (unit != null && IsUnitValidTarget(unit, affectedType, casterTeam))
-                {
-                    affectedUnits.Add(unit);
-                }
-            }
-            Debug.Log($"LLLLLLL {affectedUnits.Count}");
-            return affectedUnits;
-        }
-
-        /// <summary>
-        /// Phase 2.12: 유닛이 AffectedType 조건에 맞는 유효한 대상인지 확인합니다.
-        /// </summary>
-        /// <param name="unit">확인할 유닛</param>
-        /// <param name="affectedType">대상 타입 조건</param>
-        /// <param name="casterTeam">효과 발동자의 팀</param>
-        /// <returns>유효한 대상이면 true</returns>
-        private bool IsUnitValidTarget(GameObject unit, AffectedType affectedType, TeamType casterTeam)
-        {
-            if (unit == null) return false;
-
-            // ITeamComponent를 통해 유닛의 팀 정보 획득
-            var teamComponent = unit.GetComponent<ITeamComponent>();
-            if (teamComponent == null)
-            {
-                Debug.LogWarning($"GetAffectedUnits: 유닛 {unit.name}에 ITeamComponent가 없습니다. 중립으로 처리합니다.");
-                // 팀 정보가 없는 경우 중립 유닛으로 간주하고 Any일 때만 대상으로 포함
-                return affectedType == AffectedType.Any;
-            }
-
-            // AffectedType에 따른 대상 필터링
-            return affectedType switch
-            {
-                AffectedType.Ally => IsAllyUnit(teamComponent, casterTeam),
-                AffectedType.Enemy => IsEnemyUnit(teamComponent, casterTeam),
-                AffectedType.Any => true, // 모든 유닛이 대상
-                AffectedType.None => false, // 아무도 대상 아님 (위에서 이미 처리됨)
-                _ => false
-            };
-        }
+        // Phase 2.12: GetAffectedUnits / IsUnitValidTarget는
+        // EffectData/AffectedType 기반 시스템용 레거시 메서드입니다.
+        // 현재 카드 효과 시스템은 EffectDefinition 기반으로 옮겨졌으므로
+        // 새 코드에서는 사용하지 않습니다.
 
         /// <summary>
         /// Phase 2.12: 유닛이 아군인지 확인합니다.
@@ -404,26 +338,6 @@ namespace Game.Components
             // 맨하탄 거리로 범위 확인
             int distance = Mathf.Abs(centerPosition.x - checkPosition.x) + Mathf.Abs(centerPosition.y - checkPosition.y);
             return distance <= maxRange;
-        }
-
-        /// <summary>
-        /// Phase 2.12: 디버깅을 위한 GetAffectedUnits 정보 출력
-        /// </summary>
-        /// <param name="targetPosition">대상 위치</param>
-        /// <param name="affectedType">영향 타입</param>
-        /// <param name="affectedRange">영향 범위</param>
-        /// <param name="casterTeam">시전자 팀</param>
-        public void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam)
-        {
-            var units = GetAffectedUnits(targetPosition, affectedType, affectedRange, casterTeam);
-            Debug.Log($"GetAffectedUnits Debug: 위치({targetPosition.x}, {targetPosition.y}), 타입:{affectedType}, 범위:{affectedRange}, 시전자팀:{casterTeam}, 대상:{units.Count}개");
-
-            foreach (var unit in units)
-            {
-                var teamComp = unit.GetComponent<ITeamComponent>();
-                var teamName = teamComp?.Team.ToString() ?? "Unknown";
-                Debug.Log($"  - {unit.name} (팀: {teamName})");
-            }
         }
 
         #endregion

@@ -20,7 +20,5 @@ MonoBehaviour:
   attackPower: 200
   movementRange: 3
   modifiers:
-  - {fileID: 11400000, guid: 11c0d7a7d8a3dc64bbc6ef6236a5704e, type: 2}
-  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
-  effects:
-  - {fileID: 11400000, guid: 4aaddc7253556ac41bb11996b2e9dbec, type: 2}
+  - {fileID: 11400000, guid: e6e7fe626ad7c8a449c2c61a5a08bd57, type: 2}
+  effects: []

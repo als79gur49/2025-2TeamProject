@@ -23,7 +23,8 @@ namespace Game.Interfaces
         Self,            // 자신
         Ally,            // 아군
         Enemy,           // 적군
-        Neutral          // 중립
+        Neutral,         // 중립
+        Any              // 관계 무관 (필터 용도)
     }
 
     /// <summary>

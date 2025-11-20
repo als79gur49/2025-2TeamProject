@@ -330,6 +330,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9232dda18e6245e4ca931957fd0fa169, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &547758810
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 547758812}
+  - component: {fileID: 547758811}
+  m_Layer: 0
+  m_Name: StageRewardCoordinator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &547758811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 547758810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f8caf4144d51e439aab2a678ccc2ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &547758812
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 547758810}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 47.907707, y: 64.1001, z: -64.774895}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &586043563 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1577562627246389662, guid: 5121699c96fd58c4b90aa665f07e3981,
@@ -1039,9 +1083,9 @@ MonoBehaviour:
   enemyUnitData: {fileID: 11400000, guid: 94aae9c5f4f128e46a937f039817977b, type: 2}
   playerStartPositions:
   - {x: 0, y: 6}
-  - {x: 0, y: 5}
-  - {x: 0, y: 4}
-  - {x: 0, y: 3}
+  - {x: 1, y: 6}
+  - {x: 2, y: 6}
+  - {x: 3, y: 6}
   enemyStartPositions: []
 --- !u!114 &1899378046 stripped
 MonoBehaviour:
@@ -2009,6 +2053,11 @@ PrefabInstance:
       objectReference: {fileID: 1693075450}
     - target: {fileID: 703496734441172655, guid: 3274d6436a93937409c1f72a076eaee7,
         type: 3}
+      propertyPath: stageRewardCoordinator
+      value: 
+      objectReference: {fileID: 547758811}
+    - target: {fileID: 703496734441172655, guid: 3274d6436a93937409c1f72a076eaee7,
+        type: 3}
       propertyPath: damageDisplayRepository
       value: 
       objectReference: {fileID: 60206684}
@@ -2304,3 +2353,4 @@ SceneRoots:
   - {fileID: 605810879}
   - {fileID: 1693075451}
   - {fileID: 603777380}
+  - {fileID: 547758812}

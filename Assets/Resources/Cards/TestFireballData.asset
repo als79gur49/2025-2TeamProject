@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
   m_Name: TestFireballData
   m_EditorClassIdentifier: 
+  cardID: TestFireballData
   cardName: "\uD30C\uC774\uC5B4\uBCFC"
   description: "\uD654\uC5FC\uAD6C \uC18C\uD658."
   cardArt: {fileID: 21300000, guid: 3ad4061bd79af1244965df2e00ed3c94, type: 3}
@@ -21,17 +22,8 @@ MonoBehaviour:
   targetType: 2
   targetRange: -1
   keywords: []
-  effectDataList:
-  - type: 0
-    value: 33
-    priority: 0
-    affectedType: 2
-    affectedRange: 2
-    unitToSummon: {fileID: 0}
-    ignoreArmor: 0
-    duration: 0
-    vfxData: {fileID: 11400000, guid: 732577c733982c345993bb18ce91f0f3, type: 2}
-    initialized: 1
+  effectDefinitions:
+  - {fileID: 11400000, guid: c99680d6e72f8904d93e21e783528c67, type: 2}
   maxCopiesInDeck: 3
   isPlayableFromHand: 1
   requiredTags: []

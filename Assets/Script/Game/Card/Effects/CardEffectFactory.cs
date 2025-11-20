@@ -5,74 +5,51 @@ using UnityEngine;
 namespace Game.Card.Effects
 {
     /// <summary>
-    /// CardData 리팩토링 Phase 1.2: 카드 효과 팩토리
-    /// EffectData를 기반으로 ICardEffect 인스턴스를 생성하는 팩토리 클래스입니다.
+    /// 카드 효과 팩토리
+    /// EffectDefinition을 기반으로 ICardEffect 인스턴스를 생성하는 팩토리 클래스입니다.
     /// </summary>
     public static class CardEffectFactory
     {
-        // 효과 타입별 생성자 등록
-        private static readonly Dictionary<EffectType, Func<EffectData, ICardEffect>> _effectCreators =
-            new Dictionary<EffectType, Func<EffectData, ICardEffect>>
-            {
-                { EffectType.Damage, data => new DamageEffect(data) },
-                { EffectType.Heal, data => new HealEffect(data) },
-                { EffectType.Summon, data => new SummonEffect(data) }
-            };
-
         /// <summary>
-        /// EffectData로부터 ICardEffect 인스턴스를 생성합니다.
+        /// 새로운 EffectDefinition 기반으로 ICardEffect 인스턴스를 생성합니다.
+        /// 각 EffectDefinition은 자신의 타입에 맞는 런타임 효과를 생성할 책임을 가집니다.
         /// </summary>
-        /// <param name="effectData">효과 데이터</param>
-        /// <returns>생성된 효과 인스턴스</returns>
-        public static ICardEffect CreateEffect(EffectData effectData)
+        public static ICardEffect CreateEffect(EffectDefinition definition)
         {
-            if (effectData == null)
+            if (definition == null)
             {
-                Debug.LogError("CardEffectFactory: effectData가 null입니다.");
+                Debug.LogError("CardEffectFactory: EffectDefinition이 null입니다.");
                 return null;
             }
 
-            if (!effectData.IsValid())
+            try
             {
-                Debug.LogError($"CardEffectFactory: 유효하지 않은 effectData입니다. {effectData}");
+                var effect = definition.CreateRuntimeEffect();
+                return effect;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"CardEffectFactory: EffectDefinition 기반 효과 생성 실패: {ex.Message}");
                 return null;
             }
-
-            if (_effectCreators.TryGetValue(effectData.Type, out var creator))
-            {
-                try
-                {
-                    return creator(effectData);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"CardEffectFactory: {effectData.Type} 효과 생성 실패: {ex.Message}");
-                    return null;
-                }
-            }
-
-            Debug.LogError($"CardEffectFactory: 지원하지 않는 효과 타입입니다: {effectData.Type}");
-            return null;
         }
 
         /// <summary>
-        /// 여러 EffectData로부터 ICardEffect 리스트를 생성합니다.
+        /// 여러 EffectDefinition으로부터 ICardEffect 리스트를 생성합니다.
         /// </summary>
-        /// <param name="effectDataList">효과 데이터 리스트</param>
-        /// <returns>생성된 효과 인스턴스 리스트</returns>
-        public static List<ICardEffect> CreateEffects(IEnumerable<EffectData> effectDataList)
+        public static List<ICardEffect> CreateEffects(IEnumerable<EffectDefinition> definitions)
         {
             var effects = new List<ICardEffect>();
 
-            if (effectDataList == null)
+            if (definitions == null)
             {
-                Debug.LogWarning("CardEffectFactory: effectDataList가 null입니다.");
+                Debug.LogWarning("CardEffectFactory: EffectDefinition 리스트가 null입니다.");
                 return effects;
             }
 
-            foreach (var effectData in effectDataList)
+            foreach (var def in definitions)
             {
-                var effect = CreateEffect(effectData);
+                var effect = CreateEffect(def);
                 if (effect != null)
                 {
                     effects.Add(effect);
@@ -86,38 +63,7 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
-        /// 새로운 효과 타입을 등록합니다.
-        /// </summary>
-        /// <param name="effectType">효과 타입</param>
-        /// <param name="creator">생성자 함수</param>
-        public static void RegisterEffectType(EffectType effectType, Func<EffectData, ICardEffect> creator)
-        {
-            if (creator == null)
-            {
-                Debug.LogError("CardEffectFactory: creator가 null입니다.");
-                return;
-            }
-
-            _effectCreators[effectType] = creator;
-            Debug.Log($"CardEffectFactory: {effectType} 효과 타입이 등록되었습니다.");
-        }
-
-        /// <summary>
-        /// 등록된 효과 타입들을 반환합니다.
-        /// </summary>
-        public static IEnumerable<EffectType> GetRegisteredEffectTypes()
-        {
-            return _effectCreators.Keys;
-        }
-
-        /// <summary>
-        /// 특정 효과 타입이 지원되는지 확인합니다.
-        /// </summary>
-        /// <param name="effectType">확인할 효과 타입</param>
-        /// <returns>지원되면 true</returns>
-        public static bool IsEffectTypeSupported(EffectType effectType)
-        {
-            return _effectCreators.ContainsKey(effectType);
-        }
+        // EffectDefinition 기반 경로만 사용하므로,
+        // EffectType 등록/조회 유틸은 현재 필요하지 않습니다.
     }
 }

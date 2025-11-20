@@ -199,40 +199,41 @@ public class CardInfoPanel : UIPanel, IDualClosePanel
             descriptionText.text = cardData.Description;
         }
 
-        // 3. 효과 정보
+        // 3. 효과 정보 (EffectDefinition 기반)
         if (effectText != null)
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
-            if (cardData.EffectDataList.Count == 0)
+            if (cardData.EffectDefinitions == null || cardData.EffectDefinitions.Count == 0)
             {
                 sb.AppendLine(" (No effects)");
             }
             else
             {
                 int index = 1;
-                foreach (var effect in cardData.EffectDataList)
+                foreach (var def in cardData.EffectDefinitions)
                 {
+                    if (def == null) continue;
+
                     sb.AppendLine($" [Effect {index}]");
-                    sb.AppendLine($"Type: {effect.Type}");
-                    sb.AppendLine($"Value: {effect.Value}");
-                    sb.AppendLine($"AffectedType: {effect.AffectedType}");
-                    sb.AppendLine($"AffectedRange: {effect.AffectedRange}");
+                    sb.AppendLine($"Type: {def.EffectType}");
+                    sb.AppendLine($"Scope: {def.TargetScope}");
 
-                    index++;
-
-                    // 소환 유닛 정보 (UnitToSummon이 있을 때만)
-                    if (effect.UnitToSummon != null)
+                    switch (def)
                     {
-                        var unit = effect.UnitToSummon;
-                        sb.AppendLine($" [Summoned Unit Info]");
-                        sb.AppendLine($"  UnitName: {unit.UnitName}");
-                        sb.AppendLine($"  MaxHealth: {unit.MaxHealth}");
-                        sb.AppendLine($"  AttackPower: {unit.AttackPower}");
-                        sb.AppendLine($"  MovementRange: {unit.MovementRange}");
+                        case Game.Card.Effects.DamageEffectDefinition dmg:
+                            sb.AppendLine($"Value: {dmg.DamageAmount}");
+                            break;
+                        case Game.Card.Effects.HealEffectDefinition heal:
+                            sb.AppendLine($"Value: {heal.HealAmount}");
+                            break;
+                        case Game.Card.Effects.SummonEffectDefinition summon when summon.UnitToSummon != null:
+                            sb.AppendLine($"Summon: {summon.UnitToSummon.UnitName} x{summon.Count}");
+                            break;
                     }
 
-                    sb.AppendLine(""); // 효과 구분용 빈 줄
+                    index++;
+                    sb.AppendLine("");
                 }
             }
 

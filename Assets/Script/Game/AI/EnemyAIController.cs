@@ -391,156 +391,93 @@ namespace Game.AI
         }
 
         /// <summary>
-        /// 특정 위치에서 카드의 총 가치를 계산합니다.
+        /// 특정 위치에서 카드의 총 가치를 계산합니다. (EffectDefinition 기반)
         /// </summary>
         private int CalculateValueAtPosition(CardData card, Vector2Int position)
         {
-            int totalValue = 0;
-
-            if (card?.EffectDataList == null)
+            if (card?.EffectDefinitions == null || card.EffectDefinitions.Count == 0)
                 return 0;
 
-            foreach (var effect in card.EffectDataList)
+            int totalValue = 0;
+
+            foreach (var def in card.EffectDefinitions)
             {
-                totalValue += CalculateEffectValueAtPosition(card, effect, position);
+                if (def == null) continue;
+
+                switch (def)
+                {
+                    case SummonEffectDefinition summonDef:
+                        totalValue += CalculateSummonValue(summonDef);
+                        break;
+                    case DamageEffectDefinition dmgDef:
+                        totalValue += CalculateDamageValue(card, dmgDef, position);
+                        break;
+                    case HealEffectDefinition healDef:
+                        totalValue += CalculateHealValue(card, healDef, position);
+                        break;
+                }
             }
 
             return totalValue;
         }
 
-        /// <summary>
-        /// 개별 효과의 특정 위치에서의 가치를 계산합니다.
-        /// </summary>
-        private int CalculateEffectValueAtPosition(CardData card, EffectData effect, Vector2Int position)
+        private int CalculateSummonValue(SummonEffectDefinition def)
         {
-            switch (effect.Type)
-            {
-                case EffectType.Summon:
-                    return CalculateSummonValue(effect);
-
-                case EffectType.Damage:
-                    return CalculateDamageValue(card, effect, position);
-
-                case EffectType.Heal:
-                    return CalculateHealValue(card, effect, position);
-
-                default:
-                    return 0;
-            }
-        }
-
-        /// <summary>
-        /// Summon 효과의 가치 계산: 유닛 스탯 합산
-        /// </summary>
-        private int CalculateSummonValue(EffectData effect)
-        {
-            var unit = effect.UnitToSummon;
+            var unit = def.UnitToSummon;
             if (unit == null)
                 return 0;
 
             return unit.MaxHealth + unit.AttackPower + unit.MovementRange;
         }
 
-        /// <summary>
-        /// Damage 효과의 가치 계산: 타격 가능한 적군 수 × 데미지
-        /// </summary>
-        private int CalculateDamageValue(CardData card, EffectData effect, Vector2Int position)
+        private int CalculateDamageValue(CardData card, DamageEffectDefinition def, Vector2Int position)
         {
-            var affectedPositions = GetAffectedPositions(card, effect, position);
+            if (gridController == null || def.AreaShape == null)
+                return 0;
+
+            var tiles = def.AreaShape.GetTiles(position, gridController);
             int hitCount = 0;
 
-            foreach (var pos in affectedPositions)
+            foreach (var tile in tiles)
             {
-                var unitOnTile = gridController?.GetUnitAtPosition(pos);
-                if (unitOnTile != null)
-                {
-                    // 유닛의 팀 정보 가져오기
-                    var teamComponent = unitOnTile.GetComponent<ITeamComponent>();
-                    if (teamComponent != null)
-                    {
-                        // 적군 AI 입장에서 플레이어 유닛은 적
-                        bool isEnemy = teamComponent.Team == TeamType.Player;
+                if (tile == null || tile.OccupyingUnit == null) continue;
 
-                        if ((effect.AffectedType == AffectedType.Enemy && isEnemy) ||
-                            (effect.AffectedType == AffectedType.Any))
-                        {
-                            hitCount++;
-                        }
-                    }
-                }
+                var teamComponent = tile.OccupyingUnit.GetComponent<ITeamComponent>();
+                if (teamComponent == null) continue;
+
+                bool isEnemy = teamComponent.Team == TeamType.Player;
+                if (isEnemy) hitCount++;
             }
 
-            return hitCount * effect.Value;
+            return hitCount * def.DamageAmount;
         }
 
-        /// <summary>
-        /// Heal 효과의 가치 계산: 치유 가능한 아군 수 × 치유량
-        /// </summary>
-        private int CalculateHealValue(CardData card, EffectData effect, Vector2Int position)
+        private int CalculateHealValue(CardData card, HealEffectDefinition def, Vector2Int position)
         {
-            var affectedPositions = GetAffectedPositions(card, effect, position);
+            if (gridController == null || def.AreaShape == null)
+                return 0;
+
+            var tiles = def.AreaShape.GetTiles(position, gridController);
             int healCount = 0;
 
-            foreach (var pos in affectedPositions)
+            foreach (var tile in tiles)
             {
-                var unitOnTile = gridController?.GetUnitAtPosition(pos);
-                if (unitOnTile != null)
+                if (tile == null || tile.OccupyingUnit == null) continue;
+
+                var unitOnTile = tile.OccupyingUnit.gameObject;
+                var teamComponent = unitOnTile.GetComponent<ITeamComponent>();
+                var healthComponent = unitOnTile.GetComponent<IHealthComponent>();
+
+                if (teamComponent == null || healthComponent == null) continue;
+
+                bool isAlly = teamComponent.Team == TeamType.Enemy;
+                if (isAlly && healthComponent.CurrentHealth < healthComponent.MaxHealth)
                 {
-                    // 유닛의 팀 정보와 체력 정보 가져오기
-                    var teamComponent = unitOnTile.GetComponent<ITeamComponent>();
-                    var healthComponent = unitOnTile.GetComponent<IHealthComponent>();
-
-                    if (teamComponent != null && healthComponent != null)
-                    {
-                        // 적군 AI 입장에서 적군 유닛은 아군
-                        bool isAlly = teamComponent.Team == TeamType.Enemy;
-
-                        if ((effect.AffectedType == AffectedType.Ally && isAlly) ||
-                            (effect.AffectedType == AffectedType.Any))
-                        {
-                            // 현재 체력이 최대 체력보다 낮은 경우에만 가치 부여
-                            if (healthComponent.CurrentHealth < healthComponent.MaxHealth)
-                            {
-                                healCount++;
-                            }
-                        }
-                    }
+                    healCount++;
                 }
             }
 
-            return healCount * effect.Value;
-        }
-
-        /// <summary>
-        /// 효과 범위 내의 영향받는 위치 목록을 가져옵니다 (맨해튼 거리 기반).
-        /// </summary>
-        private List<Vector2Int> GetAffectedPositions(CardData card, EffectData effect, Vector2Int centerPosition)
-        {
-            var positions = new List<Vector2Int>();
-            int range = effect.AffectedRange;
-
-            if (gridController == null)
-                return positions;
-
-            for (int x = -range; x <= range; x++)
-            {
-                for (int y = -range; y <= range; y++)
-                {
-                    // 맨해튼 거리
-                    if (Mathf.Abs(x) + Mathf.Abs(y) <= range)
-                    {
-                        var targetPos = centerPosition + new Vector2Int(x, y);
-
-                        // 유효한 위치만 추가
-                        if (gridController.IsValidPosition(targetPos))
-                        {
-                            positions.Add(targetPos);
-                        }
-                    }
-                }
-            }
-
-            return positions;
+            return healCount * def.HealAmount;
         }
 
         #endregion

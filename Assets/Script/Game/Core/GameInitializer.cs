@@ -38,6 +38,7 @@ public class GameInitializer : SceneInitializer
     [Header("Session Management")]
     [SerializeField] private Game.Managers.GameSessionManager gameSessionManager; // 게임 세션 데이터 추적 서비스
     [SerializeField] private GameResultCoordinator gameResultCoordinator; // 게임 결과 조율 서비스
+    [SerializeField] private StageRewardCoordinator stageRewardCoordinator; // 스테이지 보상 조율 서비스
 
     [Header("Death Animation Services")]
     [SerializeField] private DeathAnimationManager deathAnimationManager; // 죽음 애니메이션 관리 서비스
@@ -100,7 +101,25 @@ public class GameInitializer : SceneInitializer
         // 6. 초기화 완료 마킹
         ServiceLocator.MarkAsInitialized();
 
-        // 7. 게임 세션 시작 (Stage Context 사용)
+        // 7. 스테이지 보상 코디네이터 초기화 (Stage Context 사용)
+        if (stageRewardCoordinator != null && currentStageData != null)
+        {
+            stageRewardCoordinator.Initialize(currentStageData);
+            Log("✅ StageRewardCoordinator initialized with current StageData");
+        }
+        else
+        {
+            if (stageRewardCoordinator == null)
+            {
+                Log("ℹ️ StageRewardCoordinator not assigned - stage rewards will not be applied");
+            }
+            if (currentStageData == null)
+            {
+                LogWarning("⚠️ CurrentStageData is null - StageRewardCoordinator cannot be initialized");
+            }
+        }
+
+        // 8. 게임 세션 시작 (Stage Context 사용)
         if (gameSessionManager != null && currentStageData != null)
         {
             gameSessionManager.StartSession(currentStageId, currentStageData);

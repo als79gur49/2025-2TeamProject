@@ -640,23 +640,6 @@ namespace Game.Services
                         LogError("No valid CardData available in availableCards list");
                     }
                 }
-                else
-                {
-                    // 3순위 (최후 fallback): 테스트 데이터 사용
-                    LogError("availableCards list is empty, using test data fallback");
-                    var testCards = CreateTestCardData();
-
-                    if (testCards.Count > 0)
-                    {
-                        int randomCardIndex = UnityEngine.Random.Range(0, testCards.Count);
-                        cardToDraw = testCards[randomCardIndex];
-                        Log($"🧪 Using test card: {cardToDraw.CardName}");
-                    }
-                    else
-                    {
-                        LogError("No card data available for random draw");
-                    }
-                }
             }
 
             // 선택된 카드를 핸드에 추가
@@ -904,91 +887,7 @@ namespace Game.Services
 
             GUILayout.EndArea();
         }
-
-        /// <summary>
-        /// 기본 테스트 카드 데이터 생성 (EffectData 기반)
-        /// </summary>
-        private List<CardData> CreateTestCardData()
-        {
-            var testCards = new List<CardData>();
-
-            // 1. 파이어볼 (데미지 효과)
-            var fireball = ScriptableObject.CreateInstance<CardData>();
-            fireball.name = "파이어볼";
-            var fireballEffect = new EffectData(EffectType.Damage, 25, AffectedType.Enemy, 5);
-            // Note: 실제로는 CardData의 effectDataList를 설정해야 하지만,
-            // private 필드이므로 에디터에서 직접 설정 필요
-            testCards.Add(fireball);
-
-            // 2. 힐 (회복 효과)
-            var heal = ScriptableObject.CreateInstance<CardData>();
-            heal.name = "치유";
-            var healEffect = new EffectData(EffectType.Heal, 15, AffectedType.Ally, 3);
-            testCards.Add(heal);
-
-            // 3. 소환 (소환 효과)
-            var summon = ScriptableObject.CreateInstance<CardData>();
-            summon.name = "유닛 소환";
-            var summonEffect = new EffectData(EffectType.Summon, 1, AffectedType.None, 0);
-            testCards.Add(summon);
-
-            return testCards;
-        }
-
-        /// <summary>
-        /// 다양한 주문 카드 생성 (EffectData 기반)
-        /// </summary>
-        private List<CardData> CreateSampleSpellCards()
-        {
-            var spellCards = new List<CardData>();
-
-            // 공격 주문들
-            var lightningArrow = ScriptableObject.CreateInstance<CardData>();
-            lightningArrow.name = "번개 화살";
-            spellCards.Add(lightningArrow);
-
-            var iceSpear = ScriptableObject.CreateInstance<CardData>();
-            iceSpear.name = "얼음 창";
-            spellCards.Add(iceSpear);
-
-            var meteor = ScriptableObject.CreateInstance<CardData>();
-            meteor.name = "메테오";
-            spellCards.Add(meteor);
-
-            // 보조 주문들
-            var haste = ScriptableObject.CreateInstance<CardData>();
-            haste.name = "신속";
-            spellCards.Add(haste);
-
-            var teleport = ScriptableObject.CreateInstance<CardData>();
-            teleport.name = "순간이동";
-            spellCards.Add(teleport);
-
-            return spellCards;
-        }
-
-        /// <summary>
-        /// 샘플 유닛 카드 생성 (EffectData 기반)
-        /// </summary>
-        private List<CardData> CreateSampleUnitCards()
-        {
-            var unitCards = new List<CardData>();
-
-            // 소환 효과를 가진 카드들 생성
-            var warrior = ScriptableObject.CreateInstance<CardData>();
-            warrior.name = "전사";
-            unitCards.Add(warrior);
-
-            var archer = ScriptableObject.CreateInstance<CardData>();
-            archer.name = "궁수";
-            unitCards.Add(archer);
-
-            var mage = ScriptableObject.CreateInstance<CardData>();
-            mage.name = "마법사";
-            unitCards.Add(mage);
-
-            return unitCards;
-        }
+     
 #endif
 
         #endregion

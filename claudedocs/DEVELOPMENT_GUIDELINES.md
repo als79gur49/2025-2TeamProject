@@ -142,6 +142,173 @@ Vector3 vfxPosition = new Vector3(
 
 ---
 
+## 🎯 4. TeamRelation Result vs Filter 사용 규칙
+
+### ⚠️ 중요: 레이어별 TeamRelation 사용 구분
+프로젝트에서 `TeamRelation` enum은 **Result 레이어**와 **Filter 레이어** 두 곳에서 사용되며,
+각 레이어에서의 의미와 사용 규칙이 다릅니다. 이를 혼용하면 설계 버그가 발생할 수 있습니다.
+
+### 📊 Result 레이어 (관계 계산)
+
+**용도**: 실제 팀 간의 관계를 계산하고 반환하는 계층
+
+**사용 예시:**
+- `TeamRelationMatrix.GetRelation()`
+- `TeamComponent.GetRelationTo()`
+- `IsEnemy()`, `IsAlly()`, `IsSelf()`
+
+**사용 가능한 값:**
+- ✅ `Self` - 자기 자신
+- ✅ `Ally` - 아군
+- ✅ `Enemy` - 적군
+- ✅ `Neutral` - 중립
+- ❌ `Any` - **절대 반환하면 안 됨**
+
+**핵심 규칙:**
+```csharp
+// ✅ 올바른 사용
+TeamRelation relation = matrix.GetRelation(TeamType.Player, TeamType.Enemy);
+// 반환값: Self, Ally, Enemy, Neutral 중 하나
+
+// ❌ 잘못된 사용
+if (matrix.GetRelation(...) == TeamRelation.Any)  // Any는 Result에서 절대 나올 수 없음
+{
+    // 이 코드가 실행되면 설계 버그!
+}
+```
+
+**장점:**
+- 기존 로직(Combat, AI, GridController 판단 등) 유지
+- 새로운 값 추가로 인한 사이드 이펙트 최소화
+- 명확한 관계 상태 표현
+
+### 🎯 Filter 레이어 (타겟팅/조건)
+
+**용도**: 타겟을 필터링하거나 조건을 검사하는 계층
+
+**사용 예시:**
+- `GridController.HasUnitWithRelation(position, relativeTo, relation)`
+- `ModifierConfig.TargetingParams.TargetRelation`
+- `TargetFilterDefinition.TeamFilterDefinition`
+
+**사용 가능한 값:**
+- ✅ `Self` - 자신만 선택
+- ✅ `Ally` - 아군만 선택
+- ✅ `Enemy` - 적군만 선택
+- ✅ `Neutral` - 중립만 선택
+- ✅ `Any` - **"관계 무관, 유닛 존재만 확인"**
+
+**핵심 규칙:**
+```csharp
+// ✅ 올바른 사용 - Any는 "모든 관계 허용"
+bool hasAnyUnit = gridController.HasUnitWithRelation(
+    position,
+    myUnit,
+    TeamRelation.Any  // 아군/적군 구분 없이 유닛이 있는지만 확인
+);
+
+// ✅ 복잡한 조건은 TargetFilterDefinition 조합으로 해결
+var filter = new TargetFilterDefinition()
+{
+    TeamFilter = TeamRelation.Ally,
+    HealthFilter = new HealthCondition { MinHP = 50 },
+    AndFilter = new AnotherFilter()
+};
+```
+
+**복잡한 조건 처리:**
+- ❌ `TeamRelation` enum에 `AllyOrSelf`, `EnemyWithLowHP` 같은 복합 값 추가하지 말 것
+- ✅ `TargetFilterDefinition`의 And/Or 조합 + 다른 필터들로 해결
+- ✅ `TeamRelation` enum은 최소한의 축만 유지
+
+### 🔍 왜 이렇게 나누는가
+
+#### Result 레이어 특성
+```
+Result 레이어는 "현재 상태"를 나타내는 순수 데이터
+→ 값이 많아질수록 모든 switch/로직에서 케이스 증가
+→ 버그 위험 증가
+→ 유지보수 어려움
+```
+
+#### Filter 레이어 특성
+```
+Filter 레이어는 "무엇을 허용할 것인가"를 표현하는 정책/조건
+→ 와일드카드(Any) 같은 유연한 표현 필요
+→ 복잡한 조건은 enum이 아닌 필터 조합으로 해결
+→ 확장성과 유지보수성 향상
+```
+
+### 💡 설계 원칙
+
+1. **TeamRelation enum의 책임**
+   - 공통으로 이해 가능한 최소 축만 포함: `Self`, `Ally`, `Enemy`, `Neutral`, `Any`
+   - 복합 조건이나 특수 케이스는 enum에 추가하지 않음
+
+2. **복잡한 조건 처리**
+   - `TargetFilterDefinition`에 책임 위임
+   - And/Or 조합, 스탯 조건 등으로 유연하게 표현
+
+3. **Any의 의미**
+   - **Result 레이어**: 절대 사용 금지 (버그 신호)
+   - **Filter 레이어**: "피아 구분 없는 와일드카드" (정상 사용)
+
+### 📝 요약
+
+```yaml
+TeamRelation.Any:
+  Result 레이어: ❌ 절대 반환하면 안 됨 (버그)
+  Filter 레이어: ✅ "관계 무관" 와일드카드로 사용
+
+관계 계산 결과: Self, Ally, Enemy, Neutral만 사용
+타겟팅 조건: Self, Ally, Enemy, Neutral, Any 모두 사용 가능
+
+복잡한 조건: TargetFilterDefinition 조합으로 해결
+TeamRelation enum: 최소한의 공통 축만 유지
+```
+
+### 🔍 관련 파일
+- `Assets/Script/Game/Data/TeamRelationMatrix.cs`
+- `Assets/Script/Game/Components/TeamComponent.cs`
+- `Assets/Script/Game/Components/GridController.cs`
+- `Assets/Script/Game/Card/Effects/TargetFilterDefinition.cs`
+- `Assets/Script/Game/Services/Modifiers/ModifierConfig.cs`
+
+### ⚠️ 주의사항
+
+#### 코드 리뷰 체크리스트
+```csharp
+// ❌ 위험: Result 레이어에서 Any 반환
+public TeamRelation GetRelation(TeamType a, TeamType b)
+{
+    // ...
+    return TeamRelation.Any;  // 이건 버그!
+}
+
+// ❌ 위험: switch에서 Any를 Result처럼 다룸
+switch(matrix.GetRelation(teamA, teamB))
+{
+    case TeamRelation.Any:  // Result에서는 나올 수 없음!
+        break;
+}
+
+// ✅ 올바름: Filter에서만 Any 사용
+bool hasUnit = HasUnitWithRelation(pos, unit, TeamRelation.Any);
+
+// ✅ 올바름: Result는 4가지 값만 처리
+switch(matrix.GetRelation(teamA, teamB))
+{
+    case TeamRelation.Self:
+    case TeamRelation.Ally:
+    case TeamRelation.Enemy:
+    case TeamRelation.Neutral:
+        break;
+    // Any 케이스는 없어야 함!
+}
+```
+
+---
+
 ## ✅ 규칙 준수 확인
 
 ### CardData 추가 시
@@ -159,6 +326,13 @@ Vector3 vfxPosition = new Vector3(
 - [ ] 개별 Offset (positionOffset/unitOffset) 조정 시 해당 객체만 영향받는다는 것을 확인했는가?
 - [ ] 실제 스폰 위치 = (전역 Offset) + (개별 Offset) 공식을 이해했는가?
 
+### TeamRelation 사용 시
+- [ ] Result 레이어(관계 계산)에서 TeamRelation.Any를 반환하지 않는가?
+- [ ] Filter 레이어(타겟팅/조건)에서만 TeamRelation.Any를 사용하는가?
+- [ ] switch 문에서 Result 값으로 TeamRelation.Any 케이스를 처리하지 않는가?
+- [ ] 복잡한 조건은 TeamRelation enum이 아닌 TargetFilterDefinition 조합으로 해결하는가?
+- [ ] TeamRelationMatrix.GetRelation()의 반환값은 Self/Ally/Enemy/Neutral만 사용하는가?
+
 ---
 
 ## 📚 추가 참고 자료
@@ -170,4 +344,4 @@ Vector3 vfxPosition = new Vector3(
 
 ---
 
-**마지막 업데이트**: 2025-11-08
+**마지막 업데이트**: 2025-11-20

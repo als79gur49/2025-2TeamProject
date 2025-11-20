@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
   m_Name: TestHealData
   m_EditorClassIdentifier: 
+  cardID: TestHealData
   cardName: "\uD790\uB9C1"
   description: "\uC544\uAD70 \uC720\uB2DB\uC758 \uCCB4\uB825 \uD68C\uBCF5"
   cardArt: {fileID: 21300000, guid: cb7956b916e2056439b132d5a202986b, type: 3}
@@ -19,19 +20,10 @@ MonoBehaviour:
   rarity: 0
   manaCost: 2
   targetType: 1
-  targetRange: 4
+  targetRange: -1
   keywords: []
-  effectDataList:
-  - type: 1
-    value: 13
-    priority: 0
-    affectedType: 1
-    affectedRange: 0
-    unitToSummon: {fileID: 0}
-    ignoreArmor: 0
-    duration: 0
-    vfxData: {fileID: 11400000, guid: a7eed5273429d64468e61dabdd435406, type: 2}
-    initialized: 1
+  effectDefinitions:
+  - {fileID: 11400000, guid: 69a6abf0750966c4ebb5da6baf7f3acc, type: 2}
   maxCopiesInDeck: 3
   isPlayableFromHand: 1
   requiredTags: []

@@ -14,26 +14,21 @@ namespace Game.Card.Effects
     /// </summary>
     public class HealEffect : IVFXAwareEffect
     {
-        private readonly EffectData _effectData;
+        private readonly HealEffectDefinition _definition;
 
         public EffectType EffectType => EffectType.Heal;
-        public int Priority => _effectData?.Priority ?? 0;
+        public int Priority => _definition?.Priority ?? 0;
 
-        public HealEffect(EffectData effectData)
+        public HealEffect(HealEffectDefinition definition)
         {
-            _effectData = effectData ?? throw new System.ArgumentNullException(nameof(effectData));
-
-            if (_effectData.Type != EffectType.Heal)
-            {
-                throw new System.ArgumentException($"EffectData의 타입이 Heal이 아닙니다: {_effectData.Type}");
-            }
+            _definition = definition ?? throw new System.ArgumentNullException(nameof(definition));
         }
 
         public bool CanExecute(Vector2Int targetPos, GameContext context)
         {
-            if (_effectData == null || !_effectData.IsValid())
+            if (_definition == null)
             {
-                Debug.LogWarning("HealEffect: 유효하지 않은 EffectData입니다.");
+                Debug.LogWarning("HealEffect: 유효하지 않은 HealEffectDefinition입니다.");
                 return false;
             }
 
@@ -59,7 +54,7 @@ namespace Game.Card.Effects
                 return;
             }
 
-            var healAmount = _effectData.Value;
+            int healAmount = _definition.HealAmount;
 
             // ✅ 중복 제거용 HashSet
             HashSet<HealthComponent> healedTargets = new HashSet<HealthComponent>();
@@ -103,7 +98,7 @@ namespace Game.Card.Effects
 
             if (targetHealth != null && targetHealth.IsAlive)
             {
-                var healAmount = _effectData.Value;
+                int healAmount = _definition.HealAmount;
                 targetHealth.Heal(healAmount);
 
                 Debug.Log($"[HealEffect] {healAmount} heal to target at {triggerData.TileGridPosition}");
@@ -143,7 +138,7 @@ namespace Game.Card.Effects
 
         public override string ToString()
         {
-            return $"HealEffect[Value: {_effectData?.Value}, AffectedType: {_effectData?.AffectedType}, Range: {_effectData?.AffectedRange}]";
+            return $"HealEffect[Value: {_definition?.HealAmount}, Scope: {_definition?.TargetScope}]";
         }
     }
 }

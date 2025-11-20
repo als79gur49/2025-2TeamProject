@@ -11,31 +11,26 @@ namespace Game.Card.Effects
     /// </summary>
     public class SummonEffect : IVFXAwareEffect
     {
-        private readonly EffectData _effectData;
+        private readonly SummonEffectDefinition _definition;
 
         public EffectType EffectType => EffectType.Summon;
-        public int Priority => _effectData?.Priority ?? 0;
+        public int Priority => _definition?.Priority ?? 0;
 
-        public SummonEffect(EffectData effectData)
+        public SummonEffect(SummonEffectDefinition definition)
         {
-            _effectData = effectData ?? throw new System.ArgumentNullException(nameof(effectData));
+            _definition = definition ?? throw new System.ArgumentNullException(nameof(definition));
 
-            if (_effectData.Type != EffectType.Summon)
+            if (_definition.UnitToSummon == null)
             {
-                throw new System.ArgumentException($"EffectData의 타입이 Summon이 아닙니다: {_effectData.Type}");
-            }
-
-            if (_effectData.UnitToSummon == null)
-            {
-                throw new System.ArgumentException("Summon Effect에는 UnitToSummon이 필요합니다.");
+                throw new System.ArgumentException("SummonEffectDefinition에는 UnitToSummon이 필요합니다.");
             }
         }
 
         public bool CanExecute(Vector2Int targetPos, GameContext context)
         {
-            if (_effectData == null || !_effectData.IsValid())
+            if (_definition == null)
             {
-                Debug.LogWarning("SummonEffect: 유효하지 않은 EffectData입니다.");
+                Debug.LogWarning("SummonEffect: 유효하지 않은 SummonEffectDefinition입니다.");
                 return false;
             }
 
@@ -59,9 +54,12 @@ namespace Game.Card.Effects
 
             // 타일 기반: 사전 계산된 타일에 소환
             var tilesToSummon = context.PredeterminedTiles;
-            var summonCount = Mathf.Min(_effectData.Value, tilesToSummon.Count);
+            int count = _definition.Count;
+            var summonCount = Mathf.Min(count, tilesToSummon.Count);
 
-            Debug.Log($"SummonEffect: {_effectData.UnitToSummon.UnitName}을(를) {summonCount}개 소환합니다.");
+            var unitData = _definition.UnitToSummon;
+
+            Debug.Log($"SummonEffect: {unitData.UnitName}을(를) {summonCount}개 소환합니다.");
 
             for (int i = 0; i < summonCount; i++)
             {
@@ -119,7 +117,9 @@ namespace Game.Card.Effects
             Vector2Int position = tile.GetGridPosition();
             Vector3 worldPosition = tile.transform.position;
 
-            if (_effectData.UnitToSummon == null || _effectData.UnitToSummon.Prefab == null)
+            var unitData = _definition.UnitToSummon;
+
+            if (unitData == null || unitData.Prefab == null)
             {
                 Debug.LogError("SummonEffect: UnitToSummon 또는 Prefab이 null입니다.");
                 return;
@@ -132,11 +132,11 @@ namespace Game.Card.Effects
             }
 
             // 유닛 프리팹 인스턴스화 (타일의 월드 좌표 사용)
-            var unitObject = Object.Instantiate(_effectData.UnitToSummon.Prefab, worldPosition, Quaternion.identity);
+            var unitObject = Object.Instantiate(unitData.Prefab, worldPosition, Quaternion.identity);
 
             if (unitObject == null)
             {
-                Debug.LogError($"SummonEffect: {_effectData.UnitToSummon.UnitName} 프리팹 인스턴스화 실패");
+                Debug.LogError($"SummonEffect: {unitData.UnitName} 프리팹 인스턴스화 실패");
                 return;
             }
 
@@ -151,7 +151,7 @@ namespace Game.Card.Effects
 
             // 유닛 초기화 (팀 타입 기반으로 팀 결정)
             bool isPlayerUnit = (context.CasterTeam == TeamType.Player);
-            unit.Init(_effectData.UnitToSummon, position, isPlayerUnit);
+            unit.Init(unitData, position, isPlayerUnit);
 
             // GridController에 유닛 배치
             bool moved = context.GridController.MoveUnit(unitObject, position);
@@ -207,8 +207,8 @@ namespace Game.Card.Effects
 
         public override string ToString()
         {
-            var unitName = _effectData?.UnitToSummon?.UnitName ?? "Unknown";
-            return $"SummonEffect[Unit: {unitName}, Count: {_effectData?.Value}, AffectedType: {_effectData?.AffectedType}, Range: {_effectData?.AffectedRange}]";
+            var unitName = _definition?.UnitToSummon?.UnitName ?? "Unknown";
+            return $"SummonEffect[Unit: {unitName}, Count: {_definition?.Count}, Scope: {_definition?.TargetScope}]";
         }
     }
 }

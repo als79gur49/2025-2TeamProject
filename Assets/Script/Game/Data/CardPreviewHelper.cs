@@ -27,72 +27,29 @@ namespace Game.Data
         {
             var positions = new List<Vector2Int>();
 
-            if (!cardData.IsEffectBasedCard || gridManager == null)
+            if (cardData == null || !cardData.IsEffectBasedCard || gridManager == null)
                 return positions;
 
-            // 각 효과별로 범위 계산
-            foreach (var effectData in cardData.EffectDataList)
+            // IGridManager를 통해 실제 IGridController를 가져와서 AreaShape 계산에 사용
+            var gridController = gridManager.GetGridController();
+            if (gridController == null)
             {
-                var effectPositions = CalculateRangeForEffect(
-                    effectData,
-                    centerPos,
-                    gridManager);
+                Debug.LogWarning("[CardPreviewHelper] GridController is null, cannot compute preview tiles");
+                return positions;
+            }
 
-                // 중복 제거하며 추가
-                foreach (var pos in effectPositions)
+            // EffectDefinition 기반: 각 정의의 AreaShape를 사용하여 범위 계산
+            foreach (var def in cardData.EffectDefinitions)
+            {
+                if (def == null || def.AreaShape == null) continue;
+
+                var tiles = def.AreaShape.GetTiles(centerPos, gridController);
+                foreach (var tile in tiles)
                 {
+                    if (tile == null) continue;
+                    var pos = tile.GetGridPosition();
                     if (!positions.Contains(pos))
                         positions.Add(pos);
-                }
-            }
-
-            return positions;
-        }
-
-        /// <summary>
-        /// 특정 효과의 영향 범위 계산
-        /// ⚠️ SpellEffectExecutor.FilterTriggersForEffect() Line 314-325와 동일한 로직
-        /// </summary>
-        /// <param name="effectData">효과 데이터</param>
-        /// <param name="centerPos">중심 위치</param>
-        /// <param name="gridManager">그리드 관리자</param>
-        /// <returns>해당 효과의 영향을 받는 타일 위치 리스트</returns>
-        private static List<Vector2Int> CalculateRangeForEffect(
-            EffectData effectData,
-            Vector2Int centerPos,
-            IGridManager gridManager)
-        {
-            var positions = new List<Vector2Int>();
-            var gridSize = gridManager.GridSize;
-
-            // Range 0: 단일 타겟 (중심 위치만)
-            // SpellEffectExecutor Line 315-318
-            if (effectData.AffectedRange == 0)
-            {
-                if (gridManager.IsValidPosition(centerPos))
-                {
-                    positions.Add(centerPos);
-                }
-                return positions;
-            }
-
-            // Range 1+: 맨하탄 거리 기반 범위 계산
-            // ✅ SpellEffectExecutor Line 319-325의 실제 로직
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                for (int y = 0; y < gridSize.y; y++)
-                {
-                    Vector2Int tilePos2D = new Vector2Int(x, y);
-
-                    // 맨하탄 거리 계산 (SpellEffectExecutor Line 322-324와 동일)
-                    int distance = Mathf.Abs(tilePos2D.x - centerPos.x) +
-                                   Mathf.Abs(tilePos2D.y - centerPos.y);
-
-                    // 범위 내에 있는지 확인 (SpellEffectExecutor Line 325)
-                    if (distance <= effectData.AffectedRange)
-                    {
-                        positions.Add(tilePos2D);
-                    }
                 }
             }
 

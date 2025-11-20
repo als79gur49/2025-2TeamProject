@@ -274,17 +274,6 @@ namespace Game.Interfaces
     /// </summary>
     public interface IGridEffectQuery
     {
-        // Phase 2.12: 카드 효과 대상 해결
-        /// <summary>
-        /// AffectedType과 AffectedRange를 기반으로 영향받을 유닛 리스트를 반환
-        /// </summary>
-        /// <param name="targetPosition">효과의 중심 위치</param>
-        /// <param name="affectedType">영향받을 대상 타입 (Ally/Enemy/Any/None)</param>
-        /// <param name="affectedRange">효과 범위 (0: 단일 대상, 1+: 범위 효과)</param>
-        /// <param name="casterTeam">효과를 발동시킨 팀 (팀 구분용)</param>
-        /// <returns>영향받을 유닛들의 GameObject 리스트</returns>
-        List<GameObject> GetAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam);
-
         // Phase 3.15: 카드 타겟 범위 검증
         /// <summary>
         /// 카드의 TargetRange를 검증하여 대상 위치가 카드 사용 가능 범위 내인지 확인
@@ -294,12 +283,6 @@ namespace Game.Interfaces
         /// <param name="isPlayerCard">플레이어 카드인지 여부</param>
         /// <returns>TargetRange 검증 결과</returns>
         bool ValidateCardTargetRange(CardData cardData, Vector2Int targetPosition, bool isPlayerCard);
-
-        // 디버깅 유틸리티
-        /// <summary>
-        /// GetAffectedUnits의 결과를 디버그 로그로 출력
-        /// </summary>
-        void DebugLogAffectedUnits(Vector2Int targetPosition, AffectedType affectedType, int affectedRange, TeamType casterTeam);
 
         /// <summary>
         /// TargetRange 검증 디버깅을 위한 상세 정보 출력

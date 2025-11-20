@@ -13,11 +13,11 @@ namespace Game.VFX
     public interface ISpellEffectExecutor
     {
         /// <summary>
-        /// 여러 효과를 단일 VFX로 실행 (TriggerData 기반)
+        /// 여러 EffectDefinition 기반 효과를 단일 VFX로 실행 (신규 파이프라인)
         /// </summary>
-        /// <param name="effectDataList">읽기 전용 효과 데이터 리스트</param>
+        /// <param name="effectDefinitions">읽기 전용 효과 정의 리스트</param>
         /// <param name="targetPos">타겟 그리드 위치</param>
         /// <param name="context">게임 컨텍스트</param>
-        void ExecuteBatch(IReadOnlyList<EffectData> effectDataList, Vector2Int targetPos, GameContext context);
+        void ExecuteBatch(IReadOnlyList<EffectDefinition> effectDefinitions, Vector2Int targetPos, GameContext context);
     }
 }
