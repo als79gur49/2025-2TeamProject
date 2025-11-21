@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 309b1b0596570ad4eb967e70d9f07b5f, type: 3}
-  m_Name: StatBuffEffect_[-1,2,0]_Duration-1
+  m_Name: "\uC5D0\uB108\uC9C0_01"
   m_EditorClassIdentifier: 
   effectType: 3
   priority: 100
   targetScope: 0
-  areaShape: {fileID: 11400000, guid: 238b50c189da39945ace4056d80c5a51, type: 2}
-  targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
-  vfx: {fileID: 11400000, guid: 401093c36ff14f04784ffa5f4055b9a5, type: 2}
-  healthDelta: -1
-  attackDelta: 2
+  areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
+  targetFilter: {fileID: 11400000, guid: c30b32a88c3988d49b501576ce0d22b3, type: 2}
+  vfx: {fileID: 11400000, guid: 8d1591ed62c08bf499828b45715c1c03, type: 2}
+  healthDelta: 1
+  attackDelta: 1
   movementDelta: 0
-  maxTargets: 3
+  maxTargets: 1
   buffDurationTurns: -1
   revertOnExpire: 1

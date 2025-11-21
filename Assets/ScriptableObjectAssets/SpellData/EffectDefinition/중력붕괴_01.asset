@@ -9,18 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 309b1b0596570ad4eb967e70d9f07b5f, type: 3}
-  m_Name: StatBuffEffect_[-1,1,0]_Duration-1
+  m_Script: {fileID: 11500000, guid: 1076f822b8b9d2540bc00109cac9a392, type: 3}
+  m_Name: "\uC911\uB825\uBD95\uAD34_01"
   m_EditorClassIdentifier: 
-  effectType: 3
-  priority: 100
+  effectType: 0
+  priority: 0
   targetScope: 0
   areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
   targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
-  vfx: {fileID: 11400000, guid: 5bfe434bbc2a3d94390b8a2e92f5c81c, type: 2}
-  healthDelta: -1
-  attackDelta: 1
-  movementDelta: 0
-  maxTargets: 1
-  buffDurationTurns: -1
-  revertOnExpire: 1
+  vfx: {fileID: 11400000, guid: 4c0134d5cdd08c94d8b5dbd6540aa681, type: 2}
+  damageAmount: 999
+  ignoreArmor: 0
+  duration: 0

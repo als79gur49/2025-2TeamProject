@@ -20,7 +20,7 @@ MonoBehaviour:
   iconSprite: {fileID: 0}
   rarity: 1
   manaCost: 4
-  targetType: 4
+  targetType: 0
   targetRange: -1
   keywords: []
   effectDefinitions:

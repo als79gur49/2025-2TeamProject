@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
+  m_Name: "\uC0B0\uD654\uB3C5"
+  m_EditorClassIdentifier: 
+  cardID: "\uC0B0\uD654\uB3C5"
+  cardName: "\uC0B0\uD654\uB3C5"
+  description: "\uC801\uAD70\uC5D0\uAC8C\uC11C \uD761\uD608\uC744 \uD558\uC5EC\uC11C
+    \uC544\uAD70 \uB125\uC11C\uC2A4\uC758 \uCCB4\uB825\uC744 \uD68C\uBCF5\uC2DC\uD0A8\uB2E4."
+  cardArt: {fileID: 21300000, guid: e1abeb2ce500d3647898c306f5fa75e6, type: 3}
+  iconSprite: {fileID: 0}
+  rarity: 1
+  manaCost: 2
+  targetType: 2
+  targetRange: -1
+  keywords: []
+  effectDefinitions:
+  - {fileID: 11400000, guid: 173e2d0f4d86e464c9dca708f3072ec4, type: 2}
+  maxCopiesInDeck: 3
+  isPlayableFromHand: 1
+  requiredTags: []

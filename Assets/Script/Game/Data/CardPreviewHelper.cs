@@ -90,7 +90,7 @@ namespace Game.Data
             {
                 bool isValid = false;
 
-                isValid = validator.CanUseCard(cardData, pos, true);
+                isValid = validator.CanUseCard(cardData, pos, isPlayerUnit);
 
                 if (isValid)
                     valid.Add(pos);

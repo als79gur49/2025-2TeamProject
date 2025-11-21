@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
+  m_Name: ExplosionBombVFXData
+  m_EditorClassIdentifier: 
+  vfxPrefab: {fileID: 1056904543853562, guid: 65e8ebe8cb2d227469a5e4f0d8bcff18, type: 3}
+  triggerNormalizedTime: 0.2
+  useAutoDuration: 0
+  manualDuration: 2
+  isLooping: 0
+  playbackSpeed: 1
+  positionOffset: {x: 0, y: 0.5, z: 0}

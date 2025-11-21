@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1076f822b8b9d2540bc00109cac9a392, type: 3}
-  m_Name: PowerDrawEffect
+  m_Name: "\uBC88\uAC1C_01"
   m_EditorClassIdentifier: 
   effectType: 0
   priority: 0
   targetScope: 0
   areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
-  targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
-  vfx: {fileID: 11400000, guid: 750408d2382f4b144adfd5ce16124fc4, type: 2}
-  damageAmount: 5
+  targetFilter: {fileID: 11400000, guid: 098f4cdeafbe98044a2bbd07b1900aba, type: 2}
+  vfx: {fileID: 11400000, guid: 0c388a5f9adfcae4a8507099614fa66f, type: 2}
+  damageAmount: 999
   ignoreArmor: 0
   duration: 0

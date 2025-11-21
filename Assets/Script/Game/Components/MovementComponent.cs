@@ -173,6 +173,7 @@ namespace Game.Components
         #region IMovementSystem Implementation
 
         public int MovementRange => GetModifiedMovementRange();
+        public int BaseMovementRange => movementRange;
         public MovementType MovementType => movementType;
         // Phase 2: Transform 보간 완료까지 다음 이동 차단
         // Phase 5: 순차 이동 진행 중에도 다음 이동 차단

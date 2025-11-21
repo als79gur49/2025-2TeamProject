@@ -2,6 +2,7 @@ using UnityEngine;
 using Game.Core;
 using Game.Interfaces;
 using Game.Data;
+using Game.Card.Effects;
 
 namespace Game.Services
 {
@@ -207,8 +208,78 @@ namespace Game.Services
                 return false;
             }
 
+            // 6. EffectDefinition 기반 타겟 필터 검증
+            //    AreaShape + TargetFilter(Team/Stat/And/Or)를 모두 적용했을 때
+            //    실제로 영향을 줄 수 있는 타겟이 하나라도 있는지 확인
+            if (cardData.IsEffectBasedCard)
+            {
+                bool hasValidEffectTarget = HasAnyValidEffectTarget(cardData, targetPosition, isPlayerUnit);
+                if (!hasValidEffectTarget)
+                {
+                    Log($"Effect target validation failed for {cardData.CardName} at {targetPosition}");
+                    return false;
+                }
+            }
+
             Log($"Card validation passed for {cardData.CardName} at {targetPosition}");
             return true;
+        }
+
+        /// <summary>
+        /// EffectDefinition.TargetFilter (TeamFilter, StatThreshold, And/Or 포함)를
+        /// 모두 적용했을 때 실제로 영향을 줄 수 있는 타겟 타일이 하나라도 있는지 검사합니다.
+        /// </summary>
+        private bool HasAnyValidEffectTarget(CardData cardData, Vector2Int targetPosition, bool isPlayerUnit)
+        {
+            if (cardData == null || !cardData.IsEffectBasedCard)
+                return true;
+
+            if (gridController == null)
+            {
+                LogError("❌ GridController not available for effect target validation");
+                return false;
+            }
+
+            // 카드 사용자 팀 설정 (TeamFilterDefinition이 참조하는 값)
+            var casterTeam = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
+
+            // EffectTargetingHelper가 필요로 하는 최소 정보만 담은 GameContext 생성
+            var context = new GameContext(
+                unitService: null,
+                gridController: gridController,
+                cardSpawnService: null,
+                spawnValidator: this,
+                casterTeam: casterTeam,
+                originPosition: targetPosition
+            );
+
+            bool hasTileBasedEffects = false;
+            bool hasAnyTile = false;
+
+            foreach (var def in cardData.EffectDefinitions)
+            {
+                if (def == null)
+                    continue;
+
+                // Global 효과는 타일 기반 타겟 검증 대상에서 제외
+                if (def.TargetScope == EffectTargetScope.Global)
+                    continue;
+
+                hasTileBasedEffects = true;
+
+                var tiles = EffectTargetingHelper.GetTargetTiles(targetPosition, def, context);
+                if (tiles.Count > 0)
+                {
+                    hasAnyTile = true;
+                    break;
+                }
+            }
+
+            // 타일 기반 효과가 없다면 기존 로직만으로도 충분하다고 판단
+            if (!hasTileBasedEffects)
+                return true;
+
+            return hasAnyTile;
         }
 
         /// <summary>
