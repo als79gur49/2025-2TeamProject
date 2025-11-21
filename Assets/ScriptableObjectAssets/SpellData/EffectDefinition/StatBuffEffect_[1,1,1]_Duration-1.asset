@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 309b1b0596570ad4eb967e70d9f07b5f, type: 3}
+  m_Name: StatBuffEffect_[1,1,1]_Duration-1
+  m_EditorClassIdentifier: 
+  effectType: 3
+  priority: 100
+  targetScope: 0
+  areaShape: {fileID: 11400000, guid: 4afc3826cfcc8de46ba1e8bb9b820e75, type: 2}
+  targetFilter: {fileID: 11400000, guid: c30b32a88c3988d49b501576ce0d22b3, type: 2}
+  vfx: {fileID: 11400000, guid: 0fcce3bbba9eb55498b426bc34062b40, type: 2}
+  healthDelta: 1
+  attackDelta: 1
+  movementDelta: 1
+  maxTargets: 6
+  buffDurationTurns: -1
+  revertOnExpire: 1
