@@ -33,7 +33,9 @@ namespace Game.Components
 
         // 설정
         [SerializeField] private Material highlightMaterial;
-        [SerializeField] private Color defaultHighlightColor = Color.yellow;
+        [SerializeField] private Color defaultHighlightColor = Color.white;
+        [SerializeField] private Color validHighlightColor = Color.green;
+        [SerializeField] private Color invalidHighlightColor = Color.red;
         [SerializeField] private Color validDropColor = new Color(0f, 1f, 0f, 0.5f);    // 유효한 드롭 위치 색상 (초록색)
         [SerializeField] private Color invalidDropColor = new Color(1f, 0f, 0f, 0.5f);  // 무효한 드롭 위치 색상 (빨간색)
 
@@ -634,35 +636,43 @@ namespace Game.Components
         }
 
         /// <summary>
-        /// 영향 범위를 유효/무효 색상으로 구분 표시
+        /// 영향 범위를 기본/유효/무효 색상으로 구분 표시
         /// </summary>
+        /// <param name="areaPositions">효과 범위 전체 위치 리스트</param>
         /// <param name="validPositions">유효한 위치 리스트</param>
         /// <param name="invalidPositions">무효한 위치 리스트</param>
-        public void ShowValidatedPreview(List<Vector2Int> validPositions, List<Vector2Int> invalidPositions)
+        public void ShowValidatedPreview(List<Vector2Int> areaPositions, List<Vector2Int> validPositions, List<Vector2Int> invalidPositions)
         {
             ClearCardPreview(); // 기존 프리뷰 정리
 
-            // 유효한 위치 하이라이트 (초록색)
-            if (validPositions != null)
+            var validSet = new HashSet<Vector2Int>(validPositions ?? new List<Vector2Int>());
+            var invalidSet = new HashSet<Vector2Int>(invalidPositions ?? new List<Vector2Int>());
+
+            // 1단계: 범위 내 모든 타일에 기본 색 적용
+            if (areaPositions != null)
             {
-                foreach (var pos in validPositions)
+                foreach (var pos in areaPositions)
                 {
-                    SetTileHighlight(pos, validDropColor);
+                    SetTileHighlight(pos, defaultHighlightColor);
                     currentPreviewPositions.Add(pos);
                 }
             }
 
-            // 무효한 위치 하이라이트 (빨간색)
-            if (invalidPositions != null)
+            // 2단계: 유효한 타일에 유효 색 덮어쓰기
+            foreach (var pos in validSet)
             {
-                foreach (var pos in invalidPositions)
-                {
-                    SetTileHighlight(pos, invalidDropColor);
-                    currentPreviewPositions.Add(pos);
-                }
+                SetTileHighlight(pos, validHighlightColor);
+                currentPreviewPositions.Add(pos);
             }
 
-            Debug.Log($"[GridRenderer] Validated preview: {validPositions?.Count ?? 0} valid, {invalidPositions?.Count ?? 0} invalid");
+            // 3단계: 무효한 타일에 무효 색 덮어쓰기
+            foreach (var pos in invalidSet)
+            {
+                SetTileHighlight(pos, invalidHighlightColor);
+                currentPreviewPositions.Add(pos);
+            }
+
+            Debug.Log($"[GridRenderer] Validated preview: Area={areaPositions?.Count ?? 0}, Valid={validPositions?.Count ?? 0}, Invalid={invalidPositions?.Count ?? 0}");
         }
 
         /// <summary>

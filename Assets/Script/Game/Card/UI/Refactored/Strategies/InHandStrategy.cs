@@ -221,20 +221,18 @@ namespace Game.Card.UI.Refactored
                     // 카드 프리뷰 표시
                     if (battleContext?.GridRenderer != null &&
                         battleContext?.GridManager != null &&
-                        battleContext?.SpawnValidator != null &&
                         gridPosition.HasValue)
                     {
                         // CardPreviewHelper로 유효/무효 위치 계산
-                        var (validPos, invalidPos) = CardPreviewHelper.ValidateAffectedPositions(
+                        var (areaPos, validPos, invalidPos) = CardPreviewHelper.ValidateAffectedPositions(
                             context.CardData,
                             gridPosition.Value,
                             battleContext.GridManager,
-                            battleContext.SpawnValidator,
                             true
                         );
 
-                        // 유효/무효 위치를 색상으로 구분하여 표시
-                        battleContext.GridRenderer.ShowValidatedPreview(validPos, invalidPos);
+                        // 기본/유효/무효 위치를 색상으로 구분하여 표시
+                        battleContext.GridRenderer.ShowValidatedPreview(areaPos, validPos, invalidPos);
                     }
                     break;
                 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Game.Card.Effects;
 using Game.Interfaces;
+using static Game.Interfaces.ITeamComponent;
 
 namespace Game.Data
 {
@@ -58,47 +59,107 @@ namespace Game.Data
 
         /// <summary>
         /// 유효성 검사를 통한 위치 분류
-        /// EffectTargetingHelper 및 SpawnValidator 활용
+        /// EffectTargetingHelper 및 TargetFilter 기반 타겟팅 활용
         /// </summary>
         /// <param name="cardData">카드 데이터</param>
         /// <param name="centerPos">중심 위치</param>
         /// <param name="gridManager">그리드 관리자</param>
-        /// <param name="validator">스폰 검증기</param>
-        /// <returns>(유효한 위치 리스트, 무효한 위치 리스트)</returns>
-        public static (List<Vector2Int> valid, List<Vector2Int> invalid)
+        /// <param name="isPlayerUnit">플레이어 유닛 여부 (시전자 팀 결정)</param>
+        /// <returns>(전체 범위, 유효 타일, 무효 타일 리스트)</returns>
+        public static (List<Vector2Int> area, List<Vector2Int> valid, List<Vector2Int> invalid)
             ValidateAffectedPositions(
                 CardData cardData,
                 Vector2Int centerPos,
                 IGridManager gridManager,
-                ISpawnValidator validator,
                 bool isPlayerUnit)
         {
+            var area = new List<Vector2Int>();
             var valid = new List<Vector2Int>();
             var invalid = new List<Vector2Int>();
 
-            if (validator == null)
+            if (cardData == null || !cardData.IsEffectBasedCard || gridManager == null)
             {
-                // 검증기가 없으면 모두 무효로 처리
-                var tempPositions = CalculateAffectedPositions(cardData, centerPos, gridManager);
-                invalid.AddRange(tempPositions);
-                return (valid, invalid);
+                return (area, valid, invalid);
             }
 
-            var allPositions = CalculateAffectedPositions(cardData, centerPos, gridManager);
-
-            foreach (var pos in allPositions)
+            var gridController = gridManager.GetGridController();
+            if (gridController == null)
             {
-                bool isValid = false;
+                Debug.LogWarning("[CardPreviewHelper] GridController is null, cannot compute validated preview tiles");
+                return (area, valid, invalid);
+            }
 
-                isValid = validator.CanUseCard(cardData, pos, isPlayerUnit);
+            // 시전자 팀 결정 (TargetFilter에서 사용)
+            var casterTeam = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
 
-                if (isValid)
+            var context = new GameContext(
+                unitService: null,
+                gridController: gridController,
+                cardSpawnService: null,
+                spawnValidator: null,
+                casterTeam: casterTeam,
+                originPosition: centerPos
+            );
+
+            var areaTiles = new HashSet<Tile>();
+            var validTiles = new HashSet<Tile>();
+
+            foreach (var def in cardData.EffectDefinitions)
+            {
+                if (def == null)
+                    continue;
+
+                // Global 효과는 타일 기반 하이라이트에서 제외
+                if (def.TargetScope == EffectTargetScope.Global)
+                    continue;
+
+                if (def.AreaShape == null)
+                    continue;
+
+                // 1) AreaShape 기반 전체 범위 수집
+                var tilesInArea = def.AreaShape.GetTiles(centerPos, gridController);
+                foreach (var tile in tilesInArea)
+                {
+                    if (tile == null) continue;
+                    areaTiles.Add(tile);
+                }
+
+                // 2) TargetFilter까지 적용된 실제 타겟 타일 수집
+                var filteredTiles = EffectTargetingHelper.GetTargetTiles(centerPos, def, context);
+                foreach (var tile in filteredTiles)
+                {
+                    if (tile == null) continue;
+                    validTiles.Add(tile);
+                }
+            }
+
+            // 좌표 리스트로 변환
+            foreach (var tile in areaTiles)
+            {
+                var pos = tile.GetGridPosition();
+                if (!area.Contains(pos))
+                    area.Add(pos);
+            }
+
+            foreach (var tile in validTiles)
+            {
+                var pos = tile.GetGridPosition();
+                if (!valid.Contains(pos))
                     valid.Add(pos);
-                else
+            }
+
+            // 범위 안이지만 TargetFilter에 걸리지 않은 타일 = invalid
+            foreach (var tile in areaTiles)
+            {
+                if (validTiles.Contains(tile))
+                    continue;
+
+                var pos = tile.GetGridPosition();
+                if (!invalid.Contains(pos))
                     invalid.Add(pos);
             }
 
-            return (valid, invalid);
+            return (area, valid, invalid);
         }
 
         /// <summary>
