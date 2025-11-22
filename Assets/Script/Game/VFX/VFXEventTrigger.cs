@@ -52,6 +52,7 @@ namespace Game.VFX
         private bool destroyed = false;
         private float startTime;
         private float vfxDuration;
+        private float playbackSpeed = 1.0f; // VFX 재생 속도 배율
         private float currentProgress;
 
         private ParticleSystem[] particleSystems;
@@ -86,22 +87,32 @@ namespace Game.VFX
             // GridController 참조 (인수로 전달받음, ServiceLocator 사용 안 함)
             this.gridController = controller;
 
-            // 재생 속도 적용
+            // 재생 속도 저장 및 적용
+            this.playbackSpeed = playbackSpeed;
             ApplyPlaybackSpeed(playbackSpeed);
 
             // VFX 지속 시간 계산 (수동 > 자동)
+            float baseDuration;
             if (manualDuration > 0f)
             {
-                vfxDuration = manualDuration;
+                baseDuration = manualDuration;
                 if (logTriggerEvents)
-                    Debug.Log($"[VFXEventTrigger] Using manual duration: {vfxDuration:F2}s");
+                    Debug.Log($"[VFXEventTrigger] Using manual duration: {baseDuration:F2}s");
             }
             else
             {
-                vfxDuration = CalculateVFXDuration();
+                baseDuration = CalculateVFXDuration();
                 if (logTriggerEvents)
-                    Debug.Log($"[VFXEventTrigger] Calculated auto duration: {vfxDuration:F2}s");
+                    Debug.Log($"[VFXEventTrigger] Calculated auto duration: {baseDuration:F2}s");
             }
+
+            // PlaybackSpeed 반영하여 실제 지속 시간 계산
+            vfxDuration = playbackSpeed > 0f ? baseDuration / playbackSpeed : baseDuration;
+            if (logTriggerEvents && playbackSpeed != 1.0f)
+            {
+                Debug.Log($"[VFXEventTrigger] Adjusted duration for PlaybackSpeed={playbackSpeed:F2}: {baseDuration:F2}s → {vfxDuration:F2}s");
+            }
+
             startTime = Time.time;
 
             // 파티클 시스템 캐싱
@@ -209,11 +220,15 @@ namespace Game.VFX
             float normalizedTime = vfxDuration > 0 ? elapsed / vfxDuration : 0f;
             currentProgress = normalizedTime;
 
-            // Timeout 체크
-            if (elapsed >= maxLifetime)
+            // Timeout 체크 (PlaybackSpeed 반영 + 안전장치)
+            float adjustedMaxLifetime = playbackSpeed > 0f
+                ? Mathf.Max(maxLifetime / playbackSpeed, vfxDuration * 1.5f)
+                : maxLifetime;
+
+            if (elapsed >= adjustedMaxLifetime)
             {
                 if (logTriggerEvents)
-                    Debug.LogWarning($"[VFXEventTrigger] Timeout reached ({maxLifetime}s), forcing trigger");
+                    Debug.LogWarning($"[VFXEventTrigger] Timeout reached (adjusted: {adjustedMaxLifetime:F2}s, original: {maxLifetime:F2}s, PlaybackSpeed: {playbackSpeed:F2}), forcing trigger");
 
                 ForceTrigger();
                 return;
