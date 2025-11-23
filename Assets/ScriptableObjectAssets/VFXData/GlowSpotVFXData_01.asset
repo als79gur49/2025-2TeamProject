@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: GlowSpotVFXData_01
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1747586400421602, guid: 82262c238fe653f4bba2eb9b9860f7a4, type: 3}
-  triggerNormalizedTime: 0.4
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.5
   playbackSpeed: 1
   positionOffset: {x: 0, y: 1.3, z: 0}

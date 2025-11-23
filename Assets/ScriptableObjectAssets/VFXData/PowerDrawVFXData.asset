@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: PowerDrawVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1236643204216662, guid: 26af24fbea1001c48a21c852e00e6a8f, type: 3}
-  triggerNormalizedTime: 0.4
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.5
   playbackSpeed: 1.5
   positionOffset: {x: 0, y: 0, z: 0}

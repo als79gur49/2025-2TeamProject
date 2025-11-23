@@ -68,6 +68,7 @@ namespace Game.VFX
             var sortedEffects = effectDefinitions.OrderByDescending(e => e.Priority).ToList();
 
             var vfxData = sortedEffects[0].VFX;
+            var vfxPlacementMode = sortedEffects[0].VFXPlacementMode;
 
             if (vfxData == null || vfxData.VFXPrefab == null)
             {
@@ -79,7 +80,7 @@ namespace Game.VFX
             // TileBased 효과에 대해서만 타일 타겟을 계산
             CalculateAllPotentialTargets(sortedEffects, targetPos, context);
 
-            StartCoroutine(ExecuteWithVFX(sortedEffects, vfxData, targetPos, context));
+            StartCoroutine(ExecuteWithVFX(sortedEffects, vfxData, vfxPlacementMode, targetPos, context));
         }
 
         #endregion
@@ -97,6 +98,7 @@ namespace Game.VFX
         private IEnumerator ExecuteWithVFX(
             IReadOnlyList<EffectDefinition> effects,
             VFXData vfxData,
+            VFXTilePlacementMode vfxPlacementMode,
             Vector2Int targetPos,
             GameContext context)
         {
@@ -104,11 +106,9 @@ namespace Game.VFX
             Vector3 worldPos = Vector3.zero;
             bool hasError = false;
             bool effectsExecuted = false;
-            float maxWait = 0f;
             float elapsed = 0f;
-            float actualDuration = 10f;
 
-            _stateManager?.SetBusy(this, BusyType.GameFlowLock);
+            float maxWaitTime = 0f;
 
             try
             {
@@ -122,11 +122,24 @@ namespace Game.VFX
 
                 vfxInstance = Instantiate(vfxData.VFXPrefab, worldPos, Quaternion.identity);
 
+                // 팀 기반 방향 적용: 플레이어는 정방향(+1), 적은 반대 방향(-1)으로 바라보도록
+                // 루트 VFX의 z축 스케일을 조정합니다. 자식(Sub VFX)은 이 스케일을 상속받습니다.
+                ApplyTeamFacing(vfxInstance, context.CasterTeam);
+
+                // 메인 VFX 인스턴스를 생성한 뒤, 동일 프리팹을 서브 타일에도 먼저 복제합니다.
+                // 이렇게 하면 이후 VFXEventTrigger.Initialize에서 ApplyPlaybackSpeed가 호출될 때
+                // 메인 및 모든 서브 VFX의 ParticleSystem/Animator에 동일한 재생 속도가 적용됩니다.
+                SpawnSubTileVFXInstances(
+                    vfxInstance,
+                    vfxData,
+                    context.VFXPositions,
+                    context.GridController,
+                    targetPos,
+                    vfxPlacementMode);
+
                 VFXEventTrigger trigger = vfxInstance.GetComponent<VFXEventTrigger>();
                 if (trigger == null)
                     trigger = vfxInstance.AddComponent<VFXEventTrigger>();
-
-                float durationParam = vfxData.UseAutoDuration ? -1f : vfxData.ManualDuration;
 
                 trigger.Initialize(
                     vfxData.TriggerNormalizedTime,
@@ -137,12 +150,12 @@ namespace Game.VFX
                     },
                     context.VFXPositions,
                     context.GridController,
-                    vfxData.PlaybackSpeed,
-                    durationParam
+                    vfxData.PlaybackSpeed
                 );
 
-                actualDuration = vfxData.UseAutoDuration ? 10f : vfxData.ManualDuration;
-                maxWait = vfxData.IsLooping ? 10f : actualDuration + 1f;
+                maxWaitTime = trigger.MaxWaitTime;
+
+                _stateManager?.SetBusy(this, BusyType.GameFlowLock, maxWaitTime + 1f);
             }
             catch (Exception ex)
             {
@@ -161,7 +174,10 @@ namespace Game.VFX
                 yield break;
             }
 
-            while (!effectsExecuted && elapsed < maxWait)
+            // maxWaitTime 동안은 항상 GameFlowLock을 유지합니다.
+            // 효과(트리거)는 triggerNormalizedTime 시점에 먼저 실행될 수 있지만,
+            // Idle 해제는 maxWaitTime 기준으로만 결정됩니다.
+            while (elapsed < maxWaitTime)
             {
                 yield return null;
                 elapsed += Time.deltaTime;
@@ -171,14 +187,6 @@ namespace Game.VFX
             {
                 Debug.LogWarning("[SpellEffectExecutor] VFX timeout (EffectDefinition), forcing execution");
                 ExecuteEffectsWithDataList(effects, new System.Collections.Generic.List<VFXTriggerData>(), targetPos, context);
-            }
-
-            if (!vfxData.IsLooping)
-            {
-                float cleanupDuration = vfxData.UseAutoDuration ? actualDuration : vfxData.ManualDuration;
-                yield return new WaitForSeconds(cleanupDuration);
-                if (vfxInstance != null)
-                    Destroy(vfxInstance);
             }
 
             _stateManager?.SetIdle(this, BusyType.GameFlowLock);
@@ -393,9 +401,102 @@ namespace Game.VFX
         }
 
         /// <summary>
+        /// 팀 기준으로 VFX의 z축 스케일을 조정하여
+        /// 플레이어는 정방향(+1), 적군은 반대 방향(-1)을 바라보도록 합니다.
+        /// </summary>
+        private void ApplyTeamFacing(GameObject vfxInstance, TeamType casterTeam)
+        {
+            if (vfxInstance == null)
+            {
+                return;
+            }
+
+            float sign = casterTeam == TeamType.Enemy ? -1f : 1f;
+            Transform t = vfxInstance.transform;
+            Vector3 scale = t.localScale;
+            scale.z *= sign;
+            t.localScale = scale;
+        }
+
+        /// <summary>
+        /// 메인 VFX 인스턴스를 기준으로, 동일 프리팹을 VFXPositions에 포함된 서브 타일에 복제합니다.
+        /// 중심 그리드 좌표와 같은 타일은 제외하고, 서브 인스턴스에서는 VFXEventTrigger를 제거하여
+        /// 오디오 및 콜백이 중복 실행되지 않도록 합니다.
+        /// </summary>
+        private void SpawnSubTileVFXInstances(
+            GameObject mainInstance,
+            VFXData vfxData,
+            List<Vector3> vfxPositions,
+            IGridController gridController,
+            Vector2Int centerGridPos,
+            VFXTilePlacementMode vfxPlacementMode)
+        {
+            if (mainInstance == null || vfxData == null || vfxData.VFXPrefab == null)
+            {
+                return;
+            }
+
+            if (vfxPositions == null || gridController == null)
+            {
+                return;
+            }
+
+            // CenterOnly 모드인 경우, 메인 VFX만 사용하고 서브 VFX는 생성하지 않습니다.
+            if (vfxPlacementMode == VFXTilePlacementMode.CenterOnly)
+            {
+                return;
+            }
+
+            foreach (var worldPos in vfxPositions)
+            {
+                // 월드 좌표를 그리드 좌표로 변환하여 중심 타일과 비교합니다.
+                Vector2Int gridPos = gridController.WorldToGridPosition(worldPos);
+                if (gridPos == centerGridPos)
+                {
+                    // 메인 VFX가 이미 이 타일에서 재생 중이므로 서브 인스턴스를 생성하지 않습니다.
+                    continue;
+                }
+
+                // 높이가 반영된 월드 좌표를 기준으로, 메인 VFX와 동일한 PositionOffset을 적용하여 서브 VFX 위치를 보정합니다.
+                Vector3 worldWithHeight = gridController.CalculateWorldPositionWithHeight(gridPos);
+                var spawnPos = worldWithHeight + vfxData.PositionOffset;
+                var clone = Instantiate(
+                    vfxData.VFXPrefab,
+                    spawnPos,
+                    Quaternion.identity,
+                    mainInstance.transform);
+
+                RemoveVFXEventTriggersFromClone(clone);
+            }
+        }
+
+        /// <summary>
+        /// 서브 VFX 인스턴스에서 VFXEventTrigger 컴포넌트를 제거하여
+        /// 타일 검증, 콜백, 오디오 재생 등이 중복 실행되지 않도록 합니다.
+        /// </summary>
+        private void RemoveVFXEventTriggersFromClone(GameObject clone)
+        {
+            if (clone == null)
+            {
+                return;
+            }
+
+            var triggers = clone.GetComponentsInChildren<VFXEventTrigger>(true);
+            foreach (var t in triggers)
+            {
+                if (t != null)
+                {
+                    Destroy(t);
+                }
+            }
+        }
+
+        /// <summary>
         /// <summary>
         /// EffectDefinition 기반 타일 타겟 계산
         /// TileBased 효과만 포함하여 PredeterminedTiles 및 VFXPositions를 설정합니다.
+        /// PredeterminedTiles는 항상 "유효 타겟 타일" 집합을 유지하고,
+        /// VFXPositions는 EffectDefinition의 VFXPlacementMode에 따라 확장됩니다.
         /// </summary>
         private List<GameObject> CalculateAllPotentialTargets(
             IReadOnlyList<EffectDefinition> effects,
@@ -405,34 +506,88 @@ namespace Game.VFX
             context.PredeterminedTiles.Clear();
             context.VFXPositions.Clear();
 
-            var uniqueTiles = new HashSet<Tile>();
+            // 효과 실행용 유효 타일 모음
+            var validTiles = new HashSet<Tile>();
+            // VFX 표현용 타일 모음 (모드에 따라 확장)
+            var vfxTiles = new HashSet<Tile>();
 
             foreach (var definition in effects)
             {
+                if (definition == null)
+                    continue;
+
                 if (definition.TargetScope == EffectTargetScope.Global)
                 {
                     // 전역 효과는 타일 타겟 계산에 포함하지 않음
                     continue;
                 }
 
-                var tiles = EffectTargetingHelper.GetTargetTiles(
+                // 1) 유효 타겟 타일 계산 (AreaShape + TargetFilter)
+                var targetTiles = EffectTargetingHelper.GetTargetTiles(
                     targetPos,
                     definition,
                     context);
 
-                foreach (var tile in tiles)
+                foreach (var tile in targetTiles)
                 {
-                    uniqueTiles.Add(tile);
+                    if (tile != null)
+                    {
+                        validTiles.Add(tile);
+                    }
+                }
+
+                // 2) VFX 배치 모드에 따른 타일 계산
+                switch (definition.VFXPlacementMode)
+                {
+                    case VFXTilePlacementMode.AllAreaTiles:
+                        {
+                            var areaTiles = EffectTargetingHelper.GetAreaTiles(
+                                targetPos,
+                                definition,
+                                context);
+
+                            foreach (var tile in areaTiles)
+                            {
+                                if (tile != null)
+                                {
+                                    vfxTiles.Add(tile);
+                                }
+                            }
+                            break;
+                        }
+
+                    case VFXTilePlacementMode.ValidTilesOnly:
+                    case VFXTilePlacementMode.CenterOnly:
+                    case VFXTilePlacementMode.InvalidTilesOnly:
+                    default:
+                        // 현재 구현에서는 CenterOnly/InvalidTilesOnly도
+                        // 유효 타일 집합을 기본 VFX 타겟으로 사용합니다.
+                        foreach (var tile in targetTiles)
+                        {
+                            if (tile != null)
+                            {
+                                vfxTiles.Add(tile);
+                            }
+                        }
+                        break;
                 }
             }
 
-            context.PredeterminedTiles.AddRange(uniqueTiles);
-            context.VFXPositions = EffectTargetingHelper.TilesToWorldPositions(
-                context.PredeterminedTiles);
+            // PredeterminedTiles: 항상 "유효 타겟 타일" 기준
+            context.PredeterminedTiles.AddRange(validTiles);
 
+            // VFXPositions: 모드에 따른 VFX 타일 집합 사용
+            // (모든 효과가 Global이거나 타일이 없다면 fallback)
+            var finalVfxTiles = vfxTiles.Count > 0 ? vfxTiles : validTiles;
+            context.VFXPositions = EffectTargetingHelper.TilesToWorldPositions(
+                finalVfxTiles.ToList());
+
+            // GameObject 리스트는 기존처럼 유효 타일 기준으로 작성
             var targetGameObjects = new List<GameObject>();
-            foreach (var tile in uniqueTiles)
+            foreach (var tile in validTiles)
             {
+                if (tile == null) continue;
+
                 if (tile.OccupyingUnit != null)
                 {
                     targetGameObjects.Add(tile.OccupyingUnit.gameObject);

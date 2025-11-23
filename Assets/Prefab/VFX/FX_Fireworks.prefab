@@ -9522,6 +9522,7 @@ GameObject:
   - component: {fileID: 4257818311196038}
   - component: {fileID: 198645597072035358}
   - component: {fileID: 199710041536824824}
+  - component: {fileID: 3605999088496324437}
   m_Layer: 0
   m_Name: FX_Fireworks
   m_TagString: Untagged
@@ -9554,7 +9555,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1481965347600448}
   serializedVersion: 8
-  lengthInSec: 5
+  lengthInSec: 1
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 3
@@ -14442,6 +14443,26 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &3605999088496324437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1481965347600448}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9f3f59b0fa25034e8ae65918156a1b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  triggerType: 1
+  triggerValue: 0.7
+  maxLifetime: 3
+  maxWaitNormalizedTime: 0.6
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSound: {fileID: 0}
+  triggerSound: {fileID: 0}
+  logTriggerEvents: 1
 --- !u!1 &1641000039280304
 GameObject:
   m_ObjectHideFlags: 0

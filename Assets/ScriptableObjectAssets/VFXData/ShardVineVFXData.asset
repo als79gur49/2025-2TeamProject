@@ -9,9 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: deacc00d89737ae48ac786fc5012c059, type: 3}
-  m_Name: AndTargetFilter
+  m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
+  m_Name: ShardVineVFXData
   m_EditorClassIdentifier: 
-  filters:
-  - {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
-  - {fileID: 11400000, guid: 8882ad908db49fe47919d72078b83b41, type: 2}
+  vfxPrefab: {fileID: 1187873550511094, guid: 17038309eb897824a9e3b798ee30a922, type: 3}
+  triggerNormalizedTime: 0.05
+  playbackSpeed: 1
+  positionOffset: {x: 0, y: 0, z: 0}

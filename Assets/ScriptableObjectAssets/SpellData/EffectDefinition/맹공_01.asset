@@ -15,12 +15,13 @@ MonoBehaviour:
   effectType: 3
   priority: 100
   targetScope: 0
-  areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
+  areaShape: {fileID: 11400000, guid: f602b6c0c8bcb254ba2b07bca5074a5f, type: 2}
   targetFilter: {fileID: 11400000, guid: c30b32a88c3988d49b501576ce0d22b3, type: 2}
   vfx: {fileID: 11400000, guid: 09143dd02314a49458720f55892e3650, type: 2}
-  healthDelta: 1
-  attackDelta: 1
-  movementDelta: 1
+  vfxPlacementMode: 0
+  healthDelta: 2
+  attackDelta: 2
+  movementDelta: 0
   maxTargets: 6
-  buffDurationTurns: -1
+  buffDurationTurns: 1
   revertOnExpire: 1

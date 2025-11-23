@@ -9846,7 +9846,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.5
-  maxLifetime: 2.8
+  maxLifetime: 2.5
+  maxWaitNormalizedTime: 0.8
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 0}
   triggerSound: {fileID: 0}

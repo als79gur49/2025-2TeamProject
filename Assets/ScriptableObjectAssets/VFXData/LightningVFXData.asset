@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: LightningVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1454807473737458, guid: 12199b1c29ecc5e4783d7084ed174b9d, type: 3}
-  triggerNormalizedTime: 0.075
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.15
   playbackSpeed: 1
   positionOffset: {x: 0, y: 0, z: 0}

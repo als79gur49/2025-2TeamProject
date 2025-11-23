@@ -73,6 +73,53 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
+        /// [타일 기반] TargetFilter를 적용하지 않은 AreaShape 전체 타일 반환
+        /// (VFX 전용 타일 계산 등에 사용)
+        /// </summary>
+        public static List<Tile> GetAreaTiles(
+            Vector2Int center,
+            EffectDefinition definition,
+            GameContext context)
+        {
+            var result = new List<Tile>();
+
+            if (context?.GridController == null)
+            {
+                Debug.LogError("[EffectTargeting] GridController null");
+                return result;
+            }
+
+            if (definition == null)
+            {
+                Debug.LogError("[EffectTargeting] EffectDefinition null");
+                return result;
+            }
+
+            if (definition.TargetScope == EffectTargetScope.Global)
+            {
+                // 전역 효과는 타일 기반 범위를 사용하지 않습니다.
+                return result;
+            }
+
+            if (definition.AreaShape == null)
+            {
+                Debug.LogWarning("[EffectTargeting] AreaShape가 null입니다. 타일이 없습니다.");
+                return result;
+            }
+
+            var tilesInRange = definition.AreaShape.GetTiles(center, context.GridController);
+            foreach (var tile in tilesInRange)
+            {
+                if (tile != null)
+                {
+                    result.Add(tile);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// [타일 기반] 타일 리스트를 VFX 재생용 월드 좌표 리스트로 변환
         /// </summary>
         /// <param name="tiles">타겟 타일 리스트</param>

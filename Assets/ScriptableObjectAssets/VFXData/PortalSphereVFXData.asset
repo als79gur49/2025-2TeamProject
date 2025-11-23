@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: PortalSphereVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1944646428925954, guid: 64e9e04d8e68efd438aa936c0812eaac, type: 3}
-  triggerNormalizedTime: 0.655
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.6
   playbackSpeed: 1.5
   positionOffset: {x: 0, y: 0, z: 0}

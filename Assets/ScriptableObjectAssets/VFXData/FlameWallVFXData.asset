@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: FlameWallVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1364508175748518, guid: e8a4c1cf864cb46478a5fa23ea050411, type: 3}
-  triggerNormalizedTime: 0.4
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.3
   playbackSpeed: 1.5
   positionOffset: {x: 0, y: 0, z: 0}

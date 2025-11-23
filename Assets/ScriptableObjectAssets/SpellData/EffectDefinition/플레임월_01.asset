@@ -18,8 +18,9 @@ MonoBehaviour:
   areaShape: {fileID: 11400000, guid: 238b50c189da39945ace4056d80c5a51, type: 2}
   targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
   vfx: {fileID: 11400000, guid: 401093c36ff14f04784ffa5f4055b9a5, type: 2}
-  healthDelta: -1
-  attackDelta: 2
+  vfxPlacementMode: 1
+  healthDelta: 2
+  attackDelta: -1
   movementDelta: 0
   maxTargets: 3
   buffDurationTurns: -1

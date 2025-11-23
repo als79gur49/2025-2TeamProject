@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: HexagonVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1767212646799992, guid: 9829bf5560364e344a22adbaf5e81518, type: 3}
-  triggerNormalizedTime: 0.4
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.8
   playbackSpeed: 1
   positionOffset: {x: 0, y: 0.5, z: 0}

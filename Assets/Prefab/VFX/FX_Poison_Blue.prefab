@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4674918030614456}
   - component: {fileID: 198199498142640322}
   - component: {fileID: 199426543796818256}
+  - component: {fileID: 1898909853564918341}
   m_Layer: 0
   m_Name: FX_Poison_Blue
   m_TagString: Untagged
@@ -118,7 +119,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 2.5
+      scalar: 2
       minScalar: 1.5
       maxCurve:
         serializedVersion: 2
@@ -872,7 +873,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 15
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -4844,6 +4845,26 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &1898909853564918341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1447051283816784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9f3f59b0fa25034e8ae65918156a1b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  triggerType: 1
+  triggerValue: 0.7
+  maxLifetime: 3
+  maxWaitNormalizedTime: 0.8
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSound: {fileID: 0}
+  triggerSound: {fileID: 0}
+  logTriggerEvents: 1
 --- !u!1 &1968481135621652
 GameObject:
   m_ObjectHideFlags: 0
@@ -4960,7 +4981,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 2.5
+      scalar: 2
       minScalar: 1.5
       maxCurve:
         serializedVersion: 2
@@ -5714,7 +5735,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 15
+      scalar: 20
       minScalar: 10
       maxCurve:
         serializedVersion: 2

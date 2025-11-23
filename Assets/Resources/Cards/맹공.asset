@@ -20,11 +20,12 @@ MonoBehaviour:
   iconSprite: {fileID: 0}
   rarity: 2
   manaCost: 6
-  targetType: 1
+  targetType: 0
   targetRange: -1
   keywords: []
   effectDefinitions:
   - {fileID: 11400000, guid: 85e1c2df5293676488083344d1b3bc28, type: 2}
+  - {fileID: 11400000, guid: 0c9a5d4e888ebf640ae12fbb24441835, type: 2}
   maxCopiesInDeck: 3
   isPlayableFromHand: 1
   requiredTags: []

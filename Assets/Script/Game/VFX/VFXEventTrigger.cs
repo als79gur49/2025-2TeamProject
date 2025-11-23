@@ -31,6 +31,7 @@ namespace Game.VFX
 
         [Header("Safety Settings")]
         [SerializeField] private float maxLifetime = 10f;
+        [SerializeField] [Range(0f, 1f)] private float maxWaitNormalizedTime = 1f;
 
         [Header("Audio Settings")]
         [SerializeField] private SoundEventChannelSO soundEventChannel;
@@ -51,11 +52,18 @@ namespace Game.VFX
         private bool triggered = false;
         private bool destroyed = false;
         private float startTime;
-        private float vfxDuration;
         private float playbackSpeed = 1.0f; // VFX 재생 속도 배율
         private float currentProgress;
+        private float effectiveMaxLifetime;
 
         private ParticleSystem[] particleSystems;
+
+        public float MaxLifetime => effectiveMaxLifetime > 0f ? effectiveMaxLifetime : maxLifetime;
+        public float MaxWaitTime => MaxLifetime * maxWaitNormalizedTime;
+        public float Elapsed => Time.time - startTime;
+        public float NormalizedProgress => MaxLifetime > 0f
+            ? Mathf.Clamp01(Elapsed / MaxLifetime)
+            : 0f;
 
         #endregion
 
@@ -70,14 +78,12 @@ namespace Game.VFX
         /// <param name="tilePositions">사전 결정된 타일 월드 좌표 리스트</param>
         /// <param name="controller">그리드 좌표 계산용 GridController (null 가능)</param>
         /// <param name="playbackSpeed">VFX 재생 속도 배율 (0.1 ~ 3.0)</param>
-        /// <param name="manualDuration">수동 지속시간 (0 이하면 자동 계산)</param>
         public void Initialize(
             float normalizedTriggerTime,
             Action<List<VFXTriggerData>> callback,
             List<Vector3> tilePositions,
             IGridController controller = null,
-            float playbackSpeed = 1.0f,
-            float manualDuration = -1f)
+            float playbackSpeed = 1.0f)
         {
             this.triggerType = TriggerType.NormalizedTime;
             this.triggerValue = Mathf.Clamp01(normalizedTriggerTime);
@@ -88,30 +94,14 @@ namespace Game.VFX
             this.gridController = controller;
 
             // 재생 속도 저장 및 적용
+            playbackSpeed = Mathf.Clamp(playbackSpeed, 0.1f, 3.0f);
             this.playbackSpeed = playbackSpeed;
             ApplyPlaybackSpeed(playbackSpeed);
 
-            // VFX 지속 시간 계산 (수동 > 자동)
-            float baseDuration;
-            if (manualDuration > 0f)
-            {
-                baseDuration = manualDuration;
-                if (logTriggerEvents)
-                    Debug.Log($"[VFXEventTrigger] Using manual duration: {baseDuration:F2}s");
-            }
-            else
-            {
-                baseDuration = CalculateVFXDuration();
-                if (logTriggerEvents)
-                    Debug.Log($"[VFXEventTrigger] Calculated auto duration: {baseDuration:F2}s");
-            }
-
-            // PlaybackSpeed 반영하여 실제 지속 시간 계산
-            vfxDuration = playbackSpeed > 0f ? baseDuration / playbackSpeed : baseDuration;
-            if (logTriggerEvents && playbackSpeed != 1.0f)
-            {
-                Debug.Log($"[VFXEventTrigger] Adjusted duration for PlaybackSpeed={playbackSpeed:F2}: {baseDuration:F2}s → {vfxDuration:F2}s");
-            }
+            // 재생 속도에 비례하여 실제 생존 시간(effectiveMaxLifetime)을 조정합니다.
+            // 기본 maxLifetime은 playbackSpeed = 1 기준 수명으로 간주하고,
+            // 재생 속도가 빨라질수록 MaxLifetime이 짧아지도록 합니다.
+            effectiveMaxLifetime = maxLifetime / playbackSpeed;
 
             startTime = Time.time;
 
@@ -120,9 +110,8 @@ namespace Game.VFX
 
             if (logTriggerEvents)
             {
-                string durationMode = manualDuration > 0f ? "Manual" : "Auto";
                 Debug.Log($"[VFXEventTrigger] Initialized: Type={triggerType}, " +
-                         $"TriggerValue={triggerValue:F2}, Duration={vfxDuration:F2}s ({durationMode}), " +
+                         $"TriggerValue={triggerValue:F2}, MaxLifetime={MaxLifetime:F2}s, " +
                          $"PlaybackSpeed={playbackSpeed:F2}, " +
                          $"TilePositions={this.predeterminedTilePositions.Count}");
             }
@@ -162,53 +151,6 @@ namespace Game.VFX
 
         #endregion
 
-        #region VFX Duration Calculation
-
-        private float CalculateVFXDuration()
-        {
-            float duration = 0f;
-            bool isLooping = false;
-
-            ParticleSystem[] particles = GetComponentsInChildren<ParticleSystem>();
-            foreach (var ps in particles)
-            {
-                if (ps.main.loop)
-                {
-                    isLooping = true;
-                    continue;
-                }
-
-                float psDuration = ps.main.duration + ps.main.startLifetime.constantMax;
-                duration = Mathf.Max(duration, psDuration);
-            }
-
-            Animator animator = GetComponent<Animator>();
-            if (animator != null && animator.runtimeAnimatorController != null)
-            {
-                AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
-                foreach (var clip in clips)
-                {
-                    if (clip.isLooping)
-                    {
-                        isLooping = true;
-                        continue;
-                    }
-                    duration = Mathf.Max(duration, clip.length);
-                }
-            }
-
-            if (isLooping || duration <= 0f)
-            {
-                duration = 3f; // 루핑 VFX 기본값
-                if (logTriggerEvents)
-                    Debug.LogWarning($"[VFXEventTrigger] Looping VFX detected, using default duration: {duration}s");
-            }
-
-            return duration;
-        }
-
-        #endregion
-
         #region Update Loop
 
         private void Update()
@@ -216,21 +158,21 @@ namespace Game.VFX
             if (triggered || destroyed || onTriggerCallbackList == null)
                 return;
 
-            float elapsed = Time.time - startTime;
-            float normalizedTime = vfxDuration > 0 ? elapsed / vfxDuration : 0f;
+            float elapsed = Elapsed;
+            float normalizedTime = NormalizedProgress;
             currentProgress = normalizedTime;
 
-            // Timeout 체크 (PlaybackSpeed 반영 + 안전장치)
-            float adjustedMaxLifetime = playbackSpeed > 0f
-                ? Mathf.Max(maxLifetime / playbackSpeed, vfxDuration * 1.5f)
-                : maxLifetime;
-
-            if (elapsed >= adjustedMaxLifetime)
+            if (elapsed >= MaxLifetime)
             {
                 if (logTriggerEvents)
-                    Debug.LogWarning($"[VFXEventTrigger] Timeout reached (adjusted: {adjustedMaxLifetime:F2}s, original: {maxLifetime:F2}s, PlaybackSpeed: {playbackSpeed:F2}), forcing trigger");
+                    Debug.LogWarning($"[VFXEventTrigger] Lifetime reached ({MaxLifetime:F2}s), forcing trigger and destroy");
 
-                ForceTrigger();
+                if (!triggered)
+                {
+                    ForceTrigger();
+                }
+
+                Destroy(gameObject);
                 return;
             }
 
@@ -268,10 +210,8 @@ namespace Game.VFX
 
                 if (logTriggerEvents)
                 {
-                    Debug.Log($"[VFXEventTrigger] Trigger fired: " +
-                             $"Progress={normalizedTime:F2}, " +
-                             $"VFXDuration={vfxDuration:F1}, " +
-                             $"ValidatedTargets={triggerDataList.Count}");
+                    Debug.Log($"[VFXEventTrigger] Trigger fired: Progress={normalizedTime:F2}, " +
+                              $"MaxLifetime={MaxLifetime:F1}, ValidatedTargets={triggerDataList.Count}");
                 }
             }
             catch (Exception ex)
@@ -303,8 +243,7 @@ namespace Game.VFX
                 return;
             }
 
-            float elapsed = Time.time - startTime;
-            float normalizedTime = vfxDuration > 0 ? elapsed / vfxDuration : 0f;
+            float normalizedTime = NormalizedProgress;
             FireTrigger(normalizedTime);
         }
 

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1076f822b8b9d2540bc00109cac9a392, type: 3}
+  m_Name: "\uBD80\uC2DD\uD654_01"
+  m_EditorClassIdentifier: 
+  effectType: 0
+  priority: 0
+  targetScope: 0
+  areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
+  targetFilter: {fileID: 11400000, guid: 6090b2d67caaac0469c6b1d496e853cd, type: 2}
+  vfx: {fileID: 11400000, guid: d4fbf5b543baef648ad790b4f0c63059, type: 2}
+  vfxPlacementMode: 0
+  damageAmount: 999
+  ignoreArmor: 0
+  duration: 0

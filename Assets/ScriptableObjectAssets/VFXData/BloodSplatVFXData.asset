@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BloodSplatVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1489431029902184, guid: d5b13e00be71a784fbce43b4e0a3cec5, type: 3}
-  triggerNormalizedTime: 0.07
+  triggerNormalizedTime: 0.1
   useAutoDuration: 0
   manualDuration: 2
   isLooping: 0
