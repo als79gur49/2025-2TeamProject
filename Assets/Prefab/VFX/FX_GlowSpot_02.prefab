@@ -4847,5 +4847,5 @@ MonoBehaviour:
   maxWaitNormalizedTime: 0.9
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 0}
-  triggerSound: {fileID: 0}
+  triggerSound: {fileID: 11400000, guid: e541ee2d8e532484e9bb70fa9f0cd236, type: 2}
   logTriggerEvents: 1

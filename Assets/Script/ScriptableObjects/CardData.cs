@@ -314,6 +314,16 @@ namespace Game.Data
                     case SummonEffectDefinition summon when summon.UnitToSummon != null:
                         detail = $"{summon.UnitToSummon.UnitName} 소환 x{summon.Count}";
                         break;
+                    case ReturnUnitsToHandEffectDefinition returnDef:
+                        if (returnDef.MaxUnitsToReturn > 0)
+                        {
+                            detail = $"{typeName} (최대 {returnDef.MaxUnitsToReturn} 유닛)";
+                        }
+                        else
+                        {
+                            detail = $"{typeName}";
+                        }
+                        break;
                 }
 
                 effectDesc += $"• <color={effectColor}>{effectIcon} {detail}</color>\n";
@@ -400,6 +410,11 @@ namespace Game.Data
                 EffectType.Damage => "⚔️",
                 EffectType.Heal => "💚",
                 EffectType.Summon => "🛡️",
+                EffectType.DrawCards => "📥",
+                EffectType.Stun => "💫",
+                EffectType.HealBase => "🏰",
+                EffectType.DamageBase => "🔥",
+                EffectType.ReturnToHand => "🔄",
                 _ => "✨"
             };
         }
@@ -414,6 +429,11 @@ namespace Game.Data
                 EffectType.Damage => "#FF6B6B",
                 EffectType.Heal => "#51CF66",
                 EffectType.Summon => "#4DABF7",
+                EffectType.DrawCards => "#FFD43B",
+                EffectType.Stun => "#B197FC",
+                EffectType.HealBase => "#69DB7C",
+                EffectType.DamageBase => "#FF922B",
+                EffectType.ReturnToHand => "#74C0FC",
                 _ => "#ADB5BD"
             };
         }
@@ -428,6 +448,11 @@ namespace Game.Data
                 EffectType.Damage => "피해",
                 EffectType.Heal => "회복",
                 EffectType.Summon => "소환",
+                EffectType.DrawCards => "드로우",
+                EffectType.Stun => "기절",
+                EffectType.HealBase => "베이스 회복",
+                EffectType.DamageBase => "베이스 피해",
+                EffectType.ReturnToHand => "손패로 되돌리기",
                 _ => effectType.ToString()
             };
         }

@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: TornadoVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1537301464441332, guid: e30b1e82d687b474ba42b5728e7eda3c, type: 3}
-  triggerNormalizedTime: 0.79
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.406
   playbackSpeed: 1
   positionOffset: {x: 0, y: 0, z: 0}

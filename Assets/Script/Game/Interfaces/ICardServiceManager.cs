@@ -33,6 +33,12 @@ namespace Game.Interfaces
         /// <param name="amount">드로우할 카드 수</param>
         void DrawCardsForTeam(TeamType team, int amount);
 
+        /// <summary>
+        /// 필드 위의 유닛을 제거하고, 해당 유닛을 소환한 카드를 팀의 손패로 되돌립니다.
+        /// </summary>
+        /// <param name="unit">손패로 되돌릴 유닛</param>
+        void ReturnUnitToHand(Unit unit);
+
         /// <summary>카드 핸드 매니저 반환</summary>
         ICardHandManager GetCardHandManager();
 

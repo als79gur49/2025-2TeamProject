@@ -28,6 +28,9 @@ namespace Game.Card.Effects
         HealBase,
 
         /// <summary>베이스(넥서스)에 피해를 줍니다</summary>
-        DamageBase
+        DamageBase,
+
+        /// <summary>대상 유닛을 손패로 되돌립니다</summary>
+        ReturnToHand
     }
 }

@@ -110,8 +110,9 @@ public class VictoryPanel : UIPanel, IGameResultPanel
         // Victory 사운드 출력 (CombatComponent 패턴)
         if (soundEventChannel != null && victorySoundData != null)
         {
-            soundEventChannel.RaiseSoundEvent(victorySoundData, this);
-            Debug.Log("[VictoryPanel] Victory sound played via SoundEventChannel");
+            var request = AudioPlayRequest.Create(victorySoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
+            Debug.Log("[VictoryPanel] Victory sound played via SoundEventChannel (AudioPlayRequest)");
         }
 
         // 승리 메시지 표시

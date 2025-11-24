@@ -108,8 +108,9 @@ public class DefeatPanel : UIPanel, IGameResultPanel
         // Defeat 사운드 출력 (CombatComponent 패턴)
         if (soundEventChannel != null && defeatSoundData != null)
         {
-            soundEventChannel.RaiseSoundEvent(defeatSoundData, this);
-            Debug.Log("[DefeatPanel] Defeat sound played via SoundEventChannel");
+            var request = AudioPlayRequest.Create(defeatSoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
+            Debug.Log("[DefeatPanel] Defeat sound played via SoundEventChannel (AudioPlayRequest)");
         }
 
         // 패배 메시지 표시

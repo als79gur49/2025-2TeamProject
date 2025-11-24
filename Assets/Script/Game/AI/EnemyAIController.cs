@@ -57,6 +57,24 @@ namespace Game.AI
         /// <summary>적군 핸드 카드 목록 (읽기 전용)</summary>
         public IReadOnlyList<CardData> EnemyHand => enemyHand.AsReadOnly();
 
+        /// <summary>
+        /// 외부에서 적군 손패에 카드를 추가합니다. (예: ReturnToHand 효과)
+        /// </summary>
+        public void AddCardToHand(CardData card)
+        {
+            if (card == null)
+            {
+                LogError("AddCardToHand called with null card");
+                return;
+            }
+
+            enemyHand.Add(card);
+            Log($"🃏 Enemy card returned to hand: {card.CardName} (Hand size: {enemyHand.Count})");
+
+            // 적 손패 변경을 알리기 위해 드로우 이벤트 재사용
+            OnCardDrawn?.Invoke();
+        }
+
         #region 초기화
 
         /// <summary>

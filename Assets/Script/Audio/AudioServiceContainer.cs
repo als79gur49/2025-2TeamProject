@@ -90,9 +90,10 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     {
         if (soundEventChannel != null)
         {
-            soundEventChannel.OnSoundRequested += HandleSoundRequest;
+            // AudioPlayRequest 기반 신규 이벤트에만 구독합니다.
+            soundEventChannel.OnSoundRequestedWithModifiers += HandleSoundRequestWithModifiers;
             soundEventChannel.OnStopLoopRequested += HandleStopLoopRequest;
-            Debug.Log("AudioServiceContainer: Subscribed to SoundEventChannel (Unified Sound + Legacy Loop + StopLoop events)");
+            Debug.Log("AudioServiceContainer: Subscribed to SoundEventChannel (AudioPlayRequest + StopLoop events)");
         }
         else
         {
@@ -149,9 +150,9 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     {
         if (soundEventChannel != null)
         {
-            soundEventChannel.OnSoundRequested -= HandleSoundRequest;
+            soundEventChannel.OnSoundRequestedWithModifiers -= HandleSoundRequestWithModifiers;
             soundEventChannel.OnStopLoopRequested -= HandleStopLoopRequest;
-            Debug.Log("AudioServiceContainer: Unsubscribed from SoundEventChannel (Sound + LoopSound + StopLoop events)");
+            Debug.Log("AudioServiceContainer: Unsubscribed from SoundEventChannel (AudioPlayRequest + StopLoop events)");
         }
     }
 
@@ -528,8 +529,9 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
                     // Check Loop property to determine playback behavior
                     if (soundData.Loop)
                     {
-                        int loopId = effectSvc.PlayEffectLoop(soundData, owner);
-                        Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as loop (Loop=true) via event channel (LoopID: {loopId})");
+                        // 루프 사운드는 페이드 인 API를 통해 재생
+                        int loopId = effectSvc.FadeInEffectLoop(soundData, -1f, owner);
+                        Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as loop with fade-in via event channel (LoopID: {loopId})");
                     }
                     else
                     {
@@ -551,6 +553,75 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
     }
 
     /// <summary>
+    /// Handle sound requests with runtime modifiers from the event channel.
+    /// AudioPlayRequest를 사용하여 volume/pitch 배율 정보를 함께 전달받습니다.
+    /// </summary>
+    private void HandleSoundRequestWithModifiers(AudioPlayRequest request)
+    {
+        var soundData = request.audioData;
+        if (soundData == null)
+        {
+            Debug.LogWarning("AudioServiceContainer: Received null AudioData in AudioPlayRequest from event channel");
+            return;
+        }
+
+        // Check if services are initialized
+        if (!IsFullyInitialized)
+        {
+            Debug.LogWarning($"AudioServiceContainer: Cannot play '{soundData.name}' - services not initialized");
+            return;
+        }
+
+        // Route based on AudioType, then check Loop property for playback behavior
+        switch (soundData.AudioType)
+        {
+            case AudioType.BGM:
+                // 현재는 BGM에 대해 AudioData 기반 재생을 유지합니다.
+                var bgmSvc = GetService<IBGMAudioService>();
+                if (bgmSvc != null)
+                {
+                    bgmSvc.PlayBGM(soundData);
+                    Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as BGM via AudioPlayRequest");
+                }
+                else
+                {
+                    Debug.LogWarning($"AudioServiceContainer: BGM service not available for '{soundData.name}'");
+                }
+                break;
+
+            case AudioType.Effect:
+                // Route to Effect service (sound effects)
+                var effectSvc = GetService<IEffectAudioService>();
+                if (effectSvc != null)
+                {
+                    if (soundData.Loop)
+                    {
+                        // 루프 사운드는 페이드 인 API를 통해 재생
+                        int loopId = effectSvc.FadeInEffectLoop(request, -1f);
+                        Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as loop with fade-in via AudioPlayRequest (LoopID: {loopId})");
+                    }
+                    else
+                    {
+                        bool success = effectSvc.PlayEffect(request);
+                        if (success)
+                        {
+                            Debug.Log($"AudioServiceContainer: Playing '{soundData.name}' as one-shot via AudioPlayRequest");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"AudioServiceContainer: Effect service not available for '{soundData.name}'");
+                }
+                break;
+
+            default:
+                Debug.LogWarning($"AudioServiceContainer: Unknown AudioType '{soundData.AudioType}' for '{soundData.name}' (AudioPlayRequest)");
+                break;
+        }
+    }
+
+    /// <summary>
     /// [DEPRECATED - 레거시 지원] Handle loop sound playback requests from the event channel
     /// 하위 호환성을 위해 유지되며, 내부적으로 HandleSoundRequest를 호출합니다.
     /// 새 코드는 RaiseSoundEvent(audioData, owner)를 사용하세요.
@@ -563,7 +634,7 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
 
     /// <summary>
     /// [통합 핸들러] Handle loop sound stop requests from the event channel
-    /// Stops owner-based loop sounds via unified API
+    /// Stops owner-based loop sounds via unified API (현재는 페이드 아웃 사용)
     /// </summary>
     /// <param name="owner">The owner of the loop sounds</param>
     /// <param name="audioData">The specific AudioData to stop (null = stop all loops for this owner)</param>
@@ -586,11 +657,11 @@ public class AudioServiceContainer : MonoBehaviour, IAudioServiceContainer
         var effectSvc = GetService<IEffectAudioService>();
         if (effectSvc != null)
         {
-            // 통합 메서드 호출: audioData가 null이면 모든 루프 중지, 있으면 특정 루프만 중지
-            effectSvc.StopLoopsByOwner(owner, audioData);
+            // 통합 메서드 호출: audioData가 null이면 모든 루프, 있으면 특정 루프만 페이드 아웃
+            effectSvc.FadeOutLoopsByOwner(owner, -1f, audioData);
 
             string target = audioData == null ? "모든 루프" : $"'{audioData.name}' 루프";
-            Debug.Log($"AudioServiceContainer: Stopped {target} for owner '{owner}' via event channel");
+            Debug.Log($"AudioServiceContainer: Fading out {target} for owner '{owner}' via event channel");
         }
         else
         {

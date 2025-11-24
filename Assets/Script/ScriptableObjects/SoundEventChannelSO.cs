@@ -10,10 +10,16 @@ using UnityEngine.Events;
 public class SoundEventChannelSO : ScriptableObject
 {
     /// <summary>
-    /// Event raised when a sound is requested
+    /// Event raised when a sound is requested (legacy signature).
     /// AudioData.Loop property determines playback behavior (one-shot vs loop)
     /// </summary>
     public UnityAction<AudioData, object> OnSoundRequested;
+
+    /// <summary>
+    /// Event raised when a sound is requested with runtime modifiers.
+    /// AudioPlayRequest를 통해 volume/pitch 배율 등의 추가 정보를 전달합니다.
+    /// </summary>
+    public UnityAction<AudioPlayRequest> OnSoundRequestedWithModifiers;
 
     /// <summary>
     /// [루프 사운드 중지 이벤트] Event raised when loop sound stop is requested by owner
@@ -44,12 +50,46 @@ public class SoundEventChannelSO : ScriptableObject
             return;
         }
 
-        // Broadcast to all listeners
+        // 새 요청 객체 생성
+        var request = AudioPlayRequest.Create(soundData, owner);
+
+        // Broadcast to all listeners (modifier-aware first)
+        OnSoundRequestedWithModifiers?.Invoke(request);
         OnSoundRequested?.Invoke(soundData, owner);
 
         #if UNITY_EDITOR || DEVELOPMENT_BUILD
         string playbackType = soundData.Loop ? "loop" : "one-shot";
         Debug.Log($"SoundEventChannelSO: Sound event raised - '{soundData.name}' ({playbackType})");
+        #endif
+    }
+
+    /// <summary>
+    /// Runtime modifier를 포함한 오디오 재생 이벤트를 발생시킵니다.
+    /// </summary>
+    /// <param name="request">오디오 재생 요청 객체</param>
+    public void RaiseSoundEvent(AudioPlayRequest request)
+    {
+        if (request.audioData == null)
+        {
+            Debug.LogWarning("SoundEventChannelSO: Attempted to raise event with null AudioData in AudioPlayRequest");
+            return;
+        }
+
+        // Check cooldown before broadcasting
+        if (!request.audioData.CanPlay())
+        {
+            Debug.Log($"SoundEventChannelSO: '{request.audioData.name}' is on cooldown, skipping (AudioPlayRequest)");
+            return;
+        }
+
+        // Broadcast to all listeners
+        OnSoundRequestedWithModifiers?.Invoke(request);
+        OnSoundRequested?.Invoke(request.audioData, request.owner);
+
+        #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        string playbackType = request.audioData.Loop ? "loop" : "one-shot";
+        Debug.Log($"SoundEventChannelSO: Sound event (with modifiers) raised - '{request.audioData.name}' ({playbackType}), " +
+                  $"VolumeMult={request.volumeMultiplier:F2}, PitchMult={request.pitchMultiplier:F2}");
         #endif
     }
 

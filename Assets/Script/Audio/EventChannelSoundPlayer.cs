@@ -35,10 +35,11 @@ public class EventChannelSoundPlayer : MonoBehaviour
             return;
         }
 
-        // Broadcast event - AudioData.Loop property determines behavior
+        // Broadcast event via AudioPlayRequest - AudioData.Loop property still determines behavior
         // For loop sounds, pass 'this' as owner to enable proper cleanup
         object owner = soundToPlay.Loop ? this : null;
-        soundEventChannel.RaiseSoundEvent(soundToPlay, owner);
+        var request = AudioPlayRequest.Create(soundToPlay, owner);
+        soundEventChannel.RaiseSoundEvent(request);
     }
 
     /// <summary>
@@ -50,7 +51,8 @@ public class EventChannelSoundPlayer : MonoBehaviour
             return;
 
         object owner = customSound.Loop ? this : null;
-        soundEventChannel.RaiseSoundEvent(customSound, owner);
+        var request = AudioPlayRequest.Create(customSound, owner);
+        soundEventChannel.RaiseSoundEvent(request);
     }
 
     #if UNITY_EDITOR

@@ -93,6 +93,7 @@ namespace Game.Data
             var casterTeam = isPlayerUnit ? TeamType.Player : TeamType.Enemy;
 
             var context = new GameContext(
+                cardData,
                 unitService: null,
                 gridController: gridController,
                 cardSpawnService: null,

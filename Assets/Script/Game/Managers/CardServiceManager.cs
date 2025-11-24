@@ -700,6 +700,78 @@ namespace Game.Services
         }
 
         /// <summary>
+        /// 필드 위의 유닛을 제거하고, 해당 유닛을 소환한 카드를 팀의 손패로 되돌립니다.
+        /// </summary>
+        /// <param name="unit">손패로 되돌릴 유닛</param>
+        public void ReturnUnitToHand(Unit unit)
+        {
+            if (unit == null)
+            {
+                LogError("ReturnUnitToHand called with null unit");
+                return;
+            }
+
+            var link = unit.GetComponent<UnitCardLink>();
+            var sourceCard = link?.SourceCard;
+
+            if (sourceCard == null)
+            {
+                LogError($"ReturnUnitToHand: No SourceCard found for unit {unit.name}");
+                return;
+            }
+
+            var team = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+
+            switch (team)
+            {
+                case TeamType.Player:
+                    if (cardHandManager == null)
+                    {
+                        LogError("ReturnUnitToHand: CardHandManager is null for Player");
+                        return;
+                    }
+
+                    if (!cardHandManager.IsInitialized)
+                    {
+                        LogError("ReturnUnitToHand: CardHandManager is not initialized");
+                        return;
+                    }
+
+                    if (!cardHandManager.AddCardToHand(sourceCard))
+                    {
+                        LogError($"ReturnUnitToHand: Failed to add {sourceCard.CardName} to player hand");
+                        return;
+                    }
+                    break;
+
+                case TeamType.Enemy:
+                    if (enemyAIController == null)
+                    {
+                        LogError("ReturnUnitToHand: EnemyAIController is null for Enemy");
+                        return;
+                    }
+
+                    enemyAIController.AddCardToHand(sourceCard);
+                    break;
+
+                default:
+                    Log($"ReturnUnitToHand called for unsupported team: {team}");
+                    return;
+            }
+
+            // 필드에서 유닛 제거 (Grid + UnitService)
+            var gridManager = ServiceLocator.Get<IGridManager>();
+            var gameServiceManager = ServiceLocator.Get<IGameServiceManager>();
+
+            gridManager?.RemoveUnit(unit.gameObject);
+            gameServiceManager?.UnregisterUnit(unit);
+            UnityEngine.Object.Destroy(unit.gameObject);
+
+            Log($"ReturnUnitToHand: Unit {unit.name} returned to {team} hand as {sourceCard.CardName}");
+            
+        }
+
+        /// <summary>
         /// GridManager 패턴을 따라 하위 서비스들에 대한 접근 제공
         /// </summary>
         public ICardHandManager GetCardHandManager() => cardHandManager;

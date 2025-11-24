@@ -245,6 +245,7 @@ namespace Game.Services
 
             // EffectTargetingHelper가 필요로 하는 최소 정보만 담은 GameContext 생성
             var context = new GameContext(
+                cardData,
                 unitService: null,
                 gridController: gridController,
                 cardSpawnService: null,

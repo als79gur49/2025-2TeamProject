@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: deacc00d89737ae48ac786fc5012c059, type: 3}
+  m_Name: AndFilter_Enemy_Returnable
+  m_EditorClassIdentifier: 
+  filters:
+  - {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
+  - {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}

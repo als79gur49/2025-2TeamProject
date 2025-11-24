@@ -12,6 +12,9 @@ namespace Game.Card.Effects
     /// </summary>
     public class GameContext
     {
+        /// <summary>이번에 실행 중인 카드 데이터 (소환/효과의 원본)</summary>
+        public Game.Data.CardData SourceCard { get; private set; }
+
         /// <summary>유닛 관리 서비스</summary>
         public IUnitService UnitService { get; private set; }
 
@@ -55,6 +58,7 @@ namespace Game.Card.Effects
         /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <param name="originPosition">카드 사용 원점</param>
         public GameContext(
+            Game.Data.CardData sourceCard,
             IUnitService unitService,
             IGridController gridController,
             ICardSpawnService cardSpawnService,
@@ -62,6 +66,7 @@ namespace Game.Card.Effects
             TeamType casterTeam,
             UnityEngine.Vector2Int originPosition)
         {
+            SourceCard = sourceCard;
             UnitService = unitService;
             GridController = gridController;
             CardSpawnService = cardSpawnService;

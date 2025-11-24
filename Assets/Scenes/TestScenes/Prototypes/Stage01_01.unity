@@ -1349,7 +1349,7 @@ PrefabInstance:
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
@@ -1361,43 +1361,43 @@ PrefabInstance:
         type: 3}
       propertyPath: initialHandCards.Array.data[1]
       value: 
-      objectReference: {fileID: 11400000, guid: 58066ea01f91bec409e1e6d63ea2f4ac,
+      objectReference: {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[2]
       value: 
-      objectReference: {fileID: 11400000, guid: fbe327f6e9a575d4c96b6e61fbe3b2f7,
+      objectReference: {fileID: 11400000, guid: b412f2b760b655d4381107b18e0b05b4,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[3]
       value: 
-      objectReference: {fileID: 11400000, guid: 4655aa53d86240345a3a09f0d13748be,
+      objectReference: {fileID: 11400000, guid: 19af4e4f84013174c9ffd186861c7717,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[4]
       value: 
-      objectReference: {fileID: 11400000, guid: 2eeaf06012beca74ebba189e57219bde,
+      objectReference: {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[5]
       value: 
-      objectReference: {fileID: 11400000, guid: 87a1547cfea127b4aa60c491831df337,
+      objectReference: {fileID: 11400000, guid: f88b2ed5d923fdb4188aa2dbb1e36ff5,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[6]
       value: 
-      objectReference: {fileID: 11400000, guid: 0ab8ecfa53a9bd647ba7d2e73b0a4d5e,
+      objectReference: {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[7]
       value: 
-      objectReference: {fileID: 11400000, guid: 9079e829416167d4aa37e4c45774bfbf,
+      objectReference: {fileID: 11400000, guid: c22dd6f9175673346afd3bbc5af3d633,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
@@ -1410,6 +1410,12 @@ PrefabInstance:
       propertyPath: initialHandCards.Array.data[9]
       value: 
       objectReference: {fileID: 11400000, guid: 1a1d24a1c76a794458163aef6610eeef,
+        type: 2}
+    - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[10]
+      value: 
+      objectReference: {fileID: 11400000, guid: 2e8769d9f2199594999a71a76939b50b,
         type: 2}
     - target: {fileID: 8455207172729962887, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
@@ -1589,7 +1595,7 @@ PrefabInstance:
     - target: {fileID: 1512948453413360610, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 156.81
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1512948453413360610, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
@@ -1679,7 +1685,7 @@ PrefabInstance:
     - target: {fileID: 2957732048660785737, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 134.93
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2957732048660785737, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
@@ -1704,7 +1710,7 @@ PrefabInstance:
     - target: {fileID: 4239786195150257570, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 275.48
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4239786195150257570, guid: 5121699c96fd58c4b90aa665f07e3981,
         type: 3}

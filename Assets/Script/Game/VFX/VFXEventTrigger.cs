@@ -116,12 +116,17 @@ namespace Game.VFX
                          $"TilePositions={this.predeterminedTilePositions.Count}");
             }
 
-            // 루프 사운드 시작 (선택적) - AudioData.Loop 속성이 자동으로 재생 방식 결정
+            // 루프 사운드 시작 (선택적) - AudioPlayRequest 기반으로 재생 속도(pitch) 정보 전달
             if (soundEventChannel != null && startSound != null)
             {
-                soundEventChannel.RaiseSoundEvent(startSound, this);
+                var request = AudioPlayRequest
+                    .Create(startSound, this)
+                    .WithPitch(this.playbackSpeed);
+
+                soundEventChannel.RaiseSoundEvent(request);
+
                 if (logTriggerEvents)
-                    Debug.Log($"[VFXEventTrigger] Started sound: {startSound.name} (Loop={startSound.Loop})");
+                    Debug.Log($"[VFXEventTrigger] Started sound: {startSound.name} (Loop={startSound.Loop}, PitchMult={this.playbackSpeed:F2})");
             }
         }
 
@@ -138,14 +143,14 @@ namespace Game.VFX
             foreach (var ps in particles)
             {
                 var main = ps.main;
-                main.simulationSpeed = speed;
+                main.simulationSpeed *= speed;
             }
 
             // Animator 속도 적용
             Animator animator = GetComponent<Animator>();
             if (animator != null)
             {
-                animator.speed = speed;
+                animator.speed *= speed;
             }
         }
 
@@ -222,7 +227,12 @@ namespace Game.VFX
             // 트리거 사운드 재생 (선택적)
             if (soundEventChannel != null && triggerSound != null)
             {
-                soundEventChannel.RaiseSoundEvent(triggerSound, this);
+                var request = AudioPlayRequest
+                    .Create(triggerSound, this)
+                    .WithPitch(playbackSpeed);
+
+                soundEventChannel.RaiseSoundEvent(request);
+
                 if (logTriggerEvents)
                     Debug.Log($"[VFXEventTrigger] Played trigger sound: {triggerSound.name}");
             }

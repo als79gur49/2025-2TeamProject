@@ -9849,7 +9849,7 @@ MonoBehaviour:
   maxLifetime: 2.5
   maxWaitNormalizedTime: 0.8
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  startSound: {fileID: 0}
+  startSound: {fileID: 11400000, guid: cce3c0a7c38b20d4eb7905b28fcd6fc4, type: 2}
   triggerSound: {fileID: 0}
   logTriggerEvents: 1
 --- !u!1 &1368536608535506

@@ -48,6 +48,11 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
         public GameObject gameObject;
         public object Owner; // Owner 기반 사운드 제어를 위한 필드
 
+        // 페이드 상태 관리용 필드
+        public Coroutine fadeCoroutine;
+        public bool isFadingIn;
+        public bool isFadingOut;
+
         public LoopedEffect(int id, AudioData data, AudioSource source, GameObject obj, object owner = null)
         {
             loopId = id;
@@ -224,6 +229,25 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     /// </summary>
     public bool PlayEffect(AudioData audioData)
     {
+        if (audioData == null)
+        {
+            Debug.LogError("EffectAudioService.PlayEffect(AudioData): AudioData가 null입니다.");
+            return false;
+        }
+
+        // 기존 AudioData 기반 코드는 AudioPlayRequest 래퍼를 통해 공통 로직을 사용합니다.
+        var request = AudioPlayRequest.Create(audioData);
+        return PlayEffect(request);
+    }
+
+    /// <summary>
+    /// 효과음 재생 (AudioPlayRequest 기반)
+    /// AudioData 기본값에 volume/pitch 배율을 곱하여 최종 값을 결정합니다.
+    /// </summary>
+    public bool PlayEffect(AudioPlayRequest request)
+    {
+        var audioData = request.audioData;
+
         if (!isInitialized || audioData == null)
         {
             Debug.LogError("EffectAudioService가 초기화되지 않았거나 AudioData가 null입니다.");
@@ -247,8 +271,12 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
 
         try
         {
-            float volume = audioData.GetRandomVolume();
-            float pitch = audioData.GetRandomPitch();
+            float baseVolume = audioData.GetRandomVolume();
+            float basePitch = audioData.GetRandomPitch();
+
+            // multiplier 적용 후 안전 범위로 클램프
+            float volume = Mathf.Clamp01(baseVolume * request.volumeMultiplier);
+            float pitch = Mathf.Clamp(basePitch * request.pitchMultiplier, 0.1f, 3.0f);
 
             // Pitch 변경이 필요한 경우 풀에서 AudioSource 사용
             if (Mathf.Abs(pitch - 1.0f) > 0.01f)
@@ -310,72 +338,121 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     /// <returns>루프 ID (정지용)</returns>
     public int PlayEffectLoop(AudioData audioData, object owner = null)
     {
-        if (!isInitialized || audioData == null)
+        if (audioData == null)
         {
-            Debug.LogError("EffectAudioService가 초기화되지 않았거나 AudioData가 null입니다.");
+            Debug.LogError("EffectAudioService.PlayEffectLoop(AudioData): AudioData가 null입니다.");
             return -1;
         }
 
-        // Cooldown check
-        if (!audioData.CanPlay())
+        var request = AudioPlayRequest.Create(audioData, owner);
+        return PlayEffectLoop(request);
+    }
+
+    /// <summary>
+    /// 루프 효과음 페이드 인 재생 (AudioData 기반)
+    /// </summary>
+    public int FadeInEffectLoop(AudioData audioData, float fadeTime = -1f, object owner = null)
+    {
+        if (audioData == null)
         {
-            Debug.Log($"루프 효과음이 쿨다운 중입니다: {audioData.name}");
+            Debug.LogError("EffectAudioService.FadeInEffectLoop(AudioData): AudioData가 null입니다.");
             return -1;
         }
 
-        // Get random clip from AudioData
-        AudioClip clip = audioData.GetRandomClip();
-        if (clip == null)
-        {
-            Debug.LogError($"AudioData에 유효한 클립이 없습니다: {audioData.name}");
+        var request = AudioPlayRequest.Create(audioData, owner);
+        return FadeInEffectLoop(request, fadeTime);
+    }
+
+    /// <summary>
+    /// 루프 효과음 재생 (AudioPlayRequest 기반)
+    /// AudioData의 설정과 runtime modifier를 적용하여 루프 재생
+    /// </summary>
+    /// <param name="request">재생할 요청 객체</param>
+    /// <returns>루프 ID (정지용)</returns>
+    public int PlayEffectLoop(AudioPlayRequest request)
+    {
+        float targetVolume;
+        var loopedEffect = CreateLoopedEffect(request, null, out targetVolume);
+
+        if (loopedEffect == null)
             return -1;
-        }
 
-        // 루프용 GameObject 및 AudioSource 생성
-        var loopGO = new GameObject($"Loop_Effect_{audioData.name}");
-        var loopAudioSource = loopGO.AddComponent<AudioSource>();
+        return loopedEffect.loopId;
+    }
 
-        loopAudioSource.clip = clip;
-        loopAudioSource.volume = audioData.GetRandomVolume();
-        loopAudioSource.pitch = audioData.GetRandomPitch();
-        loopAudioSource.loop = true;
-        loopAudioSource.priority = audioData.Priority;
+    /// <summary>
+    /// 루프 효과음 페이드 인 재생 (AudioPlayRequest 기반)
+    /// </summary>
+    public int FadeInEffectLoop(AudioPlayRequest request, float fadeTime = -1f)
+    {
+        float targetVolume;
+        var loopedEffect = CreateLoopedEffect(request, 0f, out targetVolume);
 
-        // Apply mixer group if specified
-        if (audioData.MixerGroup != null)
+        if (loopedEffect == null)
+            return -1;
+
+        float resolvedFadeTime = ResolveFadeInTime(loopedEffect.audioData, fadeTime);
+
+        if (resolvedFadeTime <= 0f)
         {
-            loopAudioSource.outputAudioMixerGroup = audioData.MixerGroup;
+            // 페이드 시간이 의미 없으면 즉시 목표 볼륨 적용
+            if (loopedEffect.audioSource != null)
+            {
+                loopedEffect.audioSource.volume = targetVolume;
+            }
+            return loopedEffect.loopId;
         }
-        else
+
+        if (loopedEffect.fadeCoroutine != null)
         {
-            loopAudioSource.outputAudioMixerGroup = mainAudioSource.outputAudioMixerGroup;
+            StopCoroutine(loopedEffect.fadeCoroutine);
         }
 
-        loopAudioSource.Play();
+        loopedEffect.isFadingIn = true;
+        loopedEffect.isFadingOut = false;
+        loopedEffect.fadeCoroutine = StartCoroutine(
+            FadeLoopCoroutine(loopedEffect, 0f, targetVolume, resolvedFadeTime, false));
 
-        int loopId = nextPlayId++;
-        var loopedEffect = new LoopedEffect(loopId, audioData, loopAudioSource, loopGO, owner);
-        loopedEffects.Add(loopedEffect);
-
-        string ownerInfo = owner != null ? $", Owner: {owner}" : "";
-        Debug.Log($"루프 효과음 시작 (AudioData): {audioData.name} (ID: {loopId}, 볼륨: {loopAudioSource.volume:F2}, 피치: {loopAudioSource.pitch:F2}{ownerInfo})");
-        return loopId;
+        Debug.Log($"루프 효과음 페이드 인 시작: {loopedEffect.ClipName} (ID: {loopedEffect.loopId}, FadeTime: {resolvedFadeTime:F2})");
+        return loopedEffect.loopId;
     }
 
     /// <summary>
     /// 루프 효과음 정지
     /// GameObject 정리 포함
     /// </summary>
-    public void StopEffectLoop(int loopId)
+    public void StopEffectLoop(int loopId, float fadeTime = 0f)
     {
         for (int i = loopedEffects.Count - 1; i >= 0; i--)
         {
             var loopedEffect = loopedEffects[i];
             if (loopedEffect.loopId == loopId)
             {
-                CleanupLoopedEffect(loopedEffect);
-                loopedEffects.RemoveAt(i);
-                Debug.Log($"루프 효과음 정지: {loopedEffect.ClipName} (ID: {loopId})");
+                if (fadeTime <= 0f)
+                {
+                    // 기존 즉시 정지 동작
+                    CleanupLoopedEffect(loopedEffect);
+                    loopedEffects.RemoveAt(i);
+                    Debug.Log($"루프 효과음 정지: {loopedEffect.ClipName} (ID: {loopId})");
+                }
+                else
+                {
+                    // 페이드 아웃 정지
+                    if (loopedEffect.fadeCoroutine != null)
+                    {
+                        StopCoroutine(loopedEffect.fadeCoroutine);
+                    }
+
+                    float startVolume = loopedEffect.audioSource != null ? loopedEffect.audioSource.volume : 1.0f;
+                    float targetVolume = 0.0f;
+
+                    loopedEffect.isFadingOut = true;
+                    loopedEffect.isFadingIn = false;
+                    loopedEffect.fadeCoroutine = StartCoroutine(
+                        FadeLoopCoroutine(loopedEffect, startVolume, targetVolume, fadeTime, true));
+
+                    Debug.Log($"루프 효과음 페이드 아웃 시작: {loopedEffect.ClipName} (ID: {loopId}, FadeTime: {fadeTime:F2})");
+                }
                 return;
             }
         }
@@ -424,6 +501,32 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     }
 
     /// <summary>
+    /// [통합 메서드] 소유자 기반으로 루프 효과음을 페이드 아웃 정지시킵니다.
+    /// </summary>
+    public void FadeOutLoopsByOwner(object owner, float fadeTime = -1f, AudioData audioDataToStop = null)
+    {
+        if (owner == null)
+        {
+            Debug.LogWarning("FadeOutLoopsByOwner: Owner가 null이므로 루프 효과음을 페이드 아웃할 수 없습니다.");
+            return;
+        }
+
+        for (int i = loopedEffects.Count - 1; i >= 0; i--)
+        {
+            var loopedEffect = loopedEffects[i];
+
+            if (loopedEffect.Owner != owner)
+                continue;
+
+            if (audioDataToStop != null && loopedEffect.audioData != audioDataToStop)
+                continue;
+
+            float resolvedFadeTime = ResolveFadeOutTime(loopedEffect.audioData, fadeTime);
+            StopEffectLoop(loopedEffect.loopId, resolvedFadeTime);
+        }
+    }
+
+    /// <summary>
     /// [오버로드] 소유자의 모든 루프 효과음을 정지시킵니다.
     /// </summary>
     /// <param name="owner">루프 사운드를 시작한 소유자 객체</param>
@@ -440,6 +543,25 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
     public void StopSpecificLoopByOwner(object owner, AudioData audioData)
     {
         StopLoopsByOwner(owner, audioData);
+    }
+
+    /// <summary>
+    /// 루프 효과음을 페이드 아웃 정지 (ID 기반)
+    /// </summary>
+    public void FadeOutEffectLoop(int loopId, float fadeTime = -1f)
+    {
+        for (int i = 0; i < loopedEffects.Count; i++)
+        {
+            var loopedEffect = loopedEffects[i];
+            if (loopedEffect.loopId != loopId)
+                continue;
+
+            float resolvedFadeTime = ResolveFadeOutTime(loopedEffect.audioData, fadeTime);
+            StopEffectLoop(loopId, resolvedFadeTime);
+            return;
+        }
+
+        Debug.LogWarning($"FadeOutEffectLoop: 루프 효과음을 찾을 수 없습니다: ID {loopId}");
     }
 
     /// <summary>
@@ -603,6 +725,141 @@ public class EffectAudioService : MonoBehaviour, IEffectAudioService
 
         if (loopedEffect.gameObject != null)
             Destroy(loopedEffect.gameObject);
+    }
+
+    /// <summary>
+    /// 루프 효과음 페이드 인/아웃용 공통 코루틴
+    /// </summary>
+    private IEnumerator FadeLoopCoroutine(LoopedEffect loop, float startVolume, float targetVolume, float fadeTime, bool stopAfterFade)
+    {
+        if (loop == null || loop.audioSource == null)
+            yield break;
+
+        var source = loop.audioSource;
+        float elapsed = 0f;
+
+        source.volume = startVolume;
+
+        if (fadeTime <= 0f)
+        {
+            source.volume = targetVolume;
+        }
+        else
+        {
+            while (elapsed < fadeTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / fadeTime);
+                source.volume = Mathf.Lerp(startVolume, targetVolume, t);
+                yield return null;
+            }
+
+            source.volume = targetVolume;
+        }
+
+        if (stopAfterFade && targetVolume <= 0.01f)
+        {
+            // 정지만 수행하고, 실제 정리 및 리스트 제거는 Update 루프에서 처리합니다.
+            source.Stop();
+        }
+
+        loop.fadeCoroutine = null;
+        loop.isFadingIn = false;
+        loop.isFadingOut = false;
+    }
+
+    /// <summary>
+    /// 페이드 인 시간 해석
+    /// </summary>
+    private float ResolveFadeInTime(AudioData data, float requested)
+    {
+        if (requested > 0f) return requested;
+        if (data != null && data.FadeInTime > 0f) return data.FadeInTime;
+        return 0.25f;
+    }
+
+    /// <summary>
+    /// 페이드 아웃 시간 해석
+    /// </summary>
+    private float ResolveFadeOutTime(AudioData data, float requested)
+    {
+        if (requested > 0f) return requested;
+        if (data != null && data.FadeOutTime > 0f) return data.FadeOutTime;
+        return 0.25f;
+    }
+
+    /// <summary>
+    /// 루프 효과음 생성 공통 로직
+    /// initialVolumeOverride가 null이면 계산된 최종 볼륨을 사용합니다.
+    /// </summary>
+    private LoopedEffect CreateLoopedEffect(AudioPlayRequest request, float? initialVolumeOverride, out float targetVolume)
+    {
+        targetVolume = 0f;
+
+        var audioData = request.audioData;
+
+        if (!isInitialized || audioData == null)
+        {
+            Debug.LogError("EffectAudioService가 초기화되지 않았거나 AudioData가 null입니다.");
+            return null;
+        }
+
+        // Cooldown check
+        if (!audioData.CanPlay())
+        {
+            Debug.Log($"루프 효과음이 쿨다운 중입니다: {audioData.name}");
+            return null;
+        }
+
+        // Get random clip from AudioData
+        AudioClip clip = audioData.GetRandomClip();
+        if (clip == null)
+        {
+            Debug.LogError($"AudioData에 유효한 클립이 없습니다: {audioData.name}");
+            return null;
+        }
+
+        // 루프용 GameObject 및 AudioSource 생성
+        var loopGO = new GameObject($"Loop_Effect_{audioData.name}");
+        var loopAudioSource = loopGO.AddComponent<AudioSource>();
+
+        loopAudioSource.clip = clip;
+
+        float baseVolume = audioData.GetRandomVolume();
+        float basePitch = audioData.GetRandomPitch();
+
+        targetVolume = Mathf.Clamp01(baseVolume * request.volumeMultiplier);
+        float pitch = Mathf.Clamp(basePitch * request.pitchMultiplier, 0.1f, 3.0f);
+
+        loopAudioSource.volume = initialVolumeOverride.HasValue ? initialVolumeOverride.Value : targetVolume;
+        loopAudioSource.pitch = pitch;
+        loopAudioSource.loop = true;
+        loopAudioSource.priority = audioData.Priority;
+
+        // Apply mixer group if specified
+        if (audioData.MixerGroup != null)
+        {
+            loopAudioSource.outputAudioMixerGroup = audioData.MixerGroup;
+        }
+        else
+        {
+            loopAudioSource.outputAudioMixerGroup = mainAudioSource.outputAudioMixerGroup;
+        }
+
+        loopAudioSource.Play();
+
+        int loopId = nextPlayId++;
+        var loopedEffect = new LoopedEffect(loopId, audioData, loopAudioSource, loopGO, request.owner);
+        loopedEffect.isFadingIn = false;
+        loopedEffect.isFadingOut = false;
+        loopedEffect.fadeCoroutine = null;
+
+        loopedEffects.Add(loopedEffect);
+
+        string ownerInfo = request.owner != null ? $", Owner: {request.owner}" : "";
+        Debug.Log($"루프 효과음 시작 (AudioData): {audioData.name} (ID: {loopId}, 볼륨: {loopAudioSource.volume:F2}, 피치: {loopAudioSource.pitch:F2}{ownerInfo})");
+
+        return loopedEffect;
     }
 
     #endregion

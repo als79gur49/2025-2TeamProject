@@ -153,6 +153,14 @@ namespace Game.Card.Effects
             bool isPlayerUnit = (context.CasterTeam == TeamType.Player);
             unit.Init(unitData, position, isPlayerUnit);
 
+            // 소환 원본 카드 메타데이터 설정
+            var cardLink = unitObject.GetComponent<UnitCardLink>();
+            if (cardLink == null)
+            {
+                cardLink = unitObject.AddComponent<UnitCardLink>();
+            }
+            cardLink.SetSourceCard(context.SourceCard);
+
             // GridController에 유닛 배치
             bool moved = context.GridController.MoveUnit(unitObject, position);
             if (!moved)

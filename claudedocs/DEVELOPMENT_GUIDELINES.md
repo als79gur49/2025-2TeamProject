@@ -261,7 +261,7 @@ TeamRelation.Any:
   Filter 레이어: ✅ "관계 무관" 와일드카드로 사용
 
 관계 계산 결과: Self, Ally, Enemy, Neutral만 사용
-타겟팅 조건: Self, Ally, Enemy, Neutral, Any 모두 사용 가능
+타겟팅 조건: Self, Ally, Enemy, Enemy, Neutral, Any 모두 사용 가능
 
 복잡한 조건: TargetFilterDefinition 조합으로 해결
 TeamRelation enum: 최소한의 공통 축만 유지
@@ -309,6 +309,119 @@ switch(matrix.GetRelation(teamA, teamB))
 
 ---
 
+## 🔊 5. AudioPlayRequest 사용 가이드 (Effect 사운드 전용 런타임 Modifier)
+
+### 5.1 목적
+
+`AudioPlayRequest`는 **AudioData ScriptableObject의 기본 설정을 변경하지 않고**,  
+재생 호출 시점에 **볼륨/피치 배율을 곱해** 개별 사운드를 튜닝하기 위한 런타임 요청 객체입니다.
+
+- AudioData: 설계자가 정한 **기본값 (volume/pitch/loop 등)** 유지
+- AudioPlayRequest: 프로그래머가 **호출마다 추가 보정 (×multiplier)** 를 적용
+
+현재는 **EffectAudioService (효과음)** 에만 multiplier가 적용됩니다.  
+BGM은 기존 AudioData 기반 재생을 유지합니다.
+
+### 5.2 기본 사용법 (Fluent API)
+
+```csharp
+// 1) 기본 재생 (기존 코드와 동일, multiplier = 1)
+soundEventChannel.RaiseSoundEvent(effectSoundData, this);
+
+// 2) 볼륨만 조정 (절반 볼륨)
+var request = AudioPlayRequest
+    .Create(effectSoundData, this)
+    .WithVolume(0.5f);
+
+soundEventChannel.RaiseSoundEvent(request);
+
+// 3) 볼륨/피치 모두 조정
+var spellRequest = AudioPlayRequest
+    .Create(spellSoundData, this)
+    .WithVolume(1.2f)   // 20% 더 큼
+    .WithPitch(0.8f);   // 피치 ↓ → 느리게/굵게
+
+soundEventChannel.RaiseSoundEvent(spellRequest);
+```
+
+- `Create(AudioData, owner)` 가 **시작점**입니다.
+- `WithVolume`, `WithPitch` 는 항상 **새 인스턴스**를 반환합니다 (값 타입).
+- 최종적으로 `SoundEventChannelSO.RaiseSoundEvent(AudioPlayRequest request)` 를 사용하면,
+  Event Channel → AudioServiceContainer → EffectAudioService 경로에서 multiplier가 적용됩니다.
+
+### 5.3 내부 동작 요약
+
+1. 호출부에서 `AudioPlayRequest` 생성 후 `RaiseSoundEvent(request)` 호출
+2. `SoundEventChannelSO`:
+   - 쿨다운(`AudioData.CanPlay`) 체크
+   - `OnSoundRequestedWithModifiers(request)` 이벤트 발행
+3. `AudioServiceContainer`:
+   - `OnSoundRequestedWithModifiers` 에만 구독
+   - `AudioType.Effect` 인 경우 `IEffectAudioService.PlayEffect(request)` 호출
+4. `EffectAudioService`:
+   - `baseVolume = audioData.GetRandomVolume()`
+   - `basePitch  = audioData.GetRandomPitch()`
+   - `finalVolume = Mathf.Clamp01(baseVolume * request.volumeMultiplier)`
+   - `finalPitch  = Mathf.Clamp(basePitch * request.pitchMultiplier, 0.1f, 3.0f)`
+   - 최종 값을 `AudioSource` 에 적용 후 재생
+
+### 5.4 ⚠️ 주의사항 (반드시 읽기)
+
+1. **반환값을 무시하면 multiplier가 적용되지 않습니다.**
+
+```csharp
+// ❌ 잘못된 사용: request는 여전히 기본 배율(1, 1)
+var request = AudioPlayRequest.Create(effectSoundData, this);
+request.WithVolume(0.5f); // 반환값을 변수에 담지 않으면 의미 없음
+
+// ✅ 올바른 사용
+var request = AudioPlayRequest.Create(effectSoundData, this)
+    .WithVolume(0.5f);
+```
+
+- `AudioPlayRequest` 는 `readonly struct` 이고 `WithXXX` 는 **새 값**을 반환합니다.
+- 항상 **체이닝하거나, 반환값을 다시 변수에 담는 패턴**을 사용하십시오.
+
+2. **AudioData는 절대 수정하지 않습니다.**
+
+- multiplier는 **재생 시점에만** 적용됩니다.
+- `AudioData.volumeMin/max`, `pitchMin/max` 등의 필드는 항상 설계 기본값으로 남겨두고,  
+  코드에서 이 값을 직접 변경하지 않습니다.
+
+3. **multiplier 범위는 재생 단계에서 클램프됩니다.**
+
+- 볼륨:
+  - `finalVolume = Mathf.Clamp01(baseVolume * volumeMultiplier);`
+  - baseVolume와 multiplier가 1을 넘어도 최종 볼륨은 0~1로 제한됩니다.
+- 피치:
+  - `finalPitch = Mathf.Clamp(basePitch * pitchMultiplier, 0.1f, 3.0f);`
+  - 너무 낮거나 높은 피치로 인한 오디오 깨짐을 방지합니다.
+
+4. **현재는 Effect 전용입니다.**
+
+- `AudioType.Effect` 경로에서만 `AudioPlayRequest` multiplier가 적용됩니다.
+- `AudioType.BGM` 은 기존 `IBGMAudioService.PlayBGM(AudioData)` 경로를 사용하며,  
+  개별 곡의 볼륨/피치는 AudioData + AudioMixer/VolumeController로 관리합니다.
+
+5. **Event Channel 구독은 새 이벤트만 사용합니다.**
+
+- `AudioServiceContainer` 는 `SoundEventChannelSO.OnSoundRequestedWithModifiers` 만 구독합니다.
+- 레거시 `OnSoundRequested(AudioData, object)` 는 다른 시스템/디버그용으로만 사용하고,  
+  컨테이너에서 동시에 구독하면 **같은 사운드가 두 번 재생**될 수 있으므로 금지됩니다.
+
+### 5.5 추천 사용처 예시
+
+- VFX 기반 스펠:
+  - VFX 재생 속도(`PlaybackSpeed`)에 비례하여 피치 조절
+  - 카메라 거리/줌 레벨에 따라 효과음 볼륨 조정
+- UI/피드백:
+  - 드롭 성공/실패, 크리티컬 등 상황에 따라 같은 AudioData에 다른 multiplier 적용
+
+Fluent API (`Create().WithVolume().WithPitch()`) 를 기본 패턴으로 사용하면,  
+AudioData 설계와 runtime 제어를 깔끔하게 분리할 수 있습니다.
+
+---
+
 ## ✅ 규칙 준수 확인
 
 ### CardData 추가 시
@@ -344,4 +457,4 @@ switch(matrix.GetRelation(teamA, teamB))
 
 ---
 
-**마지막 업데이트**: 2025-11-20
+**마지막 업데이트**: 2025-11-23

@@ -38052,7 +38052,7 @@ MonoBehaviour:
   maxLifetime: 3
   maxWaitNormalizedTime: 0.66
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  startSound: {fileID: 0}
+  startSound: {fileID: 11400000, guid: 432f06b9009e75142a245f2a8888bd13, type: 2}
   triggerSound: {fileID: 0}
   logTriggerEvents: 1
 --- !u!1 &1874053568983104

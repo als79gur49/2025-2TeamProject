@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1ae6478cdb245478cc097e4e0a3921, type: 3}
-  m_Name: SO_BloodSplat_AudioData
+  m_Name: SO_RainbowSparkle_AudioData
   m_EditorClassIdentifier: 
   audioType: 1
   clips:
-  - {fileID: 8300000, guid: 407c4d55ab5be1b4284bbb037881461f, type: 3}
-  volumeMin: 0.5
-  volumeMax: 0.5
+  - {fileID: 8300000, guid: 126e44c845fd9d74fb2168f22a57dc89, type: 3}
+  volumeMin: 1
+  volumeMax: 1
   pitchMin: 1
   pitchMax: 1
   mixerGroup: {fileID: -6384595582647110726, guid: 2f1d1dab3c0469249beacc5176d6e544,

@@ -381,8 +381,9 @@ namespace Game.Card.UI.Refactored
 
             if (soundData != null)
             {
-                battleContext.SoundEventChannel.RaiseSoundEvent(soundData, this);
-                Debug.Log($"[InHandStrategy] Played drop sound: {soundData.name} (success={success})");
+                var request = AudioPlayRequest.Create(soundData, this);
+                battleContext.SoundEventChannel.RaiseSoundEvent(request);
+                Debug.Log($"[InHandStrategy] Played drop sound via AudioPlayRequest: {soundData.name} (success={success})");
             }
             else
             {

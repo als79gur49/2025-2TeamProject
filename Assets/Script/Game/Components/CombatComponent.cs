@@ -524,7 +524,8 @@ namespace Game.Components
             // 사운드 출력
             if (soundEventChannel != null && attackSound != null)
             {
-                soundEventChannel.RaiseSoundEvent(attackSound, this);
+                var request = AudioPlayRequest.Create(attackSound, this);
+                soundEventChannel.RaiseSoundEvent(request);
             }
 
             OnAttackPerformed?.Invoke(target, result);
@@ -860,7 +861,8 @@ namespace Game.Components
             // 사운드 출력 (한 번만)
             if (affectedCount > 0 && soundEventChannel != null && attackSound != null)
             {
-                soundEventChannel.RaiseSoundEvent(attackSound, this);
+                var request = AudioPlayRequest.Create(attackSound, this);
+                soundEventChannel.RaiseSoundEvent(request);
             }
 
             return affectedCount;

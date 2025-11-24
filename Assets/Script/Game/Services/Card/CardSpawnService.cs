@@ -73,6 +73,7 @@ namespace Game.Services
             {
                 // Initialize GameContext for effect execution
                 gameContext = new GameContext(
+                    null,
                     unitService,
                     gridController,
                     this,  // CardSpawnService itself
@@ -174,7 +175,7 @@ namespace Game.Services
             Log($"🎯 Executing card: {cardData.CardName} at position {targetPosition} (Team: {casterTeam})");
 
             // Update GameContext for this card execution
-            UpdateGameContext(casterTeam, targetPosition);
+            UpdateGameContext(casterTeam, targetPosition, cardData);
 
             // 1. Resource validation and spending
             bool isPlayerCard = (casterTeam == TeamType.Player);
@@ -204,12 +205,13 @@ namespace Game.Services
         /// </summary>
         /// <param name="casterTeam">카드를 사용한 팀</param>
         /// <param name="originPosition">원점 위치</param>
-        private void UpdateGameContext(TeamType casterTeam, Vector2Int originPosition)
+        private void UpdateGameContext(TeamType casterTeam, Vector2Int originPosition, CardData cardData)
         {
             if (gameContext != null)
             {
                 // GameContext는 immutable이므로 새로 생성
                 gameContext = new GameContext(
+                    cardData,
                     unitService,
                     gridController,
                     this,
