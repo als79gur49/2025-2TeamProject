@@ -9,10 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
-  m_Name: SwirlFastVFXData
+  m_Script: {fileID: 11500000, guid: b79c189fab3d8824e9c688efb049b8ba, type: 3}
+  m_Name: SO_StatusVFXConfig
   m_EditorClassIdentifier: 
-  vfxPrefab: {fileID: 1396618616648682, guid: e4f6b2fd06511f142a23936fdf176c0a, type: 3}
-  triggerNormalizedTime: 0.35
-  playbackSpeed: 1
-  positionOffset: {x: 0, y: 0, z: 0}
+  entries:
+  - id: Stun
+    vfxData: {fileID: 11400000, guid: 3a467a26e651cae4081de6579bb5567e, type: 2}
+    anchor: 1
+    offset: {x: 0, y: 0, z: 0}

@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
-  m_Name: FireballVFXData
+  m_Name: SwirlRedVFXData
   m_EditorClassIdentifier: 
-  vfxPrefab: {fileID: 1082066010221984, guid: 425a1660efef90143888813dd12567a7, type: 3}
-  triggerNormalizedTime: 0.406
+  vfxPrefab: {fileID: 1396618616648682, guid: e4f6b2fd06511f142a23936fdf176c0a, type: 3}
+  triggerNormalizedTime: 0.35
   playbackSpeed: 1
-  positionOffset: {x: 0, y: 12, z: 0}
+  positionOffset: {x: 0, y: 1, z: 0}

@@ -138,10 +138,7 @@ namespace Game.Components.Abilities
 
                 var stunEffect = new StunStatusEffect(
                     owner: unit,
-                    stunTurns: stunTurns,
-                    trigger: EffectTrigger.OnTurnStart,
-                    priority: Priority,
-                    durationTurns: stunTurns
+                    stunTurns: stunTurns
                 );
 
                 unit.AddEffect(stunEffect);
@@ -185,4 +182,3 @@ namespace Game.Components.Abilities
         }
     }
 }
-

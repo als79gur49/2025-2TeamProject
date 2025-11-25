@@ -160,26 +160,34 @@ namespace Game.VFX
 
         private void Update()
         {
-            if (triggered || destroyed || onTriggerCallbackList == null)
+            // 파괴 진행 중이거나 콜백이 없으면 아무 것도 하지 않음
+            if (destroyed || onTriggerCallbackList == null)
                 return;
 
             float elapsed = Elapsed;
             float normalizedTime = NormalizedProgress;
             currentProgress = normalizedTime;
 
+            // 1) 수명 초과 시점 우선 처리
             if (elapsed >= MaxLifetime)
             {
                 if (logTriggerEvents)
                     Debug.LogWarning($"[VFXEventTrigger] Lifetime reached ({MaxLifetime:F2}s), forcing trigger and destroy");
 
+                // 아직 트리거되지 않았다면 이 시점에서 한 번만 강제 트리거
                 if (!triggered)
                 {
                     ForceTrigger();
                 }
 
+                destroyed = true;
                 Destroy(gameObject);
                 return;
             }
+
+            // 2) 이미 트리거되었다면 이후 트리거 조건은 검사하지 않음
+            if (triggered)
+                return;
 
             // 트리거 조건 체크
             bool shouldTrigger = triggerType switch

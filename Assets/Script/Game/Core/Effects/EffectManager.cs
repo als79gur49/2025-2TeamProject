@@ -12,6 +12,9 @@ namespace Game.Core.Effects
         private readonly Unit owner;
         private readonly Dictionary<EffectTrigger, List<IEffect>> effectsByTrigger;
 
+        public event Action<IEffect> OnEffectAdded;
+        public event Action<IEffect> OnEffectRemoved;
+
         public EffectManager(Unit owner)
         {
             this.owner = owner;
@@ -33,6 +36,8 @@ namespace Game.Core.Effects
                 list.Add(effect);
                 list.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
+                OnEffectAdded?.Invoke(effect);
+
                 // IImmediateEffect를 구현한 Effect는 추가 시점에 한 번 즉시 적용합니다.
                 if (effect is IImmediateEffect immediateEffect)
                 {
@@ -46,7 +51,10 @@ namespace Game.Core.Effects
         {
             if (effect == null) return;
             if (!effectsByTrigger.TryGetValue(effect.Trigger, out var list)) return;
-            list.Remove(effect);
+            if (list.Remove(effect))
+            {
+                OnEffectRemoved?.Invoke(effect);
+            }
         }
 
         public void ClearAllEffects()
@@ -97,6 +105,7 @@ namespace Game.Core.Effects
                     if (effect.RemainingDuration == 0)
                     {
                         list.RemoveAt(i);
+                        OnEffectRemoved?.Invoke(effect);
                     }
                 }
             }

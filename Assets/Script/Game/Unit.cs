@@ -59,6 +59,7 @@ public class Unit : MonoBehaviour
 
     // Effect System
     private EffectManager effectManager;
+    private UnitVFXController vfxController;
 
     // Legacy system support
     private int legacyMaxHealth;
@@ -116,6 +117,20 @@ public class Unit : MonoBehaviour
 
         // Initialize Effect system
         effectManager = new EffectManager(this);
+
+        // Initialize VFX controller
+        vfxController = GetComponent<UnitVFXController>();
+        if (vfxController == null && useComponentSystem && autoAddMissingComponents)
+        {
+            vfxController = gameObject.AddComponent<UnitVFXController>();
+        }
+
+        if (vfxController != null)
+        {
+            vfxController.Initialize(this);
+            effectManager.OnEffectAdded += vfxController.OnEffectAdded;
+            effectManager.OnEffectRemoved += vfxController.OnEffectRemoved;
+        }
 
         // Legacy system fallback
         legacyMaxHealth = health;
@@ -1002,6 +1017,14 @@ public class Unit : MonoBehaviour
         // Force release GameFlowLock if Unit destroyed mid-action
         globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
 
+        if (effectManager != null && vfxController != null)
+        {
+            effectManager.OnEffectAdded -= vfxController.OnEffectAdded;
+            effectManager.OnEffectRemoved -= vfxController.OnEffectRemoved;
+        }
+
+        vfxController?.CleanupAllVFX();
+
         CleanupEventSubscriptions();
     }
     
@@ -1283,13 +1306,7 @@ public class Unit : MonoBehaviour
     public void AddStun(int turns)
     {
         if (turns <= 0) return;
-        var stunEffect = new Game.Components.Abilities.StunStatusEffect(
-            this,
-            turns,
-            EffectTrigger.OnTurnStart,
-            priority: 999,
-            durationTurns: turns
-        );
+        var stunEffect = new Game.Components.Abilities.StunStatusEffect(this, turns);
         AddEffect(stunEffect);
         Debug.Log($"[Unit] {gameObject.name} stunned for {turns} turns");
     }

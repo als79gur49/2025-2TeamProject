@@ -9,19 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 309b1b0596570ad4eb967e70d9f07b5f, type: 3}
-  m_Name: "\uD3ED\uC8FC_01"
+  m_Script: {fileID: 11500000, guid: 1076f822b8b9d2540bc00109cac9a392, type: 3}
+  m_Name: "\uD30C\uC774\uC5B4\uBCFC_01"
   m_EditorClassIdentifier: 
-  effectType: 3
-  priority: 100
+  effectType: 0
+  priority: 0
   targetScope: 0
   areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
-  targetFilter: {fileID: 11400000, guid: c30b32a88c3988d49b501576ce0d22b3, type: 2}
-  vfx: {fileID: 11400000, guid: 17ad7f758846ff445bbcd3556d09a4c0, type: 2}
+  targetFilter: {fileID: 11400000, guid: 1b224b2153d6b6a4bb0bd99e87917739, type: 2}
+  vfx: {fileID: 11400000, guid: 521c8fc864ade6646b740658654fa97f, type: 2}
   vfxPlacementMode: 0
-  healthDelta: 4
-  attackDelta: 4
-  movementDelta: 0
-  maxTargets: 1
-  buffDurationTurns: -1
-  revertOnExpire: 1
+  damageAmount: 3
+  ignoreArmor: 0
+  duration: 0

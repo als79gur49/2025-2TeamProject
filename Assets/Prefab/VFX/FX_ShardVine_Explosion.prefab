@@ -9298,7 +9298,6 @@ GameObject:
   - component: {fileID: 4247746269813882}
   - component: {fileID: 198284884332722628}
   - component: {fileID: 199754533960883220}
-  - component: {fileID: 4615914458231513097}
   m_Layer: 0
   m_Name: FX_ShardVine_Explosion
   m_TagString: Untagged
@@ -9412,8 +9411,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 3.2
-      minScalar: 3
+      scalar: 3.9
+      minScalar: 3.7
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -14233,26 +14232,6 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
---- !u!114 &4615914458231513097
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1187873550511094}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d9f3f59b0fa25034e8ae65918156a1b4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  triggerType: 1
-  triggerValue: 0.7
-  maxLifetime: 4
-  maxWaitNormalizedTime: 0.8
-  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  startSound: {fileID: 0}
-  triggerSound: {fileID: 0}
-  logTriggerEvents: 1
 --- !u!1 &1256732678468514
 GameObject:
   m_ObjectHideFlags: 0
@@ -43025,8 +43004,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 3
-      minScalar: 2.8
+      scalar: 3.7
+      minScalar: 3.5
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -43250,7 +43229,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 3
       scalar: 7
-      minScalar: 3
+      minScalar: 4
       maxCurve:
         serializedVersion: 2
         m_Curve:

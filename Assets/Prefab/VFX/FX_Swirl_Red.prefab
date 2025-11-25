@@ -43,7 +43,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1396618616648682}
   serializedVersion: 8
-  lengthInSec: 1
+  lengthInSec: 2
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 1
@@ -4916,10 +4916,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.7
-  maxLifetime: 1.6
+  maxLifetime: 2.7
   maxWaitNormalizedTime: 0.9
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  startSound: {fileID: 0}
+  startSound: {fileID: 11400000, guid: bb5795d128b8b884cb06d95581b21f04, type: 2}
   triggerSound: {fileID: 0}
   logTriggerEvents: 1
 --- !u!1 &4895594555342855869
