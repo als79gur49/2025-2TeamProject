@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c16c610b11032d0409227505d66a78cd, type: 3}
+  m_Name: Unit_BlueCone_Data
+  m_EditorClassIdentifier: 
+  unitName: "\uBE14\uB8E8 \uCF58"
+  description: "\uBE14 \uCF58 \uC720\uB2DB\uC5D0 \uB300\uD55C \uC124\uBA85."
+  icon: {fileID: 0}
+  prefab: {fileID: 771025333167915155, guid: e0304548a9870ae4ca7e213f3cc44190, type: 3}
+  maxHealth: 2
+  attackPower: 2
+  movementRange: 2
+  modifiers:
+  - {fileID: 11400000, guid: fd0121d7b1d9b264fa7b1c97f41df99f, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
+  effects: []

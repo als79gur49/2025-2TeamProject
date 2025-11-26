@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c16c610b11032d0409227505d66a78cd, type: 3}
+  m_Name: Unit_YellowTraffic_Data
+  m_EditorClassIdentifier: 
+  unitName: "\uB178\uB791 \uD2B8\uB798\uD53D"
+  description: "\uB178\uB791 \uD2B8\uB798\uD53D \uC720\uB2DB\uC5D0 \uB300\uD55C \uC124\uBA85."
+  icon: {fileID: 0}
+  prefab: {fileID: 5919612666015566750, guid: b702a2449f33cb343b63c7e5daa0057a, type: 3}
+  maxHealth: 2
+  attackPower: 4
+  movementRange: 1
+  modifiers:
+  - {fileID: 11400000, guid: 11c0d7a7d8a3dc64bbc6ef6236a5704e, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
+  effects: []
