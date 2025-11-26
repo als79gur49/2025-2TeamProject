@@ -15,6 +15,6 @@ MonoBehaviour:
   effectName: "\uC2A4\uD15F \uBCF4\uB108\uC2A4"
   trigger: 0
   priority: 60
-  durationTurns: 1
+  durationTurns: -1
   healthBonus: 7
   attackBonus: 13

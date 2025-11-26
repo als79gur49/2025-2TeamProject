@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c16c610b11032d0409227505d66a78cd, type: 3}
+  m_Name: Unit_SpinSignMan_Data
+  m_EditorClassIdentifier: 
+  unitName: "\uC2A4\uD540 \uC2F8\uC778\uB9E8"
+  description: "\uC2A4\uD540 \uC2F8\uC778\uB9E8  \uC720\uB2DB\uC5D0 \uB300\uD55C
+    \uC124\uBA85."
+  icon: {fileID: 0}
+  prefab: {fileID: 5292211851203127451, guid: 20169846dee283e428b397705e59d527, type: 3}
+  maxHealth: 5
+  attackPower: 4
+  movementRange: 2
+  modifiers:
+  - {fileID: 11400000, guid: b09bda18de1ce64428f2343d05cc01a3, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
+  effects:
+  - {fileID: 11400000, guid: 78f698f0b95d38b4cb098086f7f73c21, type: 2}

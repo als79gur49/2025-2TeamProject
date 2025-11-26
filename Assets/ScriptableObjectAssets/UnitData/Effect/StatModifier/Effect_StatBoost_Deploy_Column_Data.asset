@@ -21,4 +21,4 @@ MonoBehaviour:
   movementDelta: 7
   targetConfig:
     targetRelation: 0
-  buffDurationTurns: 1
+  buffDurationTurns: -1

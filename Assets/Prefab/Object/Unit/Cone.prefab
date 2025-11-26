@@ -417,8 +417,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a94c6cb6efa82d4fad567f159987f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 0.55
-  baseMoveDuration: 1.15
+  speed: 1
+  baseMoveDuration: 1
   baseMoveFrontTransitionDuration: 0.172
   baseMoveBackTransitionDuration: 0.3
   attackDuration: 0.6

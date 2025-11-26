@@ -22,4 +22,4 @@ MonoBehaviour:
   maxTargets: 4
   targetConfig:
     targetRelation: 2
-  buffDurationTurns: 1
+  buffDurationTurns: -1

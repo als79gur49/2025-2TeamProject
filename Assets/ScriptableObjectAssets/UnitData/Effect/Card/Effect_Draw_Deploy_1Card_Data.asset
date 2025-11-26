@@ -16,6 +16,6 @@ MonoBehaviour:
   trigger: 0
   priority: 40
   durationTurns: 1
-  drawCount: 3
+  drawCount: 1
   targetConfig:
     targetRelation: 0

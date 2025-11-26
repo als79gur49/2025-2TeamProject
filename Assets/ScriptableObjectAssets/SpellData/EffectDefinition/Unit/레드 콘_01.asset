@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 999f4a0620048f9478bf7786134b6237, type: 3}
-  m_Name: "\uD2B8\uB798\uD53D"
+  m_Name: "\uB808\uB4DC \uCF58_01"
   m_EditorClassIdentifier: 
-  effectType: 4
+  effectType: 2
   priority: 50
   targetScope: 0
   areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
   targetFilter: {fileID: 11400000, guid: 972bec2aa65f30640b3338c58c5d8c29, type: 2}
   vfx: {fileID: 11400000, guid: 02319e1dd1d1e294ca47558ec393ac8e, type: 2}
   vfxPlacementMode: 0
-  unitToSummon: {fileID: 11400000, guid: 6355656f14f3c4346887b9817ea053c5, type: 2}
+  unitToSummon: {fileID: 11400000, guid: cc3f014a5ead151408e746eb1b34f0e6, type: 2}
   count: 1
