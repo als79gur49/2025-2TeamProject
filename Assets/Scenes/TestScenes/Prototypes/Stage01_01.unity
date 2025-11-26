@@ -1454,31 +1454,31 @@ PrefabInstance:
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[0]
       value: 
-      objectReference: {fileID: 11400000, guid: 61e28a56d20169f4496fe09dbb1c7fee,
+      objectReference: {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[1]
       value: 
-      objectReference: {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f,
+      objectReference: {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[2]
       value: 
-      objectReference: {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f,
+      objectReference: {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}
       propertyPath: initialHandCards.Array.data[3]
       value: 
-      objectReference: {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f,
+      objectReference: {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1,
         type: 2}
     - target: {fileID: 6148153580427671047, guid: 1ad41a6a022f4aa498f8d0bc2d7e3cbd,
         type: 3}

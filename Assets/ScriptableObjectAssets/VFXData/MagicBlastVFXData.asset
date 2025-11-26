@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69ce32a16a1ff7c44b5da9079196d790, type: 3}
   m_Name: MagicBlastVFXData
   m_EditorClassIdentifier: 
-  vfxPrefab: {fileID: 4888752210146085201, guid: 4d9697ba9098e1d47992fcee1ecc4649,
-    type: 3}
+  vfxPrefab: {fileID: 1365538819899408, guid: 3b7cc7ddfcdf42047bb985d6b5c4dc46, type: 3}
   triggerNormalizedTime: 0.24
   playbackSpeed: 1
   positionOffset: {x: 0, y: 0, z: 0}

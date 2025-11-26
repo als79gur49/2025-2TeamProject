@@ -23,3 +23,4 @@ MonoBehaviour:
   targetConfig:
     targetRelation: 0
   buffDurationTurns: -1
+  buffVfxIdOverride: StatBuff_Variant04

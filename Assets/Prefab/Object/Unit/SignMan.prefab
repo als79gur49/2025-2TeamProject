@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &50630444233974488
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3885688034317109635}
+  m_Layer: 0
+  m_Name: VFXRootFeet
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3885688034317109635
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50630444233974488}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: -0.7071068, z: 8.659561e-17, w: -8.7157646e-33}
+  m_LocalPosition: {x: -2.592155, y: 0.018183947, z: 0.0807824}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2899467140028192467}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &395481032572042254
 GameObject:
   m_ObjectHideFlags: 0
@@ -1447,7 +1478,7 @@ Animator:
   m_GameObject: {fileID: 5292211851203127451}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 06f7a91e63aa71346a0894b3598fed9c, type: 3}
-  m_Controller: {fileID: 9100000, guid: ece741e43d77755479413b2699b2add9, type: 2}
+  m_Controller: {fileID: 9100000, guid: dbc98e5b318718d45a31fe9b5e27c395, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -1654,7 +1685,7 @@ MonoBehaviour:
   vfxRootDefault: {fileID: 5871219455940651123}
   vfxRootHead: {fileID: 6598427613164084814}
   vfxRootBody: {fileID: 0}
-  vfxRootFeet: {fileID: 0}
+  vfxRootFeet: {fileID: 3885688034317109635}
   vfxRootWeapon: {fileID: 0}
 --- !u!1 &5433996070990183244
 GameObject:
@@ -2378,6 +2409,7 @@ Transform:
   m_Children:
   - {fileID: 785334920918148274}
   - {fileID: 7647740395592525923}
+  - {fileID: 3885688034317109635}
   m_Father: {fileID: 7029564849925410113}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8446470869039918253

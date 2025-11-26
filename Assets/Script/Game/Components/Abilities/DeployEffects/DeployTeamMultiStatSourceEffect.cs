@@ -26,6 +26,8 @@ namespace Game.Components.Abilities
         private readonly int buffDurationTurns;
         private readonly TeamRelation targetRelation;
 
+        private readonly string buffVfxIdOverride;
+
         private readonly IGridManager gridManager;
 
         public DeployTeamMultiStatSourceEffect(
@@ -38,7 +40,8 @@ namespace Game.Components.Abilities
             int buffDurationTurns,
             EffectTrigger trigger,
             int priority,
-            int durationTurns)
+            int durationTurns,
+            string buffVfxIdOverride = null)
         {
             Owner = owner;
             this.healthDelta = healthDelta;
@@ -47,6 +50,7 @@ namespace Game.Components.Abilities
             this.maxTargets = Mathf.Max(0, maxTargets);
             this.buffDurationTurns = buffDurationTurns;
             this.targetRelation = targetRelation;
+            this.buffVfxIdOverride = buffVfxIdOverride;
             Trigger = trigger;
             Priority = priority;
             RemainingDuration = durationTurns;
@@ -151,7 +155,9 @@ namespace Game.Components.Abilities
                     attackDelta: attackDelta,
                     movementDelta: movementDelta,
                     durationTurns: buffDurationTurns,
-                    priority: Priority
+                    priority: Priority,
+                    revertOnExpire: true,
+                    persistentVfxId: buffVfxIdOverride
                 );
 
                 unit.AddEffect(buff);

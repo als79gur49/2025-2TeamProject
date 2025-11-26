@@ -1,6 +1,7 @@
 using Game.Core.Effects;
 using Game.Components;
 using Game.Interfaces;
+using Game.VFX;
 using UnityEngine;
 
 namespace Game.Components.Abilities
@@ -11,7 +12,7 @@ namespace Game.Components.Abilities
     /// - Trigger는 OnDeploy로 설정되지만, CanApply가 false를 반환하므로 TriggerEffects를 통해서는 실행되지 않습니다.
     /// - 지속 시간이 0이 될 때 공격력/이동력 변경분을 원래대로 되돌릴 수 있습니다.
     /// </summary>
-    public class TeamStatBuffEffect : IEffect, IImmediateEffect
+    public class TeamStatBuffEffect : IEffect, IImmediateEffect, IPersistentVFXEffect
     {
         public string EffectName => "팀 스탯 버프";
         public int Priority { get; private set; }
@@ -24,6 +25,12 @@ namespace Game.Components.Abilities
         private readonly int movementDelta;
         private readonly bool revertOnExpire;
 
+        // VFX 설정
+        private readonly string persistentVfxId;
+        private readonly VFXData vfxOverride;
+        private readonly VFXAnchorType anchor;
+        private readonly Vector3 extraOffset;
+
         private bool isApplied;
 
         public TeamStatBuffEffect(
@@ -33,7 +40,11 @@ namespace Game.Components.Abilities
             int movementDelta,
             int durationTurns,
             int priority,
-            bool revertOnExpire = true)
+            bool revertOnExpire = true,
+            string persistentVfxId = null,
+            VFXData vfxOverride = null,
+            VFXAnchorType anchor = VFXAnchorType.Body,
+            Vector3 extraOffset = default)
         {
             Owner = owner;
             this.healthDelta = healthDelta;
@@ -42,6 +53,12 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
             Priority = priority;
             this.revertOnExpire = revertOnExpire;
+
+            // VFX 관련 설정
+            this.persistentVfxId = persistentVfxId;
+            this.vfxOverride = vfxOverride;
+            this.anchor = anchor;
+            this.extraOffset = extraOffset;
 
             // 버프는 OnDeploy 트리거 그룹에 보관하지만, CanApply가 false이므로 TriggerEffects로는 실행되지 않습니다.
             Trigger = EffectTrigger.OnDeploy;
@@ -136,5 +153,18 @@ namespace Game.Components.Abilities
         {
             // No-op: 실제 로직은 ApplyImmediately에서 처리됩니다.
         }
+
+        // IPersistentVFXEffect 구현
+        public string GetPersistentVFXId()
+        {
+            // 개별 이펙트에서 ID를 지정하지 않으면 공통 기본 VFX("StatBuff")를 사용합니다.
+            return string.IsNullOrEmpty(persistentVfxId) ? "StatBuff" : persistentVfxId;
+        }
+
+        public VFXData GetVFXOverrideOrNull() => vfxOverride;
+
+        public VFXAnchorType GetVFXAnchor() => anchor;
+
+        public Vector3 GetVFXOffset() => extraOffset;
     }
 }

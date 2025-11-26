@@ -16,6 +16,9 @@ namespace Game.Data.Effects
         [SerializeField] private int attackDelta = 0;
         [SerializeField] private int movementDelta = 0;
 
+        [Header("버프 VFX 설정")]
+        [SerializeField] private string buffVfxIdOverride;
+
         [Header("대상 설정")]
         [SerializeField] private DeployEffectTeamTargetConfig targetConfig;
 
@@ -26,6 +29,7 @@ namespace Game.Data.Effects
         public int AttackDelta => attackDelta;
         public int MovementDelta => movementDelta;
         public int BuffDurationTurns => buffDurationTurns;
+        public string BuffVfxIdOverride => buffVfxIdOverride;
         public DeployEffectTeamTargetConfig TargetConfig => targetConfig ?? new DeployEffectTeamTargetConfig();
 
         public override IEffect CreateEffect(Unit owner)
@@ -39,9 +43,9 @@ namespace Game.Data.Effects
                 BuffDurationTurns,
                 Trigger,
                 Priority,
-                DurationTurns
+                DurationTurns,
+                BuffVfxIdOverride
             );
         }
     }
 }
-

@@ -17,3 +17,23 @@ MonoBehaviour:
     vfxData: {fileID: 11400000, guid: 3a467a26e651cae4081de6579bb5567e, type: 2}
     anchor: 1
     offset: {x: 0, y: 0, z: 0}
+  - id: StatBuff
+    vfxData: {fileID: 11400000, guid: 8fe3a74489e66ec438b209e0dd2d18ad, type: 2}
+    anchor: 3
+    offset: {x: 0, y: 0, z: 0}
+  - id: StatBuff_Variant01
+    vfxData: {fileID: 11400000, guid: 9cfb00a4ab9972842add757b55c36fe2, type: 2}
+    anchor: 3
+    offset: {x: 0, y: 0, z: 0}
+  - id: StatBuff_Variant02
+    vfxData: {fileID: 11400000, guid: 79ccc614858f52b428de96dcb6eb5b3e, type: 2}
+    anchor: 3
+    offset: {x: 0, y: 0, z: 0}
+  - id: StatBuff_Variant03
+    vfxData: {fileID: 11400000, guid: 60a611cc2420ef5469545df965e73c74, type: 2}
+    anchor: 3
+    offset: {x: 0, y: 0, z: 0}
+  - id: StatBuff_Variant04
+    vfxData: {fileID: 11400000, guid: 7fee9a98da6731c40a39c86caa07ef45, type: 2}
+    anchor: 3
+    offset: {x: 0, y: 0, z: 0}
