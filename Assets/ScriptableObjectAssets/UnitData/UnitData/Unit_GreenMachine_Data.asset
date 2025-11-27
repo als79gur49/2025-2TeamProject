@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c16c610b11032d0409227505d66a78cd, type: 3}
+  m_Name: Unit_GreenMachine_Data
+  m_EditorClassIdentifier: 
+  unitName: "\uADF8\uB9B0 \uBA38\uC2E0"
+  description: "\uADF8\uB9B0 \uBA38\uC2E0 \uC720\uB2DB\uC5D0 \uB300\uD55C \uC124\uBA85."
+  icon: {fileID: 0}
+  prefab: {fileID: 6911073333679021208, guid: baa26342795c165428b863ea16ab5842, type: 3}
+  maxHealth: 3
+  attackPower: 4
+  movementRange: 1
+  modifiers:
+  - {fileID: 11400000, guid: b09bda18de1ce64428f2343d05cc01a3, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
+  effects:
+  - {fileID: 11400000, guid: d6068f5b049100b408e10c283817d75e, type: 2}

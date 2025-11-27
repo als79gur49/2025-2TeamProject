@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 999f4a0620048f9478bf7786134b6237, type: 3}
+  m_Name: "\uBE14\uB799 \uD2B8\uB798\uC20D_01"
+  m_EditorClassIdentifier: 
+  effectType: 2
+  priority: 50
+  targetScope: 0
+  areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
+  targetFilter: {fileID: 11400000, guid: 972bec2aa65f30640b3338c58c5d8c29, type: 2}
+  vfx: {fileID: 11400000, guid: 02319e1dd1d1e294ca47558ec393ac8e, type: 2}
+  vfxPlacementMode: 0
+  unitToSummon: {fileID: 11400000, guid: b840019544289a44fbed1fd9c16e91d1, type: 2}
+  count: 1
