@@ -11,8 +11,9 @@ namespace Game.Components.Abilities
     /// <summary>
     /// 리팩토링된 원거리 공격 Modifier
     /// Config 기반으로 동작하며 의존성이 주입됨
+    /// 투사체 기반 원거리 공격을 담당한다.
     /// </summary>
-    public class RangedModifier : IAttackModifier
+    public class RangedModifier : IProjectileAttackModifier
     {
         // IActionModifier 구현
         public string ModifierName => config.Name;
@@ -20,6 +21,9 @@ namespace Game.Components.Abilities
         public int Priority => config.Priority;
         public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
+
+        // IProjectileAttackModifier 구현
+        public AttackConfig AttackConfig => config.AttackConfig.Value;
 
         // 내부 필드
         private readonly ModifierConfig config;

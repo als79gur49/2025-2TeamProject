@@ -10,14 +10,17 @@ namespace Game.Components.Abilities
     /// <summary>
     /// 리팩토링된 스나이퍼 공격 Modifier
     /// 항상 넥서스만 공격, 같은 행에 적이 없어야 함
+    /// 투사체 기반(레이저 포함) 공격으로 동작한다.
     /// </summary>
-    public class SniperModifier : IAttackModifier
+    public class SniperModifier : IProjectileAttackModifier
     {
         public string ModifierName => config.Name;
         public ActionType ActionType => config.ActionType;
         public int Priority => config.Priority;
         public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
+
+        public AttackConfig AttackConfig => config.AttackConfig.Value;
 
         private readonly ModifierConfig config;
         private readonly IModifierDependencies dependencies;

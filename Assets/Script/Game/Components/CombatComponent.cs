@@ -1,7 +1,9 @@
 using Game.Core;
 using Game.Data;
+using Game.Data.Modifiers;
 using Game.Interfaces;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -55,6 +57,13 @@ namespace Game.Components
         // 새로운 Action System 필드
         private ActionResult currentAttackResult;
         private ActionContext currentAttackContext;
+
+        // 투사체/레이저 공격 상태
+        [Header("Projectile Settings")]
+        [SerializeField] private GridProjectile projectilePrefab;
+        private bool isProjectileAttackInProgress = false;
+        private int activeProjectileCount = 0;
+        private readonly List<Tile> projectileHitTiles = new List<Tile>();
 
         // 캐시된 컴포넌트
         private IGridManager gridManager;
@@ -715,8 +724,17 @@ namespace Game.Components
             // 새로운 Action System 사용 중인지 확인
             if (currentAttackResult != null)
             {
-                ApplyCurrentAttackDamage();
-                Debug.Log($"[CombatComponent] {gameObject.name}: Damage applied by new Action System");
+                var projectileMod = currentAttackResult.SelectedModifier as IProjectileAttackModifier;
+                if (projectileMod != null)
+                {
+                    HandleProjectileAttack(projectileMod);
+                    Debug.Log($"[CombatComponent] {gameObject.name}: Projectile attack started by new Action System");
+                }
+                else
+                {
+                    ApplyCurrentAttackDamage();
+                    Debug.Log($"[CombatComponent] {gameObject.name}: Damage applied by new Action System");
+                }
 
                 return;
             }
@@ -745,7 +763,11 @@ namespace Game.Components
             // 새로운 Action System 사용 중인지 확인
             if (currentAttackResult != null)
             {
-                OnAttackCompleted();
+                // 투사체/레이저 공격은 개별 완료 시점에 OnAttackCompleted 호출
+                if (!isProjectileAttackInProgress)
+                {
+                    OnAttackCompleted();
+                }
                 return;
             }
 
@@ -975,8 +997,17 @@ namespace Game.Components
                 animationController.PlayAttackAnimation();
             else
             {
-                ApplyCurrentAttackDamage();
-                OnAttackCompleted();
+                // 애니메이션이 없으면 즉시 처리
+                var projectileMod = currentAttackResult.SelectedModifier as IProjectileAttackModifier;
+                if (projectileMod != null)
+                {
+                    HandleProjectileAttack(projectileMod);
+                }
+                else
+                {
+                    ApplyCurrentAttackDamage();
+                    OnAttackCompleted();
+                }
             }
         }
 
@@ -1008,6 +1039,155 @@ namespace Game.Components
             }
 
             TriggerAttackEffects(currentAttackResult.ValidTiles, currentAttackContext);
+        }
+
+        /// <summary>
+        /// 투사체/레이저 공격 공통 엔트리 포인트
+        /// </summary>
+        private void HandleProjectileAttack(IProjectileAttackModifier projectileModifier)
+        {
+            if (projectileModifier == null || currentAttackResult == null || currentAttackContext == null)
+                return;
+
+            if (projectilePrefab == null || gridManager == null)
+            {
+                // 프리팹이 없으면 즉시 데미지로 폴백
+                ApplyCurrentAttackDamage();
+                Debug.Log($"[CombatComponent] HandleProjectileAttack: no projectilePrefab or gridManager");
+                return;
+            }
+
+            var unit = GetComponent<Unit>();
+            var gridController = gridManager.GetGridController();
+            if (unit == null || gridController == null)
+            {
+                ApplyCurrentAttackDamage();
+                Debug.Log($"[CombatComponent] HandleProjectileAttack: no unit or gridController");
+                return;
+            }
+
+            var origin = currentAttackContext.ActorPosition;
+            var validTiles = currentAttackResult.ValidTiles;
+            if (validTiles == null || validTiles.Count == 0)
+            {
+                OnAttackCompleted();
+                Debug.Log($"[CombatComponent] HandleProjectileAttack: no validTiles");
+                return;
+            }
+
+            isProjectileAttackInProgress = true;
+
+            // 이번 공격의 데미지 (한 번 계산)
+            int projectileDamage = projectileModifier.CalculateDamage(currentAttackContext);
+
+            // 맞아야 할 타일 집합
+            var targetTiles = new HashSet<Vector2Int>();
+            foreach (var tile in validTiles)
+            {
+                if (tile != null)
+                {
+                    targetTiles.Add(new Vector2Int(tile.X, tile.Y));
+                }
+            }
+
+            // 메인 타겟 타일 (레이저/특수 투사체에서 사용 가능)
+            var mainTargetTile = validTiles[validTiles.Count - 1];
+            var mainTargetGrid = new Vector2Int(mainTargetTile.X, mainTargetTile.Y);
+
+            // 투사체 생성 위치: 우선 무기 VFX 루트 기준, 없으면 기존 그리드 기준
+            Vector3 worldStart;
+            var vfxController = unit.GetComponent<UnitVFXController>();
+            Transform spawnRoot = vfxController != null
+                ? vfxController.WeaponRoot
+                : unit.transform;
+
+            if (spawnRoot != null)
+            {
+                worldStart = spawnRoot.position;
+            }
+            else
+            {
+                worldStart = gridManager.GridToWorldPosition(origin);
+            }
+
+            // 투사체 회전: 프리팹 기본 회전에 팀 기준 Y 회전 추가
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            TeamType teamType = TeamType.None;
+            if (teamComponent != null)
+            {
+                teamType = teamComponent.Team;
+            }
+            else
+            {
+                teamType = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+            }
+
+            float additionalY = 0f;
+            switch (teamType)
+            {
+                case TeamType.Player:
+                case TeamType.Ally:
+                    additionalY = 0f;
+                    break;
+                case TeamType.Enemy:
+                    additionalY = 180f;
+                    break;
+                default:
+                    additionalY = 0f;
+                    break;
+            }
+
+            Quaternion prefabRotation = projectilePrefab.transform.rotation;
+            Quaternion teamRotation = Quaternion.Euler(0f, additionalY, 0f);
+            Quaternion spawnRotation = teamRotation * prefabRotation;
+
+            var projectile = Instantiate(projectilePrefab, worldStart, spawnRotation);
+            Debug.Log($"[CombatComponent] vfx{vfxController.WeaponRoot.transform.position}, pos{worldStart}, projectilePos{projectile.transform.position}");
+            projectileHitTiles.Clear();
+            activeProjectileCount = 1;
+
+            projectile.Initialize(
+                unit,
+                origin,
+                projectileModifier.AttackConfig,
+                gridManager,
+                targetTiles,
+                mainTargetGrid,
+                // OnHitTargetTile
+                (proj, health, hitPos) =>
+                {
+                    ApplyDamageToTarget(health.gameObject, projectileDamage);
+
+                    var hitTile = gridController.GetTileAtPosition(hitPos);
+                    if (hitTile != null && !projectileHitTiles.Contains(hitTile))
+                    {
+                        projectileHitTiles.Add(hitTile);
+                    }
+                },
+                // OnFinished
+                proj =>
+                {
+                    activeProjectileCount--;
+                    if (activeProjectileCount <= 0)
+                    {
+                        OnProjectileAttackFinished();
+                    }
+                });
+        }
+
+        /// <summary>
+        /// 투사체/레이저 기반 공격 완료 처리
+        /// </summary>
+        private void OnProjectileAttackFinished()
+        {
+            isProjectileAttackInProgress = false;
+
+            if (projectileHitTiles.Count > 0)
+            {
+                TriggerAttackEffects(projectileHitTiles, currentAttackContext);
+            }
+
+            OnAttackCompleted();
         }
 
         /// <summary>

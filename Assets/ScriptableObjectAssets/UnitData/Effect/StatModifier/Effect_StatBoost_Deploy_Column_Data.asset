@@ -16,9 +16,10 @@ MonoBehaviour:
   trigger: 0
   priority: 70
   durationTurns: 1
-  healthDelta: 20
-  attackDelta: 8
-  movementDelta: 7
+  healthDelta: 2
+  attackDelta: 0
+  movementDelta: 0
+  buffVfxIdOverride: StatBuff_Variant01
   targetConfig:
     targetRelation: 0
   buffDurationTurns: -1

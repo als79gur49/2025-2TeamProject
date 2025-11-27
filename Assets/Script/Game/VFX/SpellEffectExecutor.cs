@@ -507,7 +507,10 @@ namespace Game.VFX
                     break;
 
                 case VFXTilePlacementMode.ValidTilesOnly:
-                    visualTiles.AddRange(validTilesAll.Where(t => t != null && t != centerTile));
+                    // 유효 타일에 효과가 들어가는 모든 타일에 VFX를 배치한다.
+                    // centerTile이 유효 타일(validTilesAll)에 포함되어 있다면
+                    // 그 타일에도 VFX가 생성되도록 제외 조건을 제거한다.
+                    visualTiles.AddRange(validTilesAll.Where(t => t != null));
                     break;
 
                 case VFXTilePlacementMode.InvalidTilesOnly:

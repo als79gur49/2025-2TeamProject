@@ -15,8 +15,8 @@ MonoBehaviour:
   audioType: 1
   clips:
   - {fileID: 8300000, guid: 12a86ef530245d046b2ddd8d94584203, type: 3}
-  volumeMin: 1
-  volumeMax: 1
+  volumeMin: 0.578
+  volumeMax: 0.578
   pitchMin: 1
   pitchMax: 1
   mixerGroup: {fileID: -6384595582647110726, guid: 2f1d1dab3c0469249beacc5176d6e544,

@@ -27,6 +27,14 @@ namespace Game.Components
         [SerializeField] private Transform vfxRootFeet;
         [SerializeField] private Transform vfxRootWeapon;
 
+        public Transform WeaponRoot => vfxRootWeapon != null
+            ? vfxRootWeapon
+            : vfxRootDefault != null
+                ? vfxRootDefault
+                : owner != null
+                    ? owner.transform
+                    : null;
+
         // 타입별 Effect 개수
         private readonly Dictionary<Type, int> effectTypeCounts = new Dictionary<Type, int>();
 

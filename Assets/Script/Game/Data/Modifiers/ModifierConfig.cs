@@ -20,6 +20,15 @@ namespace Game.Data.Modifiers
     }
 
     /// <summary>
+    /// 투사체 실행 방식
+    /// </summary>
+    public enum ProjectileExecutionType
+    {
+        Moving,
+        InstantLaser
+    }
+
+    /// <summary>
     /// Modifier 타입 열거형
     /// Registry에서 Modifier 생성 시 사용
     /// </summary>
@@ -32,6 +41,26 @@ namespace Game.Data.Modifiers
         QueenAttack,
         NormalMovement,
         BoosterMovement
+    }
+
+    /// <summary>
+    /// 투사체 관련 설정
+    /// </summary>
+    public readonly struct ProjectileConfig
+    {
+        public readonly ProjectileExecutionType ExecutionType;
+        public readonly float ProjectileSpeed;
+        public readonly float HitDelay;
+
+        public ProjectileConfig(
+            ProjectileExecutionType executionType,
+            float projectileSpeed = 10f,
+            float hitDelay = 0.2f)
+        {
+            ExecutionType = executionType;
+            ProjectileSpeed = Mathf.Max(0f, projectileSpeed);
+            HitDelay = Mathf.Max(0f, hitDelay);
+        }
     }
 
     /// <summary>
@@ -54,6 +83,7 @@ namespace Game.Data.Modifiers
         // 타입별 설정 (null일 수 있음)
         public readonly AttackConfig? AttackConfig;
         public readonly MovementConfig? MovementConfig;
+        public readonly ProjectileConfig? ProjectileConfig;
 
         public ModifierConfig(
             string name,
@@ -64,7 +94,8 @@ namespace Game.Data.Modifiers
             IReadOnlyList<IModifierCondition> conditions = null,
             TargetingParams targetingParams = default,
             AttackConfig? attackConfig = null,
-            MovementConfig? movementConfig = null)
+            MovementConfig? movementConfig = null,
+            ProjectileConfig? projectileConfig = null)
         {
             Name = name;
             Priority = priority;
@@ -75,6 +106,7 @@ namespace Game.Data.Modifiers
             TargetingParams = targetingParams;
             AttackConfig = attackConfig;
             MovementConfig = movementConfig;
+            ProjectileConfig = projectileConfig;
         }
 
         /// <summary>

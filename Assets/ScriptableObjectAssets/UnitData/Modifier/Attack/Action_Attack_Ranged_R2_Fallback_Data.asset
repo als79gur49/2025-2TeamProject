@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8be030f7fe5d8244ab9cd9a16d85eac, type: 3}
   m_Name: Action_Attack_Ranged_R2_Fallback_Data
   m_EditorClassIdentifier: 
-  modifierName: "\uC6D0\uAC70\uB9AC(2)"
+  modifierName: "\uC6D0\uAC70\uB9AC(3)"
   priority: 130
   chainBehavior: 0
   actionType: 0
   requiresMinimumHealth: 0
   minimumHealthPercentage: 30
   damageAdded: 0
-  attackRange: 2
+  attackRange: 3
   piercing: 0

@@ -16,5 +16,5 @@ MonoBehaviour:
   trigger: 5
   priority: 10
   durationTurns: -1
-  explosionDamage: 50
+  explosionDamage: 2
   explosionRadius: 1
