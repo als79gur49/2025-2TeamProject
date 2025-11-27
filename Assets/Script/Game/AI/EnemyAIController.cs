@@ -28,6 +28,10 @@ namespace Game.AI
 
         // 카드 가치 판정 임계값 (0 = 양수 가치면 허용)
         private const int MIN_VALUE_THRESHOLD = 0;
+        // 한 소환 페이즈에서 재계획 루프 최대 반복 횟수
+        private const int MAX_LOOPS_PER_SUMMON_PHASE = 5;
+        // 한 소환 페이즈에서 사용할 수 있는 최대 카드 수 (무한 루프 방지용)
+        private const int MAX_CARDS_PER_SUMMON_PHASE = 20;
 
         // 이벤트
         public event System.Action OnCardUsed;   // 카드 사용 시 발생
@@ -253,16 +257,65 @@ namespace Game.AI
                 yield break;
             }
 
-            // 1. 현재 사용 가능한 마나 확인
-            int currentMana = resourceManager.EnemyMana;
-            Log($"Starting summon phase with {currentMana} mana");
+            int totalSuccessCount = 0;
+            int loopCount = 0;
 
-            // 2. 손패의 모든 카드에 대해 최고 가치와 위치를 계산
+            while (loopCount < MAX_LOOPS_PER_SUMMON_PHASE)
+            {
+                loopCount++;
+
+                int currentMana = resourceManager != null ? resourceManager.EnemyMana : 0;
+                if (currentMana <= 0 || enemyHand.Count == 0)
+                {
+                    break;
+                }
+
+                var selectedCardInfos = PlanCardsForCurrentState(currentMana);
+                if (selectedCardInfos == null || selectedCardInfos.Count == 0)
+                {
+                    Log("No cards selected to play this loop");
+                    break;
+                }
+
+                Log($"Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
+
+                int playedThisLoop = 0;
+                yield return ExecuteSelectedCardsCoroutine(selectedCardInfos, count => playedThisLoop = count);
+
+                totalSuccessCount += playedThisLoop;
+
+                if (playedThisLoop == 0)
+                {
+                    break;
+                }
+
+                if (totalSuccessCount >= MAX_CARDS_PER_SUMMON_PHASE)
+                {
+                    break;
+                }
+            }
+
+            Log($"Summon phase complete: {totalSuccessCount} cards played successfully");
+        }
+
+        #endregion
+
+        #region 가치 평가 (v2.0 핵심 로직)
+
+        private List<CardValueInfo> PlanCardsForCurrentState(int currentMana)
+        {
             var cardValueInfos = new List<CardValueInfo>();
+
             foreach (var card in enemyHand)
             {
+                if (card == null)
+                    continue;
+
+                if (card.ManaCost > currentMana)
+                    continue;
+
                 var valueInfo = CalculateBestSituationalValue(card);
-                if (valueInfo.Value > 0)
+                if (valueInfo.Value > MIN_VALUE_THRESHOLD)
                 {
                     cardValueInfos.Add(valueInfo);
                     Log($"Card '{card.CardName}': Value={valueInfo.Value}, BestPos={valueInfo.Position}");
@@ -272,69 +325,44 @@ namespace Game.AI
             if (cardValueInfos.Count == 0)
             {
                 Log("No valid card placements found");
-                yield break;
+                return new List<CardValueInfo>();
             }
 
-            // 3. Knapsack 알고리즘 실행
-            var selectedCardInfos = KnapsackCardSelector.SelectOptimalCards(cardValueInfos, currentMana);
+            return KnapsackCardSelector.SelectOptimalCards(cardValueInfos, currentMana);
+        }
 
-            if (selectedCardInfos.Count == 0)
+        private IEnumerator ExecuteSelectedCardsCoroutine(List<CardValueInfo> selectedCardInfos, System.Action<int> onCompleted)
+        {
+            if (selectedCardInfos == null || selectedCardInfos.Count == 0)
             {
-                Log("No cards selected to play this turn");
+                onCompleted?.Invoke(0);
                 yield break;
             }
 
-            Log($"Knapsack selected {selectedCardInfos.Count} cards (Total Value: {selectedCardInfos.Sum(c => c.Value)})");
-
-            // 4. 선택된 카드들을 순차적으로 실행 (v2.3: 실행 전 재검증)
             int successCount = 0;
+
             foreach (var info in selectedCardInfos)
             {
-                // 🔴 중요: 다음 카드를 실행하기 전에 GameFlowLock이 해제될 때까지 대기
-                // 즉, 이전 카드의 VFX나 다른 블로킹 애니메이션이 끝날 때까지 기다립니다.
+                if (info == null || info.Card == null)
+                    continue;
+
                 yield return new WaitUntil(() => !_stateManager.IsBusy(BusyType.GameFlowLock));
 
-                // 🆕 v2.3: 카드 실행 직전 필드 상태 재검증
-                bool isStillValid = spawnValidator.CanUseCard(info.Card, info.Position, isPlayerUnit: false);
-                int currentValue = 0;
-
-                if (isStillValid)
+                if (resourceManager != null && !resourceManager.CanEnemyAfford(info.Card.ManaCost))
                 {
-                    currentValue = CalculateValueAtPosition(info.Card, info.Position);
+                    continue;
                 }
 
-                CardValueInfo finalInfo = info; // 기본값: 원래 계획 사용
+                var finalInfo = RevalidateAndMaybeRecalculate(info);
+                if (finalInfo == null)
+                    continue;
 
-                // 원래 계획이 더 이상 최적이 아닌 경우 재계산
-                if (!isStillValid || currentValue <= MIN_VALUE_THRESHOLD)
-                {
-                    Log($"⚠️ Original plan for '{info.Card.CardName}' at {info.Position} is no longer optimal " +
-                        $"(Valid: {isStillValid}, Value: {currentValue}). Recalculating...");
-
-                    var recalculatedInfo = CalculateBestSituationalValue(info.Card);
-
-                    if (recalculatedInfo.Value > MIN_VALUE_THRESHOLD)
-                    {
-                        finalInfo = recalculatedInfo;
-                        Log($"✅ Found better position: {finalInfo.Position} with value {finalInfo.Value}");
-                    }
-                    else
-                    {
-                        Log($"❌ No valid alternative found. Skipping '{info.Card.CardName}'");
-                        continue; // 이 카드는 건너뛰기
-                    }
-                }
-
-                // 최종 결정된 위치에 카드 실행
-                // TryExecuteCard는 내부적으로 VFX를 재생하고 GameFlowLock을 설정해야 합니다.
                 bool success = cardSpawnService.TryExecuteCard(finalInfo.Card, finalInfo.Position, TeamType.Enemy);
                 if (success)
                 {
                     enemyHand.Remove(finalInfo.Card);
                     successCount++;
                     Log($"Executed '{finalInfo.Card.CardName}' at {finalInfo.Position}. Waiting for its VFX to complete...");
-
-                    // 🔔 이벤트 발생
                     OnCardUsed?.Invoke();
                 }
                 else
@@ -343,12 +371,45 @@ namespace Game.AI
                 }
             }
 
-            Log($"Summon phase complete: {successCount}/{selectedCardInfos.Count} cards played successfully");
+            onCompleted?.Invoke(successCount);
         }
 
-        #endregion
+        private CardValueInfo RevalidateAndMaybeRecalculate(CardValueInfo plannedInfo)
+        {
+            if (plannedInfo == null || plannedInfo.Card == null)
+                return null;
 
-        #region 가치 평가 (v2.0 핵심 로직)
+            bool isStillValid = spawnValidator.CanUseCard(plannedInfo.Card, plannedInfo.Position, isPlayerUnit: false);
+            int currentValue = 0;
+
+            if (isStillValid)
+            {
+                currentValue = CalculateValueAtPosition(plannedInfo.Card, plannedInfo.Position);
+            }
+
+            CardValueInfo finalInfo = plannedInfo;
+
+            if (!isStillValid || currentValue <= MIN_VALUE_THRESHOLD)
+            {
+                Log($"⚠️ Original plan for '{plannedInfo.Card.CardName}' at {plannedInfo.Position} is no longer optimal " +
+                    $"(Valid: {isStillValid}, Value: {currentValue}). Recalculating...");
+
+                var recalculatedInfo = CalculateBestSituationalValue(plannedInfo.Card);
+
+                if (recalculatedInfo.Value > MIN_VALUE_THRESHOLD)
+                {
+                    finalInfo = recalculatedInfo;
+                    Log($"✅ Found better position: {finalInfo.Position} with value {finalInfo.Value}");
+                }
+                else
+                {
+                    Log($"❌ No valid alternative found. Skipping '{plannedInfo.Card.CardName}'");
+                    return null;
+                }
+            }
+
+            return finalInfo;
+        }
 
         /// <summary>
         /// 카드의 모든 가능한 위치를 탐색하여 최고 가치와 위치를 계산합니다.
