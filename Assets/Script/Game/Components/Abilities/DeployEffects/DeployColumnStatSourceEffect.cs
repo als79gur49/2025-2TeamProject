@@ -125,7 +125,6 @@ namespace Game.Components.Abilities
 
                 var targetUnit = unitGO.GetComponent<Unit>();
                 if (targetUnit == null || !targetUnit.IsAlive) continue;
-
                 var buff = new TeamStatBuffEffect(
                     owner: targetUnit,
                     healthDelta: healthDelta,
@@ -134,7 +133,8 @@ namespace Game.Components.Abilities
                     durationTurns: buffDurationTurns,
                     priority: Priority,
                     revertOnExpire: true,
-                    persistentVfxId: buffVfxIdOverride
+                    persistentVfxId: buffVfxIdOverride,
+                    anchor: VFXAnchorType.Default
                 );
 
                 targetUnit.AddEffect(buff);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Core.Effects;
+using Game.Interfaces;
 using Game.ScriptableObjects;
 using Game.VFX;
 using UnityEngine;
@@ -162,8 +163,9 @@ namespace Game.Components
 
             var go = Instantiate(vfxData.VFXPrefab, root);
             go.transform.localPosition = finalOffset;
-            go.transform.localRotation = Quaternion.identity;
 
+            // 프리팹의 기본 회전을 기준으로 팀별 회전 보정 적용
+            ApplyTeamRotation(go);
             ApplyPlaybackSpeed(go, vfxData.PlaybackSpeed);
 
             return go;
@@ -198,6 +200,46 @@ namespace Game.Components
                 animator.speed = speed;
             }
         }
+
+        private void ApplyTeamRotation(GameObject go)
+        {
+            if (go == null || owner == null)
+            {
+                return;
+            }
+
+            TeamType teamType = TeamType.None;
+
+            var teamComponent = owner.GetComponent<ITeamComponent>();
+            if (teamComponent != null)
+            {
+                teamType = teamComponent.Team;
+            }
+            else
+            {
+                teamType = owner.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+            }
+
+            float additionalY = 0f;
+
+            switch (teamType)
+            {
+                case TeamType.Player:
+                case TeamType.Ally:
+                    additionalY = 0f;
+                    break;
+                case TeamType.Enemy:
+                    additionalY = 180f;
+                    break;
+                default:
+                    additionalY = 0f;
+                    break;
+            }
+
+            var t = go.transform;
+            var euler = t.localEulerAngles;
+            euler.y += additionalY;
+            t.localEulerAngles = euler;
+        }
     }
 }
-

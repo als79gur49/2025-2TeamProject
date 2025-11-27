@@ -364,6 +364,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 909405934057492840}
   - {fileID: 8983794949094388991}
   - {fileID: 6771419959695501003}
   - {fileID: 8167501933788772080}
@@ -1103,6 +1104,37 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.48740602, y: -0.00000005029142, z: -0.0018330961}
     m_Extent: {x: 0.50737077, y: 0.02741133, z: 0.02373882}
   m_DirtyAABB: 0
+--- !u!1 &4361851492583904849
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 909405934057492840}
+  m_Layer: 0
+  m_Name: VFXRootFeet
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &909405934057492840
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4361851492583904849}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071069, y: 0.70710677, z: 0.000000094156974, w: 0.00000009415698}
+  m_LocalPosition: {x: 1.42, y: 0.04, z: 0.08}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3008698237425299947}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &4757635630747158214
 GameObject:
   m_ObjectHideFlags: 0
@@ -1635,7 +1667,7 @@ MonoBehaviour:
   vfxRootDefault: {fileID: 2669843723316432904}
   vfxRootHead: {fileID: 3716479753220943166}
   vfxRootBody: {fileID: 0}
-  vfxRootFeet: {fileID: 0}
+  vfxRootFeet: {fileID: 909405934057492840}
   vfxRootWeapon: {fileID: 0}
 --- !u!1 &6717825298395677594
 GameObject:

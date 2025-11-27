@@ -148,7 +148,6 @@ namespace Game.Components.Abilities
             {
                 if (appliedCount >= maxTargets)
                     break;
-
                 var buff = new TeamStatBuffEffect(
                     owner: unit,
                     healthDelta: healthDelta,
@@ -157,7 +156,8 @@ namespace Game.Components.Abilities
                     durationTurns: buffDurationTurns,
                     priority: Priority,
                     revertOnExpire: true,
-                    persistentVfxId: buffVfxIdOverride
+                    persistentVfxId: buffVfxIdOverride,
+                    anchor: VFXAnchorType.Default
                 );
 
                 unit.AddEffect(buff);
