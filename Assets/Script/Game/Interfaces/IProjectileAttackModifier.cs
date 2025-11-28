@@ -10,4 +10,3 @@ namespace Game.Interfaces
         AttackConfig AttackConfig { get; }
     }
 }
-

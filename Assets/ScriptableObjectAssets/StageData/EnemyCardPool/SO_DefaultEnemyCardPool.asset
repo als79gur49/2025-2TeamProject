@@ -15,7 +15,10 @@ MonoBehaviour:
   cards:
   - {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3, type: 2}
   - {fileID: 11400000, guid: c22dd6f9175673346afd3bbc5af3d633, type: 2}
-  - {fileID: 11400000, guid: 19af4e4f84013174c9ffd186861c7717, type: 2}
+  - {fileID: 11400000, guid: 4655aa53d86240345a3a09f0d13748be, type: 2}
+  - {fileID: 11400000, guid: 2eeaf06012beca74ebba189e57219bde, type: 2}
+  - {fileID: 11400000, guid: 8e8ab4c197867cd4e859bec1280b7cf9, type: 2}
+  - {fileID: 11400000, guid: b412f2b760b655d4381107b18e0b05b4, type: 2}
   initialHandSize: 3
   selectionType: 0
   rarityWeightSettings:
@@ -24,4 +27,4 @@ MonoBehaviour:
     rareWeight: 20
     epicWeight: 8
     legendaryWeight: 2
-  totalCardCount: 3
+  totalCardCount: 6

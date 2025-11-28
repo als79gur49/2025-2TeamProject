@@ -71,4 +71,3 @@ namespace Game.Data.Modifiers
 #endif
     }
 }
-

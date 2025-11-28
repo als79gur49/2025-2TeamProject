@@ -25,7 +25,12 @@ namespace Game.Data.Modifiers
     public enum ProjectileExecutionType
     {
         Moving,
-        InstantLaser
+        InstantLaser,
+        /// <summary>
+        /// 이동형 투사체 + 타일 도착 시 VFX 생성,
+        /// 일정 지연(hitDelay) 후 실제 데미지 적용
+        /// </summary>
+        MovingDelayed
     }
 
     /// <summary>

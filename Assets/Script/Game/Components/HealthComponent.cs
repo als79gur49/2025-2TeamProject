@@ -6,6 +6,7 @@ using Game.Core;
 using Game.Interfaces;
 using Game.Data;
 using Game.Repositories;
+using Game.VFX;
 using System.ComponentModel;
 using Unity.Collections;
 
@@ -32,6 +33,9 @@ namespace Game.Components
         [SerializeField] private bool enableRegeneration = false;
         [SerializeField] private int regenerationAmount = 1;
         [SerializeField] private float regenerationInterval = 1f;
+
+        [Header("VFX 설정")]
+        [SerializeField] private VFXData hitVfxData;
 
         // ✅ 인터페이스 이벤트 구현 (Action으로 통일)
         public event Action<int> OnHealthChanged;
@@ -339,6 +343,9 @@ namespace Game.Components
                 currentHealth = Mathf.Max(0, currentHealth - finalDamage);
                 Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
 
+                // 피격 VFX 재생
+                TryPlayHitVFX();
+
                 // ✅ 데미지 표시 요청 (Repository를 통해 데이터 검증 및 EventChannel 발송)
                 damageDisplayRepository?.SendDamageDisplay(
                     finalDamage,
@@ -426,6 +433,20 @@ namespace Game.Components
             regenerationAmount = Mathf.Max(0, regenerationAmount);
             regenerationInterval = Mathf.Max(0.1f, regenerationInterval);
             maxDamageReduction = Mathf.Clamp01(maxDamageReduction);
+        }
+
+        private void TryPlayHitVFX()
+        {
+            if (hitVfxData == null || !hitVfxData.IsValid())
+            {
+                return;
+            }
+
+            var vfxController = GetComponent<UnitVFXController>();
+            if (vfxController != null)
+            {
+                vfxController.PlayHitVFX(hitVfxData);
+            }
         }
     }
 }

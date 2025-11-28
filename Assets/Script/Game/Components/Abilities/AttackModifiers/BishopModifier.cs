@@ -10,14 +10,18 @@ namespace Game.Components.Abilities
     /// <summary>
     /// 비숍 공격 Modifier
     /// 대각선 방향으로 무제한 사거리 공격
+    /// (투사체/레이저 기반 공격으로 동작)
     /// </summary>
-    public class BishopModifier : IAttackModifier
+    public class BishopModifier : IProjectileAttackModifier
     {
         public string ModifierName => config.Name;
         public ActionType ActionType => config.ActionType;
         public int Priority => config.Priority;
         public ChainBehavior ChainBehavior => config.ChainBehavior;
         public Unit Owner { get; private set; }
+
+        // IProjectileAttackModifier 구현
+        public AttackConfig AttackConfig => config.AttackConfig.Value;
 
         private readonly ModifierConfig config;
         private readonly IModifierDependencies dependencies;
@@ -78,7 +82,7 @@ namespace Game.Components.Abilities
 
         public void Execute(ActionContext context)
         {
-            // 실제 데미지 적용은 AttackActionExecutor에서 처리
+            // 실제 실행은 CombatComponent에서 처리 (투사체/레이저 기반)
         }
 
         public int CalculateDamage(ActionContext context)
@@ -112,4 +116,3 @@ namespace Game.Components.Abilities
         }
     }
 }
-

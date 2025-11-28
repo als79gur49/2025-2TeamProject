@@ -50,7 +50,8 @@ namespace Game.Components
             {
                 SetupInstantLaserScale();
             }
-            else if (projectile.ExecutionType == ProjectileExecutionType.Moving)
+            else if (projectile.ExecutionType == ProjectileExecutionType.Moving ||
+                     projectile.ExecutionType == ProjectileExecutionType.MovingDelayed)
             {
                 SetupMovingProjectile();
             }
@@ -63,7 +64,8 @@ namespace Game.Components
                 return;
             }
 
-            if (projectile.ExecutionType != ProjectileExecutionType.Moving)
+            if (projectile.ExecutionType != ProjectileExecutionType.Moving &&
+                projectile.ExecutionType != ProjectileExecutionType.MovingDelayed)
             {
                 return;
             }

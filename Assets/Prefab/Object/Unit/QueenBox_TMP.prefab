@@ -19,7 +19,7 @@ GameObject:
   - component: {fileID: 8391167686921620934}
   - component: {fileID: 7409760502188119193}
   m_Layer: 0
-  m_Name: StreetLight
+  m_Name: QueenBox_TMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -260,7 +260,7 @@ MonoBehaviour:
   statusVfxConfig: {fileID: 11400000, guid: bb29da7dddca739469de176bf4527eb3, type: 2}
   vfxRootDefault: {fileID: 3063538537018423124}
   vfxRootHead: {fileID: 8896046684559426194}
-  vfxRootBody: {fileID: 311377433332283994}
+  vfxRootBody: {fileID: 2173259330168936678}
   vfxRootFeet: {fileID: 2415297224975844660}
   vfxRootWeapon: {fileID: 313907728183398615}
 --- !u!1 &344750945499553620
@@ -935,6 +935,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3584601773296339616}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2498453029166860546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2173259330168936678}
+  m_Layer: 0
+  m_Name: VFXRootBody
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2173259330168936678
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2498453029166860546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071069, y: -0.70710677, z: -3.719247e-15, w: -3.7192463e-15}
+  m_LocalPosition: {x: -0.14, y: -0, z: -0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4705578963941212164}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &2533793439566714469
 GameObject:
   m_ObjectHideFlags: 0
@@ -1749,8 +1780,8 @@ Transform:
   m_Children:
   - {fileID: 4271762034005015522}
   - {fileID: 2415297224975844660}
+  - {fileID: 2173259330168936678}
   - {fileID: 313907728183398615}
-  - {fileID: 311377433332283994}
   - {fileID: 3869041265448528874}
   - {fileID: 3557095668030609405}
   - {fileID: 8870145058576519241}
@@ -2462,37 +2493,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!1 &8268499557988332650
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 311377433332283994}
-  m_Layer: 0
-  m_Name: VFXRootBody
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &311377433332283994
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8268499557988332650}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.7071069, y: -0.70710677, z: -3.719247e-15, w: -3.7192463e-15}
-  m_LocalPosition: {x: -0.581, y: 0, z: -0.018}
-  m_LocalScale: {x: 0, y: 0, z: 0}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4705578963941212164}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &8278980334014546769
 GameObject:
   m_ObjectHideFlags: 0

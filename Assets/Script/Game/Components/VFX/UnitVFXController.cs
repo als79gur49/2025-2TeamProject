@@ -116,6 +116,26 @@ namespace Game.Components
             effectTypeCounts.Clear();
         }
 
+        /// <summary>
+        /// 단발성 피격 VFX를 재생합니다.
+        /// 기본적으로 Body 루트를 기준으로 생성하며,
+        /// Body 루트가 없을 경우 Default → Owner → 현재 Transform 순으로 폴백합니다.
+        /// </summary>
+        public void PlayHitVFX(VFXData vfxData)
+        {
+            if (vfxData == null || !vfxData.IsValid())
+            {
+                return;
+            }
+
+            var root = ResolveRoot(VFXAnchorType.Body) ?? transform;
+            var instance = Instantiate(vfxData.VFXPrefab, root);
+            instance.transform.localPosition = vfxData.PositionOffset;
+
+            ApplyTeamRotation(instance);
+            ApplyPlaybackSpeed(instance, vfxData.PlaybackSpeed);
+        }
+
         private GameObject SpawnPersistentVFX(IPersistentVFXEffect persistent)
         {
             if (statusVfxConfig == null && persistent.GetVFXOverrideOrNull() == null)
@@ -181,13 +201,15 @@ namespace Game.Components
 
         private Transform ResolveRoot(VFXAnchorType anchor)
         {
+            var ownerTransform = owner != null ? owner.transform : transform;
+
             return anchor switch
             {
-                VFXAnchorType.Head => vfxRootHead ?? vfxRootDefault ?? owner?.transform,
-                VFXAnchorType.Body => vfxRootBody ?? vfxRootDefault ?? owner?.transform,
-                VFXAnchorType.Feet => vfxRootFeet ?? vfxRootDefault ?? owner?.transform,
-                VFXAnchorType.Weapon => vfxRootWeapon ?? vfxRootDefault ?? owner?.transform,
-                _ => vfxRootDefault ?? owner?.transform
+                VFXAnchorType.Head => vfxRootHead ?? vfxRootDefault ?? ownerTransform,
+                VFXAnchorType.Body => vfxRootBody ?? vfxRootDefault ?? ownerTransform,
+                VFXAnchorType.Feet => vfxRootFeet ?? vfxRootDefault ?? ownerTransform,
+                VFXAnchorType.Weapon => vfxRootWeapon ?? vfxRootDefault ?? ownerTransform,
+                _ => vfxRootDefault ?? ownerTransform
             };
         }
 

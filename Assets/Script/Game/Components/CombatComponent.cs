@@ -1110,39 +1110,59 @@ namespace Game.Components
                 worldStart = gridManager.GridToWorldPosition(origin);
             }
 
-            // 투사체 회전: 프리팹 기본 회전에 팀 기준 Y 회전 추가
-            var teamComponent = unit.GetComponent<ITeamComponent>();
-            TeamType teamType = TeamType.None;
-            if (teamComponent != null)
+            // 투사체 회전:
+            // - 기본값은 팀 기준 전후 방향(기존 로직)
+            // - 가능하면 origin → mainTargetGrid 방향을 바라보도록 덮어써서
+            //   비숍의 대각선 공격 등도 자연스럽게 지원한다.
+            Quaternion spawnRotation;
+
+            // 기존 팀 기반 회전 (폴백용)
             {
-                teamType = teamComponent.Team;
-            }
-            else
-            {
-                teamType = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+                var teamComponent = unit.GetComponent<ITeamComponent>();
+                TeamType teamType = TeamType.None;
+                if (teamComponent != null)
+                {
+                    teamType = teamComponent.Team;
+                }
+                else
+                {
+                    teamType = unit.IsPlayerUnit ? TeamType.Player : TeamType.Enemy;
+                }
+
+                float additionalY = 0f;
+                switch (teamType)
+                {
+                    case TeamType.Player:
+                    case TeamType.Ally:
+                        additionalY = 0f;
+                        break;
+                    case TeamType.Enemy:
+                        additionalY = 180f;
+                        break;
+                    default:
+                        additionalY = 0f;
+                        break;
+                }
+
+                Quaternion prefabRotation = projectilePrefab.transform.rotation;
+                Quaternion teamRotation = Quaternion.Euler(0f, additionalY, 0f);
+                spawnRotation = teamRotation * prefabRotation;
             }
 
-            float additionalY = 0f;
-            switch (teamType)
+            // origin → mainTargetGrid 방향을 계산해, 유효하면 그 방향을 바라보도록 회전 수정
+            Vector3 worldTarget = gridManager.GridToWorldPosition(mainTargetGrid);
+            Vector3 direction = worldTarget - worldStart;
+            direction.y = 0;
+            if (direction.sqrMagnitude > 0.0001f)
             {
-                case TeamType.Player:
-                case TeamType.Ally:
-                    additionalY = 0f;
-                    break;
-                case TeamType.Enemy:
-                    additionalY = 180f;
-                    break;
-                default:
-                    additionalY = 0f;
-                    break;
+                spawnRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
             }
-
-            Quaternion prefabRotation = projectilePrefab.transform.rotation;
-            Quaternion teamRotation = Quaternion.Euler(0f, additionalY, 0f);
-            Quaternion spawnRotation = teamRotation * prefabRotation;
 
             var projectile = Instantiate(projectilePrefab, worldStart, spawnRotation);
-            Debug.Log($"[CombatComponent] vfx{vfxController.WeaponRoot.transform.position}, pos{worldStart}, projectilePos{projectile.transform.position}");
+            if (vfxController != null && vfxController.WeaponRoot != null)
+            {
+                Debug.Log($"[CombatComponent] vfx{vfxController.WeaponRoot.transform.position}, pos{worldStart}, projectilePos{projectile.transform.position}");
+            }
             projectileHitTiles.Clear();
             activeProjectileCount = 1;
 

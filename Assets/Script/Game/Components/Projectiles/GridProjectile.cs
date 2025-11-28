@@ -33,14 +33,22 @@ namespace Game.Components
         private ProjectileExecutionType executionType = ProjectileExecutionType.Moving;
 
         [SerializeField]
-        [Tooltip("InstantLaser 모드에서 VFX 이후 타격까지 지연 시간")]
+        [Tooltip("InstantLaser / MovingDelayed 모드에서 VFX 이후 타격까지 지연 시간")]
         private float hitDelay = 0.2f;
+
+        [SerializeField]
+        [Tooltip("MovingDelayed 모드에서 ValidTile에 도착했을 때 생성할 히트 VFX")]
+        private ParticleSystem hitVfxPrefab;
 
         // InstantLaser 모드에서 사용할 주 타겟 타일 (origin → mainTarget 경로를 기준으로 레이저 경로 계산)
         private Vector2Int? mainTargetGrid;
 
         // 같은 HealthComponent를 여러 번 맞추지 않기 위한 중복 방지
         private readonly HashSet<HealthComponent> alreadyHitTargets = new HashSet<HealthComponent>();
+
+        // MovingDelayed 모드에서, 지연 중인 히트 개수와 이동 종료 여부를 추적
+        private int pendingDelayedHits;
+        private bool travelCompleted;
 
         public Action<GridProjectile, HealthComponent, Vector2Int> OnHitTargetTile;
         public Action<GridProjectile> OnFinished;
@@ -82,6 +90,8 @@ namespace Game.Components
             traveledSteps = 0;
 
             alreadyHitTargets.Clear();
+            pendingDelayedHits = 0;
+            travelCompleted = false;
 
             if (executionType == ProjectileExecutionType.InstantLaser)
             {
@@ -93,10 +103,16 @@ namespace Game.Components
 
         private void Update()
         {
-            if (executionType != ProjectileExecutionType.Moving)
+            // 이동형 투사체 계열만 처리
+            if (executionType != ProjectileExecutionType.Moving &&
+                executionType != ProjectileExecutionType.MovingDelayed)
                 return;
 
             if (gridManager == null || owner == null)
+                return;
+
+            // MovingDelayed 모드에서 이동이 이미 종료된 경우, 더 이상 타일을 검사하지 않는다.
+            if (executionType == ProjectileExecutionType.MovingDelayed && travelCompleted)
                 return;
 
             Vector3 currentWorldPos = transform.position;
@@ -119,7 +135,18 @@ namespace Game.Components
 
                 if (!gridManager.IsValidPosition(tilePos) || traveledSteps > maxRange)
                 {
-                    FinishProjectile();
+                    if (executionType == ProjectileExecutionType.Moving)
+                    {
+                        FinishProjectile();
+                    }
+                    else if (executionType == ProjectileExecutionType.MovingDelayed)
+                    {
+                        travelCompleted = true;
+                        if (pendingDelayedHits <= 0)
+                        {
+                            FinishProjectile();
+                        }
+                    }
                     return;
                 }
 
@@ -144,12 +171,35 @@ namespace Game.Components
                 if (!alreadyHitTargets.Add(health))
                     continue;
 
-                OnHitTargetTile?.Invoke(this, health, tilePos);
-
-                if (!piercing)
+                if (executionType == ProjectileExecutionType.MovingDelayed)
                 {
-                    FinishProjectile();
-                    return;
+                    // VFX 생성
+                    SpawnHitVfx(tilePos);
+
+                    // 지연 후 실제 데미지 적용
+                    StartCoroutine(DelayedHitRoutine(health, tilePos));
+
+                    if (!piercing)
+                    {
+                        // 비관통인 경우 첫 타겟에서 이동 종료
+                        travelCompleted = true;
+                        // 아직 대기 중인 히트가 없다면 바로 종료
+                        if (pendingDelayedHits <= 0)
+                        {
+                            FinishProjectile();
+                        }
+                        return;
+                    }
+                }
+                else
+                {
+                    OnHitTargetTile?.Invoke(this, health, tilePos);
+
+                    if (!piercing)
+                    {
+                        FinishProjectile();
+                        return;
+                    }
                 }
             }
 
@@ -186,8 +236,13 @@ namespace Game.Components
 
             foreach (var pos in pathTiles)
             {
+                // 시작 타일(origin)은 사거리 계산에서 제외
+                if (pos != origin)
+                {
+                    traveledSteps++;
+                }
+
                 // Range 제한
-                traveledSteps++;
                 if (!gridManager.IsValidPosition(pos) || traveledSteps > maxRange)
                     break;
 
@@ -216,6 +271,48 @@ namespace Game.Components
             }
 
             FinishProjectile();
+        }
+
+        /// <summary>
+        /// MovingDelayed 모드에서 유효 타일에 도착했을 때 히트 VFX를 생성한다.
+        /// </summary>
+        private void SpawnHitVfx(Vector2Int gridPos)
+        {
+            if (hitVfxPrefab == null || gridManager == null)
+                return;
+
+            Vector3 worldPos = gridManager.GridToWorldPosition(gridPos);
+            Instantiate(hitVfxPrefab, worldPos, Quaternion.identity);
+        }
+
+        /// <summary>
+        /// MovingDelayed 모드에서, VFX가 생성된 이후 hitDelay 만큼 기다렸다가
+        /// 실제 데미지를 적용한다.
+        /// </summary>
+        private System.Collections.IEnumerator DelayedHitRoutine(HealthComponent health, Vector2Int hitPos)
+        {
+            pendingDelayedHits++;
+
+            if (hitDelay > 0f)
+            {
+                yield return new WaitForSeconds(hitDelay);
+            }
+
+            if (health != null && health.IsAlive)
+            {
+                OnHitTargetTile?.Invoke(this, health, hitPos);
+            }
+
+            pendingDelayedHits--;
+
+            // 이동이 끝났고(사거리 초과 또는 비관통 첫 타겟),
+            // 더 이상 대기 중인 히트가 없다면 투사체 수명 종료
+            if (executionType == ProjectileExecutionType.MovingDelayed &&
+                travelCompleted &&
+                pendingDelayedHits <= 0)
+            {
+                FinishProjectile();
+            }
         }
 
         private void FinishProjectile()
