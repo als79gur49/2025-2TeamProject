@@ -22,6 +22,6 @@ MonoBehaviour:
   healthDelta: 2
   attackDelta: 0
   movementDelta: 0
-  maxTargets: 1
+  maxTargets: 25
   buffDurationTurns: -1
   revertOnExpire: 1

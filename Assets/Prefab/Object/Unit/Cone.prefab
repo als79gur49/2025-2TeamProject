@@ -26,7 +26,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1986792335723242867}
@@ -477,7 +477,7 @@ MonoBehaviour:
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
-  projectilePrefab: {fileID: -12864583972942249, guid: a074e7df590081948bc1c2de232e8dc8,
+  projectilePrefab: {fileID: 1332098868578583648, guid: 702a1f6b599496842a2dc9305cbbedd1,
     type: 3}
 --- !u!114 &8365746421650715826
 MonoBehaviour:
@@ -501,6 +501,7 @@ MonoBehaviour:
   regenerationAmount: 1
   regenerationInterval: 1
   hitVfxData: {fileID: 11400000, guid: 09e7e93afa57c99428b7005e96f2beb4, type: 2}
+  enableDamageDisplay: 1
 --- !u!114 &3592971340972922712
 MonoBehaviour:
   m_ObjectHideFlags: 0

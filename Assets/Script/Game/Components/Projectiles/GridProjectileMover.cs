@@ -22,8 +22,25 @@ namespace Game.Components
         [Tooltip("Range=1일 때의 기본 Z 스케일 값")]
         private float baseZScale = 1f;
 
+        [SerializeField]
+        [Tooltip("BallisticEqualTime 모드에서 전체 비행 시간(초)")]
+        private float flightDuration = 0.5f;
+
+        [SerializeField]
+        [Tooltip("BallisticEqualTime 모드에서 정규화 시간(0~1)에 따른 높이 오프셋 곡선")]
+        private AnimationCurve heightCurve = new AnimationCurve(
+            new Keyframe(0f, 0f),
+            new Keyframe(0.5f, 1f),
+            new Keyframe(1f, 0f));
+
         private float moveSpeed;
         private Vector3 moveDirection;
+
+        // BallisticEqualTime 전용 상태
+        private bool ballisticActive;
+        private float ballisticElapsed;
+        private Vector3 ballisticOrigin;
+        private Vector3 ballisticTarget;
 
         private void Reset()
         {
@@ -55,12 +72,22 @@ namespace Game.Components
             {
                 SetupMovingProjectile();
             }
+            else if (projectile.ExecutionType == ProjectileExecutionType.BallisticEqualTime)
+            {
+                SetupBallisticProjectile();
+            }
         }
 
         private void Update()
         {
             if (projectile == null)
             {
+                return;
+            }
+
+            if (projectile.ExecutionType == ProjectileExecutionType.BallisticEqualTime)
+            {
+                UpdateBallisticProjectile();
                 return;
             }
 
@@ -89,7 +116,9 @@ namespace Game.Components
                 baseZScale = Mathf.Approximately(scale.z, 0f) ? 1f : scale.z;
             }
 
-            int range = Mathf.Max(1, projectile.MaxRange);
+            // InstantLaser 모드에서는 실제로 맞게 될 적들 중
+            // 가장 먼 타일까지의 타일 수(InstantLaserEffectiveRange)를 기준으로 스케일을 조정한다.
+            int range = Mathf.Max(1, projectile.InstantLaserEffectiveRange);
 
             // 요구사항: Modifier의 Range만큼 Z값에 곱셈
             scale.z = baseZScale * range;
@@ -113,6 +142,70 @@ namespace Game.Components
 
             // 이동 방향은 현재 Transform의 forward를 기준으로 한다.
             moveDirection = transform.forward.normalized;
+        }
+
+        private void SetupBallisticProjectile()
+        {
+            ballisticActive = true;
+            ballisticElapsed = 0f;
+
+            if (flightDuration <= 0f)
+            {
+                flightDuration = 0.1f;
+            }
+
+            if (projectile != null)
+            {
+                ballisticOrigin = projectile.OriginWorldPosition;
+
+                if (projectile.HasTargetWorldPosition)
+                {
+                    ballisticTarget = projectile.TargetWorldPosition;
+                }
+                else
+                {
+                    float fallbackDistance = Mathf.Max(1f, projectile.MaxRange);
+                    ballisticTarget = ballisticOrigin + transform.forward.normalized * fallbackDistance;
+                }
+            }
+            else
+            {
+                ballisticOrigin = transform.position;
+                ballisticTarget = transform.position + transform.forward.normalized;
+            }
+
+            if (heightCurve == null || heightCurve.length == 0)
+            {
+                heightCurve = new AnimationCurve(
+                    new Keyframe(0f, 0f),
+                    new Keyframe(0.5f, 1f),
+                    new Keyframe(1f, 0f));
+            }
+
+            transform.position = ballisticOrigin;
+        }
+
+        private void UpdateBallisticProjectile()
+        {
+            if (!ballisticActive)
+            {
+                return;
+            }
+
+            ballisticElapsed += Time.deltaTime;
+
+            float duration = Mathf.Max(0.0001f, flightDuration);
+            float u = Mathf.Clamp01(ballisticElapsed / duration);
+
+            Vector3 basePos = Vector3.Lerp(ballisticOrigin, ballisticTarget, u);
+            float height = heightCurve != null ? heightCurve.Evaluate(u) : 0f;
+
+            transform.position = basePos + Vector3.up * height;
+
+            if (u >= 1f)
+            {
+                ballisticActive = false;
+            }
         }
     }
 }

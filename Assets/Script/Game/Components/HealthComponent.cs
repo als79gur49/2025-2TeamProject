@@ -37,6 +37,9 @@ namespace Game.Components
         [Header("VFX 설정")]
         [SerializeField] private VFXData hitVfxData;
 
+        [Header("Debug / Damage Display")]
+        [SerializeField] private bool enableDamageDisplay = true;
+
         // ✅ 인터페이스 이벤트 구현 (Action으로 통일)
         public event Action<int> OnHealthChanged;
         public event Action<int, int> OnDamageTaken;
@@ -80,6 +83,8 @@ namespace Game.Components
         public bool IsInvulnerable => isInvulnerable && (invulnerabilityEndTime < 0f || Time.time < invulnerabilityEndTime);
 
         public event Action<bool> OnInvulnerabilityChanged;
+
+        public bool EnableDamageDisplay => enableDamageDisplay;
 
         private void Awake()
         {
@@ -341,17 +346,20 @@ namespace Game.Components
             if (finalDamage > 0)
             {
                 currentHealth = Mathf.Max(0, currentHealth - finalDamage);
-                Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
+                if (enableDamageDisplay)
+                {
+                    Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
 
-                // 피격 VFX 재생
-                TryPlayHitVFX();
+                    // 피격 VFX 재생
+                    TryPlayHitVFX();
 
-                // ✅ 데미지 표시 요청 (Repository를 통해 데이터 검증 및 EventChannel 발송)
-                damageDisplayRepository?.SendDamageDisplay(
-                    finalDamage,
-                    damageInfo.IsCritical,
-                    transform.position
-                );
+                    // ✅ 데미지 표시 요청 (Repository를 통해 데이터 검증 및 EventChannel 발송)
+                    damageDisplayRepository?.SendDamageDisplay(
+                        finalDamage,
+                        damageInfo.IsCritical,
+                        transform.position
+                    );
+                }
 
                 OnDamageTaken?.Invoke(finalDamage, currentHealth);
                 OnHealthChanged?.Invoke(currentHealth);

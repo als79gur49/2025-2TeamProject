@@ -1618,7 +1618,7 @@ MonoBehaviour:
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
-  projectilePrefab: {fileID: 5883599663178147563, guid: ed9944bd1fe86a4458c5eb2d2cb80d5e,
+  projectilePrefab: {fileID: 6133555691257697389, guid: 6e85bf919f355c849b3463efe1743297,
     type: 3}
 --- !u!114 &1181987943349939772
 MonoBehaviour:

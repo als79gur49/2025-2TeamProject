@@ -177,7 +177,8 @@ MonoBehaviour:
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 1332098868578583648, guid: 4d8af68d1a7b86749b706edda37db8d0,
+    type: 3}
 --- !u!114 &7269241420089255941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1340,7 +1341,7 @@ Transform:
   m_GameObject: {fileID: 4361278160240155512}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.06, z: 0}
+  m_LocalPosition: {x: 0, y: 1.674, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2110,8 +2111,8 @@ Transform:
   m_GameObject: {fileID: 7272381435148000260}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.4, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 404630621735097905}

@@ -30,7 +30,13 @@ namespace Game.Data.Modifiers
         /// 이동형 투사체 + 타일 도착 시 VFX 생성,
         /// 일정 지연(hitDelay) 후 실제 데미지 적용
         /// </summary>
-        MovingDelayed
+        MovingDelayed,
+        /// <summary>
+        /// 목표까지의 거리와 상관없이
+        /// 항상 동일한 비행 시간 동안 곡선(곡사) 이동하는 투사체
+        /// (Transform 이동은 Mover에서 처리)
+        /// </summary>
+        BallisticEqualTime
     }
 
     /// <summary>

@@ -22,5 +22,5 @@ MonoBehaviour:
   movementRange: 2
   modifiers:
   - {fileID: 11400000, guid: 11c0d7a7d8a3dc64bbc6ef6236a5704e, type: 2}
-  - {fileID: 11400000, guid: b09bda18de1ce64428f2343d05cc01a3, type: 2}
+  - {fileID: 11400000, guid: c10121aba2f7af247a0701999f989c89, type: 2}
   effects: []

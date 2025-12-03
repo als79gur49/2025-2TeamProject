@@ -14,17 +14,30 @@ namespace Game.Components
     /// </summary>
     public class GridProjectile : MonoBehaviour
     {
+        private struct PendingTileHit
+        {
+            public Vector2Int GridPos;
+            public Vector3 CenterWorldPos;
+        }
+
         private Unit owner;
         private TeamType ownerTeam;
         private IGridManager gridManager;
 
         private Vector2Int originGrid;
+        private Vector3 originWorld;
+        private Vector3 targetWorld;
+        private bool hasTargetWorld;
         private Vector2Int lastGridPos;
         private Vector3 lastWorldPos;
 
         private int maxRange;
         private bool piercing;
         private int traveledSteps;
+
+        // InstantLaser 모드에서 실제 타격 대상 기준으로 계산된 유효 사거리
+        // (이번 공격에서 실제로 맞게 될 적들 중 가장 먼 타일까지의 타일 수)
+        private int instantLaserEffectiveRange;
 
         // 이번 공격에서 실제로 맞아야 할 타일 집합 (ActionResult.ValidTiles 기반)
         private HashSet<Vector2Int> targetTiles;
@@ -46,6 +59,9 @@ namespace Game.Components
         // 같은 HealthComponent를 여러 번 맞추지 않기 위한 중복 방지
         private readonly HashSet<HealthComponent> alreadyHitTargets = new HashSet<HealthComponent>();
 
+        // 이동형 투사체에서 타일 중심 통과 시점을 판정하기 위한 대기 타일 목록
+        private readonly List<PendingTileHit> pendingHitTiles = new List<PendingTileHit>();
+
         // MovingDelayed 모드에서, 지연 중인 히트 개수와 이동 종료 여부를 추적
         private int pendingDelayedHits;
         private bool travelCompleted;
@@ -55,6 +71,11 @@ namespace Game.Components
 
         public ProjectileExecutionType ExecutionType => executionType;
         public int MaxRange => maxRange;
+        // InstantLaser 모드에서 사용할 유효 사거리 (0 이하일 경우 maxRange를 사용)
+        public int InstantLaserEffectiveRange => instantLaserEffectiveRange > 0 ? instantLaserEffectiveRange : maxRange;
+        public Vector3 OriginWorldPosition => originWorld;
+        public Vector3 TargetWorldPosition => targetWorld;
+        public bool HasTargetWorldPosition => hasTargetWorld;
 
         public void Initialize(
             Unit owner,
@@ -90,8 +111,31 @@ namespace Game.Components
             traveledSteps = 0;
 
             alreadyHitTargets.Clear();
+            pendingHitTiles.Clear();
             pendingDelayedHits = 0;
             travelCompleted = false;
+
+            originWorld = transform.position;
+            if (this.mainTargetGrid.HasValue && this.gridManager != null)
+            {
+                targetWorld = this.gridManager.GridToWorldPosition(this.mainTargetGrid.Value);
+                hasTargetWorld = true;
+            }
+            else
+            {
+                targetWorld = originWorld;
+                hasTargetWorld = false;
+            }
+
+            // InstantLaser 모드에서는, 실제로 맞게 될 적들 중 가장 먼 타일까지의 타일 수를
+            // 미리 계산해 instantLaserEffectiveRange에 저장한다.
+            if (executionType == ProjectileExecutionType.InstantLaser &&
+                gridManager != null &&
+                mainTargetGrid.HasValue)
+            {
+                var pathTiles = GridTraversalUtility.GetTraversedTiles(originGrid, mainTargetGrid.Value);
+                instantLaserEffectiveRange = ComputeInstantLaserEffectiveRange(originGrid, pathTiles);
+            }
 
             if (executionType == ProjectileExecutionType.InstantLaser)
             {
@@ -105,7 +149,8 @@ namespace Game.Components
         {
             // 이동형 투사체 계열만 처리
             if (executionType != ProjectileExecutionType.Moving &&
-                executionType != ProjectileExecutionType.MovingDelayed)
+                executionType != ProjectileExecutionType.MovingDelayed &&
+                executionType != ProjectileExecutionType.BallisticEqualTime)
                 return;
 
             if (gridManager == null || owner == null)
@@ -118,93 +163,26 @@ namespace Game.Components
             Vector3 currentWorldPos = transform.position;
             Vector2Int currentGridPos = gridManager.WorldToGridPosition(currentWorldPos);
 
-            if (currentGridPos == lastGridPos)
-                return;
-
-            var traversedTiles = GridTraversalUtility.GetTraversedTiles(lastGridPos, currentGridPos);
-
-            for (int i = 0; i < traversedTiles.Count; i++)
+            if (currentGridPos != lastGridPos)
             {
-                var tilePos = traversedTiles[i];
+                var traversedTiles = GridTraversalUtility.GetTraversedTiles(lastGridPos, currentGridPos);
 
-                // 시작 타일은 이미 지난 프레임에 처리했으므로 스킵
-                if (i == 0 && tilePos == lastGridPos)
-                    continue;
-
-                traveledSteps++;
-
-                if (!gridManager.IsValidPosition(tilePos) || traveledSteps > maxRange)
+                for (int i = 0; i < traversedTiles.Count; i++)
                 {
-                    if (executionType == ProjectileExecutionType.Moving)
-                    {
-                        FinishProjectile();
-                    }
-                    else if (executionType == ProjectileExecutionType.MovingDelayed)
-                    {
-                        travelCompleted = true;
-                        if (pendingDelayedHits <= 0)
-                        {
-                            FinishProjectile();
-                        }
-                    }
-                    return;
+                    var tilePos = traversedTiles[i];
+
+                    // 시작 타일은 이미 지난 프레임에 처리했으므로 스킵
+                    if (i == 0 && tilePos == lastGridPos)
+                        continue;
+
+                    EnqueuePendingTile(tilePos);
                 }
 
-                // 이 공격에서 실제로 맞아야 하는 타일인지 확인
-                if (!targetTiles.Contains(tilePos))
-                    continue;
+                ProcessPendingHits(lastWorldPos, currentWorldPos);
 
-                // 타일 위 공격 가능한 타겟 찾기 (Grid 기반)
-                var targetGO = gridManager.GetAttackableTargetAtPosition(tilePos);
-                if (targetGO == null)
-                    continue;
-
-                var targetTeam = targetGO.GetComponent<ITeamComponent>();
-                var health = targetGO.GetComponent<HealthComponent>();
-
-                if (targetTeam == null || health == null || !health.IsAlive)
-                    continue;
-
-                if (TeamRelationMatrix.GetRelation(ownerTeam, targetTeam.Team) != TeamRelation.Enemy)
-                    continue;
-
-                if (!alreadyHitTargets.Add(health))
-                    continue;
-
-                if (executionType == ProjectileExecutionType.MovingDelayed)
-                {
-                    // VFX 생성
-                    SpawnHitVfx(tilePos);
-
-                    // 지연 후 실제 데미지 적용
-                    StartCoroutine(DelayedHitRoutine(health, tilePos));
-
-                    if (!piercing)
-                    {
-                        // 비관통인 경우 첫 타겟에서 이동 종료
-                        travelCompleted = true;
-                        // 아직 대기 중인 히트가 없다면 바로 종료
-                        if (pendingDelayedHits <= 0)
-                        {
-                            FinishProjectile();
-                        }
-                        return;
-                    }
-                }
-                else
-                {
-                    OnHitTargetTile?.Invoke(this, health, tilePos);
-
-                    if (!piercing)
-                    {
-                        FinishProjectile();
-                        return;
-                    }
-                }
+                lastGridPos = currentGridPos;
+                lastWorldPos = currentWorldPos;
             }
-
-            lastGridPos = currentGridPos;
-            lastWorldPos = currentWorldPos;
         }
 
         private System.Collections.IEnumerator ExecuteInstantLaserRoutine()
@@ -242,8 +220,10 @@ namespace Game.Components
                     traveledSteps++;
                 }
 
-                // Range 제한
-                if (!gridManager.IsValidPosition(pos) || traveledSteps > maxRange)
+                int rangeLimit = InstantLaserEffectiveRange;
+
+                // Range 제한 (InstantLaser 유효 사거리 기반)
+                if (!gridManager.IsValidPosition(pos) || traveledSteps > rangeLimit)
                     break;
 
                 var targetGO = gridManager.GetAttackableTargetAtPosition(pos);
@@ -271,6 +251,222 @@ namespace Game.Components
             }
 
             FinishProjectile();
+        }
+
+        private void EnqueuePendingTile(Vector2Int tilePos)
+        {
+            if (gridManager == null)
+                return;
+
+            var worldPos = gridManager.GridToWorldPosition(tilePos);
+            var pending = new PendingTileHit
+            {
+                GridPos = tilePos,
+                CenterWorldPos = worldPos
+            };
+            pendingHitTiles.Add(pending);
+        }
+
+        private void ProcessPendingHits(Vector3 fromWorld, Vector3 toWorld)
+        {
+            if (pendingHitTiles.Count == 0)
+                return;
+
+            Vector2 p0 = new Vector2(fromWorld.x, fromWorld.z);
+            Vector2 p1 = new Vector2(toWorld.x, toWorld.z);
+            Vector2 seg = p1 - p0;
+            float segLenSq = seg.sqrMagnitude;
+
+            // 뒤에서부터 검사하며 통과한 타일은 제거
+            for (int i = pendingHitTiles.Count - 1; i >= 0; i--)
+            {
+                var pending = pendingHitTiles[i];
+                Vector3 centerWorld = pending.CenterWorldPos;
+                Vector2 c = new Vector2(centerWorld.x, centerWorld.z);
+
+                bool passed = false;
+
+                if (segLenSq <= Mathf.Epsilon)
+                {
+                    // 이동이 거의 없는 경우, 현재 위치와의 거리로 판정
+                    float distToPoint = Vector2.Distance(c, p1);
+                    passed = distToPoint <= 0.05f;
+                }
+                else
+                {
+                    float t = Vector2.Dot(c - p0, seg) / segLenSq;
+                    if (t >= 0f && t <= 1f)
+                    {
+                        Vector2 closest = p0 + seg * t;
+                        float distance = Vector2.Distance(c, closest);
+                        passed = distance <= 0.05f;
+                    }
+                }
+
+                if (!passed)
+                    continue;
+
+                pendingHitTiles.RemoveAt(i);
+                OnTileCenterPassed(pending.GridPos);
+            }
+        }
+
+        /// <summary>
+        /// InstantLaser 모드에서, 이번 공격으로 실제로 맞게 될 적들 중
+        /// 가장 먼 타일까지의 타일 수를 계산한다.
+        /// </summary>
+        private int ComputeInstantLaserEffectiveRange(Vector2Int origin, System.Collections.Generic.IList<Vector2Int> pathTiles)
+        {
+            if (gridManager == null)
+                return 0;
+
+            int stepIndex = 0;
+            int farthestHitStep = 0;
+
+            var seenHealth = new HashSet<HealthComponent>();
+
+            for (int i = 0; i < pathTiles.Count; i++)
+            {
+                var pos = pathTiles[i];
+
+                if (pos == origin)
+                    continue;
+
+                stepIndex++;
+
+                // 이론상 Range 및 맵 범위 제한
+                if (!gridManager.IsValidPosition(pos) || stepIndex > maxRange)
+                    break;
+
+                var targetGO = gridManager.GetAttackableTargetAtPosition(pos);
+                if (targetGO == null)
+                    continue;
+
+                var targetTeam = targetGO.GetComponent<ITeamComponent>();
+                var health = targetGO.GetComponent<HealthComponent>();
+
+                if (targetTeam == null || health == null || !health.IsAlive)
+                    continue;
+
+                if (TeamRelationMatrix.GetRelation(ownerTeam, targetTeam.Team) != TeamRelation.Enemy)
+                    continue;
+
+                if (!seenHealth.Add(health))
+                    continue;
+
+                // 실제로 맞는 적 한 명 발견
+                farthestHitStep = stepIndex;
+
+                // 비관통: 첫 적에서 바로 종료
+                if (!piercing)
+                    break;
+            }
+
+            // 한 명도 맞지 않는 경우: 기존 최대 사거리 / 경로 길이 기반으로 보정
+            if (farthestHitStep == 0)
+            {
+                int maxPossibleSteps = 0;
+                int tmpIndex = 0;
+
+                for (int i = 0; i < pathTiles.Count; i++)
+                {
+                    var pos = pathTiles[i];
+
+                    if (pos == origin)
+                        continue;
+
+                    tmpIndex++;
+
+                    if (!gridManager.IsValidPosition(pos) || tmpIndex > maxRange)
+                        break;
+
+                    maxPossibleSteps = tmpIndex;
+                }
+
+                farthestHitStep = maxPossibleSteps;
+            }
+
+            return farthestHitStep;
+        }
+
+        private void OnTileCenterPassed(Vector2Int tilePos)
+        {
+            traveledSteps++;
+
+            if (!gridManager.IsValidPosition(tilePos) || traveledSteps > maxRange)
+            {
+                if (executionType == ProjectileExecutionType.Moving ||
+                    executionType == ProjectileExecutionType.BallisticEqualTime)
+                {
+                    FinishProjectile();
+                }
+                else if (executionType == ProjectileExecutionType.MovingDelayed)
+                {
+                    travelCompleted = true;
+                    if (pendingDelayedHits <= 0)
+                    {
+                        FinishProjectile();
+                    }
+                }
+                return;
+            }
+
+            if (!targetTiles.Contains(tilePos))
+                return;
+
+            HandleHitAtTile(tilePos);
+        }
+
+        private void HandleHitAtTile(Vector2Int tilePos)
+        {
+            if (gridManager == null)
+                return;
+
+            // 타일 위 공격 가능한 타겟 찾기 (Grid 기반)
+            var targetGO = gridManager.GetAttackableTargetAtPosition(tilePos);
+            if (targetGO == null)
+                return;
+
+            var targetTeam = targetGO.GetComponent<ITeamComponent>();
+            var health = targetGO.GetComponent<HealthComponent>();
+
+            if (targetTeam == null || health == null || !health.IsAlive)
+                return;
+
+            if (TeamRelationMatrix.GetRelation(ownerTeam, targetTeam.Team) != TeamRelation.Enemy)
+                return;
+
+            if (!alreadyHitTargets.Add(health))
+                return;
+
+            if (executionType == ProjectileExecutionType.MovingDelayed)
+            {
+                // VFX 생성
+                SpawnHitVfx(tilePos);
+
+                // 지연 후 실제 데미지 적용
+                StartCoroutine(DelayedHitRoutine(health, tilePos));
+
+                if (!piercing)
+                {
+                    // 비관통인 경우 첫 타겟에서 이동 종료
+                    travelCompleted = true;
+                    // 아직 대기 중인 히트가 없다면 바로 종료
+                    if (pendingDelayedHits <= 0)
+                    {
+                        FinishProjectile();
+                    }
+                }
+            }
+            else
+            {
+                OnHitTargetTile?.Invoke(this, health, tilePos);
+
+                if (!piercing)
+                {
+                    FinishProjectile();
+                }
+            }
         }
 
         /// <summary>
