@@ -16,6 +16,6 @@ MonoBehaviour:
   trigger: 0
   priority: 20
   durationTurns: 1
-  healAmount: 5
+  healAmount: 3
   targetConfig:
-    targetRelation: 2
+    targetRelation: 0

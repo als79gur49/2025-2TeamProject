@@ -74,7 +74,7 @@ namespace Game.Components.Abilities
                     var targetHealth = tile.GetDamageableTarget();
                     if (targetHealth != null && targetHealth.IsAlive && IsEnemy(targetHealth.gameObject))
                     {
-                        targetHealth.TakeDamage(splashDamage);
+                        targetHealth.TakeDamage(splashDamage, splashPos);
                     }
                 }
             }

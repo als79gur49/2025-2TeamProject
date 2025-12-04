@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 6155080912029036512}
   - component: {fileID: 5109964249920703519}
   - component: {fileID: 5178849677372147376}
+  - component: {fileID: -1952785772156217528}
   m_Layer: 0
   m_Name: Base
   m_TagString: Untagged
@@ -102,7 +103,7 @@ MonoBehaviour:
   enableRegeneration: 0
   regenerationAmount: 1
   regenerationInterval: 1
-  hitVfxData: {fileID: 11400000, guid: 0e0a3b3e00ed7be4aa0dc79b356525fc, type: 2}
+  hitVfxData: {fileID: 0}
   enableDamageDisplay: 0
 --- !u!114 &5178849677372147376
 MonoBehaviour:
@@ -123,3 +124,18 @@ MonoBehaviour:
   vfxRootBody: {fileID: 5528127714960576273}
   vfxRootFeet: {fileID: 0}
   vfxRootWeapon: {fileID: 0}
+--- !u!114 &-1952785772156217528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4555461690902271163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 170233a6d9e5ec34195dfb5a956a464f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healthComponent: {fileID: 5109964249920703519}
+  hitVfxData: {fileID: 11400000, guid: 516efba7ca3bd074e89fe21fbe5cfe6e, type: 2}
+  additionalYOffset: 0.5

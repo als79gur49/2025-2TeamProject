@@ -15,7 +15,7 @@ MonoBehaviour:
   cardID: "\uC2A4\uD0D1 \uC2F8\uC778\uB9E8"
   cardName: "\uC2A4\uD0D1 \uC2F8\uC778\uB9E8"
   description: "\uC2A4\uD0D1 \uC2F8\uC778\uB9E8 \uC720\uB2DB\uC744 \uC18C\uD658\uD55C\uB2E4."
-  cardArt: {fileID: 21300000, guid: cf0ece4edcee4cb47a1897f083d79270, type: 3}
+  cardArt: {fileID: 21300000, guid: 1c8468341fcb0974cb85d9f5213a791f, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0
   manaCost: 4

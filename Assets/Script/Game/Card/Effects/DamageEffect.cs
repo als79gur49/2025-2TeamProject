@@ -70,7 +70,8 @@ namespace Game.Card.Effects
                 // ✅ 이미 피해받은 타겟인지 확인 (Add는 새로 추가되면 true 반환)
                 if (targetHealth != null && targetHealth.IsAlive && damagedTargets.Add(targetHealth))
                 {
-                    targetHealth.TakeDamage(damageAmount);
+                    var hitGridPos = tile.GetGridPosition();
+                    targetHealth.TakeDamage(damageAmount, hitGridPos);
                     affectedCount++;
                 }
             }
@@ -100,7 +101,8 @@ namespace Game.Card.Effects
             if (targetHealth != null && targetHealth.IsAlive)
             {
                 int damageAmount = _definition.DamageAmount;
-                targetHealth.TakeDamage(damageAmount);
+                var hitGridPos = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
+                targetHealth.TakeDamage(damageAmount, hitGridPos);
 
                 Debug.Log($"[DamageEffect] {damageAmount} damage to target at {triggerData.TileGridPosition}");
             }

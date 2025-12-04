@@ -1,9 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Game;
+    using Game;
 using Game.Core;
 using Game.Interfaces;
+using Game.UI;
 
 namespace Game.Services
 {
@@ -57,6 +58,10 @@ namespace Game.Services
         private Base playerBase;
         private Base enemyBase;
 
+        // Base UI controllers (HUD)
+        private BaseUI playerBaseUIController;
+        private BaseUI enemyBaseUIController;
+
         // Initialization state
         private bool isInitialized = false;
 
@@ -85,6 +90,25 @@ namespace Game.Services
         private void Awake()
         {
             Log("[BaseManager] Awake() - Waiting for dependency injection");
+
+            // UI GameObject에서 BaseUI 컴포넌트 캐싱 (Inspector에서 BaseUI를 붙여두었다는 전제)
+            if (playerBaseHealthUI != null)
+            {
+                playerBaseUIController = playerBaseHealthUI.GetComponent<BaseUI>();
+                if (playerBaseUIController == null)
+                {
+                    Debug.LogWarning("[BaseManager] Player Base UI GameObject does not have BaseUI component attached.");
+                }
+            }
+
+            if (enemyBaseHealthUI != null)
+            {
+                enemyBaseUIController = enemyBaseHealthUI.GetComponent<BaseUI>();
+                if (enemyBaseUIController == null)
+                {
+                    Debug.LogWarning("[BaseManager] Enemy Base UI GameObject does not have BaseUI component attached.");
+                }
+            }
         }
 
         private void OnDestroy()
@@ -314,6 +338,7 @@ namespace Game.Services
             if (playerBase?.HealthComponent != null)
             {
                 playerBase.HealthComponent.OnHealthChanged += HandlePlayerHealthChanged;
+                playerBase.HealthComponent.OnDamageTaken += HandlePlayerDamageTaken;
                 Log("[BaseManager] Subscribed to Player Base health events");
 
                 // Initial UI update
@@ -327,6 +352,7 @@ namespace Game.Services
             if (enemyBase?.HealthComponent != null)
             {
                 enemyBase.HealthComponent.OnHealthChanged += HandleEnemyHealthChanged;
+                enemyBase.HealthComponent.OnDamageTaken += HandleEnemyDamageTaken;
                 Log("[BaseManager] Subscribed to Enemy Base health events");
 
                 // Initial UI update
@@ -346,12 +372,14 @@ namespace Game.Services
             if (playerBase?.HealthComponent != null)
             {
                 playerBase.HealthComponent.OnHealthChanged -= HandlePlayerHealthChanged;
+                playerBase.HealthComponent.OnDamageTaken -= HandlePlayerDamageTaken;
                 Log("[BaseManager] Unsubscribed from Player Base health events");
             }
 
             if (enemyBase?.HealthComponent != null)
             {
                 enemyBase.HealthComponent.OnHealthChanged -= HandleEnemyHealthChanged;
+                enemyBase.HealthComponent.OnDamageTaken -= HandleEnemyDamageTaken;
                 Log("[BaseManager] Unsubscribed from Enemy Base health events");
             }
         }
@@ -365,7 +393,10 @@ namespace Game.Services
 
             int maxHP = playerBase.HealthComponent.MaxHealth;
             Log($"[BaseManager] Player Base HP changed: {currentHP}/{maxHP}");
-            UpdateHealthUI(playerBaseHealthUI, currentHP, maxHP);
+            if (playerBaseUIController != null)
+            {
+                playerBaseUIController.SetHealth(currentHP, maxHP);
+            }
         }
 
         /// <summary>
@@ -377,26 +408,39 @@ namespace Game.Services
 
             int maxHP = enemyBase.HealthComponent.MaxHealth;
             Log($"[BaseManager] Enemy Base HP changed: {currentHP}/{maxHP}");
-            UpdateHealthUI(enemyBaseHealthUI, currentHP, maxHP);
+            if (enemyBaseUIController != null)
+            {
+                enemyBaseUIController.SetHealth(currentHP, maxHP);
+            }
         }
 
         /// <summary>
-        /// Updates the Health UI for a specific Base
-        /// Supports both Slider and TextMeshProUGUI components
+        /// 플레이어 Base가 피해를 받았을 때 HUD 데미지 팝업 표시
         /// </summary>
-        private void UpdateHealthUI(GameObject healthUI, int currentHP, int maxHP)
+        private void HandlePlayerDamageTaken(int damage, int currentHP)
         {
-            if (healthUI == null)
-            {
-                // UI 참조가 없을 수 있음 (선택 사항)
-                return;
-            }
+            if (playerBase?.HealthComponent == null) return;
 
-            // Update TextMeshProUGUI if present
-            TextMeshProUGUI text = healthUI.GetComponentInChildren<TextMeshProUGUI>();
-            if (text != null)
+            Log($"[BaseManager] Player Base took damage: {damage}, HP: {currentHP}/{playerBase.HealthComponent.MaxHealth}");
+
+            if (playerBaseUIController != null)
             {
-                text.text = $"{currentHP}";
+                playerBaseUIController.ShowDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// 적 Base가 피해를 받았을 때 HUD 데미지 팝업 표시
+        /// </summary>
+        private void HandleEnemyDamageTaken(int damage, int currentHP)
+        {
+            if (enemyBase?.HealthComponent == null) return;
+
+            Log($"[BaseManager] Enemy Base took damage: {damage}, HP: {currentHP}/{enemyBase.HealthComponent.MaxHealth}");
+
+            if (enemyBaseUIController != null)
+            {
+                enemyBaseUIController.ShowDamage(damage);
             }
         }
 

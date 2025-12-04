@@ -40,7 +40,10 @@ namespace Game.Components
 
         [Header("Audio Configuration")]
         [SerializeField] private SoundEventChannelSO soundEventChannel;  // Event Channel
-        [SerializeField] private AudioData attackSound;              // AudioData
+        [SerializeField] private AudioData meleeAttackSound;             // 근거리 공격용
+        [SerializeField] private AudioData rangedAttackSound;            // 원거리 공격용
+        [SerializeField, Obsolete("Use meleeAttackSound or rangedAttackSound instead")]
+        private AudioData attackSound;                                   // 레거시 단일 공격 사운드 (폴백용)
 
         // 런타임 상태
         private bool isInCombat = false;
@@ -53,6 +56,14 @@ namespace Game.Components
         private List<GameObject> currentAttackTargets = null;
         private bool isSpecialAttackActive = false;
         private bool isForceCritical = false;
+
+        private enum AttackDistanceType
+        {
+            Melee,
+            Ranged
+        }
+
+        private AttackDistanceType currentAttackDistanceType = AttackDistanceType.Melee;
 
         // 새로운 Action System 필드
         private ActionResult currentAttackResult;
@@ -193,6 +204,9 @@ namespace Game.Components
                 Debug.LogWarning($"[CombatComponent] {gameObject.name} is already attacking!");
                 return CombatResult.Failed("Already attacking");
             }
+
+            // 이번 공격의 거리 타입 설정 (근거리 / 원거리)
+            UpdateAttackDistanceTypeForSingleTarget(target);
 
             // 단일 타겟을 List로 변환
             List<GameObject> targets = new List<GameObject> { target };
@@ -491,6 +505,128 @@ namespace Game.Components
         #region Private Methods
 
         /// <summary>
+        /// 현재 공격의 거리 타입(근거리/원거리)을 단일 타겟 기준으로 갱신
+        /// </summary>
+        private void UpdateAttackDistanceTypeForSingleTarget(GameObject target)
+        {
+            if (gridManager == null || target == null)
+            {
+                currentAttackDistanceType = AttackDistanceType.Melee;
+                return;
+            }
+
+            var myPosition = gridManager.GetUnitPosition(gameObject);
+            var targetPosition = gridManager.GetUnitPosition(target);
+            int distance = myPosition.GetManhattanDistance(targetPosition);
+
+            currentAttackDistanceType = distance <= 1
+                ? AttackDistanceType.Melee
+                : AttackDistanceType.Ranged;
+        }
+
+        /// <summary>
+        /// 현재 공격의 거리 타입(근거리/원거리)을 타일 리스트 기준으로 갱신
+        /// </summary>
+        private void UpdateAttackDistanceTypeForTiles(List<Tile> tiles)
+        {
+            if (gridManager == null || tiles == null || tiles.Count == 0)
+            {
+                currentAttackDistanceType = AttackDistanceType.Melee;
+                return;
+            }
+
+            var myPosition = gridManager.GetUnitPosition(gameObject);
+            int maxDistance = 0;
+
+            foreach (var tile in tiles)
+            {
+                if (tile == null) continue;
+
+                var tilePos = new Vector2Int(tile.X, tile.Y);
+                int distance = myPosition.GetManhattanDistance(tilePos);
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                }
+            }
+
+            currentAttackDistanceType = maxDistance <= 1
+                ? AttackDistanceType.Melee
+                : AttackDistanceType.Ranged;
+        }
+
+        /// <summary>
+        /// 현재 공격의 거리 타입(근거리/원거리)을 ActionResult / ActionContext 기반으로 갱신
+        /// </summary>
+        private void UpdateAttackDistanceTypeFromActionResult(ActionResult result, ActionContext context)
+        {
+            if (result == null || context == null)
+            {
+                currentAttackDistanceType = AttackDistanceType.Melee;
+                return;
+            }
+
+            // 투사체/레이저 공격은 명시적으로 원거리로 간주
+            if (result.SelectedModifier is IProjectileAttackModifier)
+            {
+                currentAttackDistanceType = AttackDistanceType.Ranged;
+                return;
+            }
+
+            var origin = context.ActorPosition;
+            var tiles = result.ValidTiles;
+            if (tiles == null || tiles.Count == 0)
+            {
+                currentAttackDistanceType = AttackDistanceType.Melee;
+                return;
+            }
+
+            int maxDistance = 0;
+            foreach (var tile in tiles)
+            {
+                if (tile == null) continue;
+
+                var tilePos = new Vector2Int(tile.X, tile.Y);
+                int distance = origin.GetManhattanDistance(tilePos);
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                }
+            }
+
+            currentAttackDistanceType = maxDistance <= 1
+                ? AttackDistanceType.Melee
+                : AttackDistanceType.Ranged;
+        }
+
+        /// <summary>
+        /// 현재 거리 타입에 따라 적절한 공격 사운드를 재생
+        /// </summary>
+        private void PlayAttackSound()
+        {
+            if (soundEventChannel == null)
+                return;
+
+            AudioData clip = null;
+
+            switch (currentAttackDistanceType)
+            {
+                case AttackDistanceType.Melee:
+                    clip = meleeAttackSound ?? attackSound;
+                    break;
+                case AttackDistanceType.Ranged:
+                    clip = rangedAttackSound ?? attackSound;
+                    break;
+            }
+
+            if (clip == null)
+                return;
+
+            var request = AudioPlayRequest.Create(clip, this);
+            soundEventChannel.RaiseSoundEvent(request);
+        }
+
+        /// <summary>
         /// 실제 데미지 적용 메서드 (애니메이션 없이 즉시 적용)
         /// </summary>
         private CombatResult ApplyDamageToTarget(GameObject target, bool isSpecialAttack, bool forceCritical = false)
@@ -505,6 +641,9 @@ namespace Game.Components
             {
                 return CombatResult.Failed("Target has no health or is dead");
             }
+
+            // 단일 타겟 기준으로 거리 타입 갱신
+            UpdateAttackDistanceTypeForSingleTarget(target);
 
             // 크리티컬 판정
             bool isCritical = forceCritical || this.RollCritical();
@@ -531,11 +670,7 @@ namespace Game.Components
                 isSpecialAttack ? "Special attack hit!" : (isCritical ? "Critical hit!" : "Attack hit!"));
 
             // 사운드 출력
-            if (soundEventChannel != null && attackSound != null)
-            {
-                var request = AudioPlayRequest.Create(attackSound, this);
-                soundEventChannel.RaiseSoundEvent(request);
-            }
+            PlayAttackSound();
 
             OnAttackPerformed?.Invoke(target, result);
 
@@ -881,10 +1016,9 @@ namespace Game.Components
             }
 
             // 사운드 출력 (한 번만)
-            if (affectedCount > 0 && soundEventChannel != null && attackSound != null)
+            if (affectedCount > 0)
             {
-                var request = AudioPlayRequest.Create(attackSound, this);
-                soundEventChannel.RaiseSoundEvent(request);
+                PlayAttackSound();
             }
 
             return affectedCount;
@@ -950,6 +1084,9 @@ namespace Game.Components
                 return 0;
             }
 
+            // 공격 거리 타입 설정 (타일 기반)
+            UpdateAttackDistanceTypeForTiles(targetTiles);
+
             // 3. 공격 상태 설정
             isAttacking = true;
             currentAttackTargets = validTargets;
@@ -988,6 +1125,9 @@ namespace Game.Components
         public void ExecuteAttackWithResult(ActionResult result, ActionContext context)
         {
             if (isAttacking || result == null) return;
+
+            // 새로운 Action System 기반 공격의 거리 타입 설정
+            UpdateAttackDistanceTypeFromActionResult(result, context);
 
             isAttacking = true;
             currentAttackResult = result;
@@ -1034,11 +1174,15 @@ namespace Game.Components
                 var targetHealth = tile.GetDamageableTarget();
                 if (targetHealth != null && targetHealth.IsAlive && uniqueTargets.Add(targetHealth))
                 {
-                    ApplyDamageToTarget(targetHealth.gameObject, modifierDamage);
+                    var hitGridPos = tile.GetGridPosition();
+                    ApplyDamageToTarget(targetHealth.gameObject, modifierDamage, hitGridPos);
                 }
             }
 
             TriggerAttackEffects(currentAttackResult.ValidTiles, currentAttackContext);
+
+            // 새로운 액션 시스템 기반 근/원거리 공격 사운드 재생
+            PlayAttackSound();
         }
 
         /// <summary>
@@ -1074,6 +1218,9 @@ namespace Game.Components
                 Debug.Log($"[CombatComponent] HandleProjectileAttack: no validTiles");
                 return;
             }
+
+            // 투사체 공격 시작 시 원거리 공격 사운드 재생
+            PlayAttackSound();
 
             isProjectileAttackInProgress = true;
 
@@ -1176,7 +1323,7 @@ namespace Game.Components
                 // OnHitTargetTile
                 (proj, health, hitPos) =>
                 {
-                    ApplyDamageToTarget(health.gameObject, projectileDamage);
+                    ApplyDamageToTarget(health.gameObject, projectileDamage, hitPos);
 
                     var hitTile = gridController.GetTileAtPosition(hitPos);
                     if (hitTile != null && !projectileHitTiles.Contains(hitTile))
@@ -1213,7 +1360,7 @@ namespace Game.Components
         /// <summary>
         /// 단일 타겟에 데미지 적용 (새 시스템용)
         /// </summary>
-        private void ApplyDamageToTarget(GameObject target, int baseDamage)
+        private void ApplyDamageToTarget(GameObject target, int baseDamage, Vector2Int? hitGridPosition = null)
         {
             var targetHealth = target.GetComponent<IHealthComponent>();
             if (targetHealth == null) return;
@@ -1221,7 +1368,15 @@ namespace Game.Components
             bool isCritical = this.RollCritical();
             int finalDamage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
 
-            targetHealth.TakeDamage(finalDamage);
+            // 위치 정보를 알고 있고 구현이 HealthComponent라면, 확장 오버로드 사용
+            if (hitGridPosition.HasValue && targetHealth is HealthComponent concreteHealth)
+            {
+                concreteHealth.TakeDamage(finalDamage, hitGridPosition.Value);
+            }
+            else
+            {
+                targetHealth.TakeDamage(finalDamage);
+            }
 
             var result = CombatResult.Hit(finalDamage, target, attackType, isCritical, "Ability");
             OnAttackPerformed?.Invoke(target, result);

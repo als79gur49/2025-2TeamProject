@@ -76,6 +76,8 @@ namespace Game.Components
             {
                 SetupBallisticProjectile();
             }
+
+            projectile.PlayStartSound();
         }
 
         private void Update()

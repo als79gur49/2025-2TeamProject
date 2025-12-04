@@ -1027,7 +1027,10 @@ MonoBehaviour:
   specialAttackCooldown: 3
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  meleeAttackSound: {fileID: 11400000, guid: 9cc937023f165c847ada064bfd0cdd0f, type: 2}
+  rangedAttackSound: {fileID: 11400000, guid: 3ab781e23ffc69d408aa7b7604cfda44, type: 2}
   attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
+  projectilePrefab: {fileID: 0}
 --- !u!114 &-8892937695582244465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1049,6 +1052,11 @@ MonoBehaviour:
   enableRegeneration: 0
   regenerationAmount: 1
   regenerationInterval: 1
+  hitVfxData: {fileID: 0}
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  deathSoundData: {fileID: 11400000, guid: 45fabfa60236dbe4482d1738d26feb8d, type: 2}
+  hitSoundData: {fileID: 11400000, guid: 37c5db0b928dbb7439ddd75186afdfb3, type: 2}
+  enableDamageDisplay: 1
 --- !u!114 &-1534838742447952655
 MonoBehaviour:
   m_ObjectHideFlags: 0

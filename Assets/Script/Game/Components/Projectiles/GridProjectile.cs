@@ -66,6 +66,11 @@ namespace Game.Components
         private int pendingDelayedHits;
         private bool travelCompleted;
 
+        [Header("Audio Settings")]
+        [SerializeField] private SoundEventChannelSO soundEventChannel;
+        [SerializeField] private AudioData startSoundData;
+        [SerializeField] private AudioData hitSoundData;
+
         public Action<GridProjectile, HealthComponent, Vector2Int> OnHitTargetTile;
         public Action<GridProjectile> OnFinished;
 
@@ -76,6 +81,28 @@ namespace Game.Components
         public Vector3 OriginWorldPosition => originWorld;
         public Vector3 TargetWorldPosition => targetWorld;
         public bool HasTargetWorldPosition => hasTargetWorld;
+
+        public void PlayStartSound()
+        {
+            if (soundEventChannel == null || startSoundData == null)
+            {
+                return;
+            }
+
+            var request = AudioPlayRequest.Create(startSoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
+        }
+
+        public void PlayHitSound()
+        {
+            if (soundEventChannel == null || hitSoundData == null)
+            {
+                return;
+            }
+
+            var request = AudioPlayRequest.Create(hitSoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
+        }
 
         public void Initialize(
             Unit owner,
@@ -242,6 +269,7 @@ namespace Game.Components
                 if (!uniqueTargets.Add(health))
                     continue;
 
+                PlayHitSound();
                 OnHitTargetTile?.Invoke(this, health, pos);
 
                 if (!piercing)
@@ -460,6 +488,7 @@ namespace Game.Components
             }
             else
             {
+                PlayHitSound();
                 OnHitTargetTile?.Invoke(this, health, tilePos);
 
                 if (!piercing)
@@ -477,7 +506,7 @@ namespace Game.Components
             if (hitVfxPrefab == null || gridManager == null)
                 return;
 
-            Vector3 worldPos = gridManager.GridToWorldPosition(gridPos);
+            Vector3 worldPos = gridManager.CalculateWorldPositionWithHeight(gridPos);
             Instantiate(hitVfxPrefab, worldPos, Quaternion.identity);
         }
 
@@ -496,6 +525,7 @@ namespace Game.Components
 
             if (health != null && health.IsAlive)
             {
+                PlayHitSound();
                 OnHitTargetTile?.Invoke(this, health, hitPos);
             }
 

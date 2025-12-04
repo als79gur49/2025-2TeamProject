@@ -1664,6 +1664,8 @@ MonoBehaviour:
   specialAttackCooldown: 3
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  meleeAttackSound: {fileID: 11400000, guid: 52081abc96409b5409c16733b05f9642, type: 2}
+  rangedAttackSound: {fileID: 11400000, guid: 52081abc96409b5409c16733b05f9642, type: 2}
   attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
   projectilePrefab: {fileID: 0}
 --- !u!114 &5663423671410054017
@@ -1688,6 +1690,10 @@ MonoBehaviour:
   regenerationAmount: 1
   regenerationInterval: 1
   hitVfxData: {fileID: 11400000, guid: 09e7e93afa57c99428b7005e96f2beb4, type: 2}
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  deathSoundData: {fileID: 11400000, guid: e792a4704cb6fcd4fadb10bbec16b3d1, type: 2}
+  hitSoundData: {fileID: 11400000, guid: 37c5db0b928dbb7439ddd75186afdfb3, type: 2}
+  enableDamageDisplay: 1
 --- !u!114 &4005101670215275980
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2632,7 +2638,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8925116465230936241}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.17364816, z: 0, w: 0.9848078}
   m_LocalPosition: {x: 0, y: 2.4, z: 0}
   m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
@@ -2652,4 +2658,4 @@ Transform:
   - {fileID: 9218668152497590057}
   - {fileID: 7057727329041627889}
   m_Father: {fileID: 5871219455940651123}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 20, z: 0}

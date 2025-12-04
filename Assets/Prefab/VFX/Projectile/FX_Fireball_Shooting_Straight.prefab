@@ -9569,6 +9569,9 @@ MonoBehaviour:
   executionType: 0
   hitDelay: 0.2
   hitVfxPrefab: {fileID: 0}
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSoundData: {fileID: 0}
+  hitSoundData: {fileID: 0}
 --- !u!114 &4933238349651729007
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: SummonCircleVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1231247210357622, guid: 2fb9cee2b34d2ee4bb5f181d2df61846, type: 3}
-  triggerNormalizedTime: 0.594
-  playbackSpeed: 1.5
+  triggerNormalizedTime: 0.5
+  playbackSpeed: 1
   positionOffset: {x: 0, y: 0.5, z: 0}

@@ -60,7 +60,8 @@ namespace Game.Components.Abilities
                 var target = tile.GetDamageableTarget();
                 if (target != null && target.IsAlive && target.gameObject != Owner.gameObject && IsEnemy(target.gameObject))
                 {
-                    target.TakeDamage(damage);
+                    var hitGridPos = tile.GetGridPosition();
+                    target.TakeDamage(damage, hitGridPos);
                 }
             }
 
@@ -75,4 +76,3 @@ namespace Game.Components.Abilities
         }
     }
 }
-

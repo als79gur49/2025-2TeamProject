@@ -4840,6 +4840,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   executionType: 1
   hitDelay: 0.6
+  hitVfxPrefab: {fileID: 0}
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSoundData: {fileID: 11400000, guid: 3ab781e23ffc69d408aa7b7604cfda44, type: 2}
+  hitSoundData: {fileID: 0}
 --- !u!114 &1757349051993128329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4855,3 +4859,37 @@ MonoBehaviour:
   projectile: {fileID: 5883599663178147563}
   baseSpeed: 5
   baseZScale: 1
+  flightDuration: 0.5
+  heightCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

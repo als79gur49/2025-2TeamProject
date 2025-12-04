@@ -45,7 +45,7 @@ ParticleSystem:
   m_GameObject: {fileID: 1231247210357622}
   serializedVersion: 8
   lengthInSec: 3
-  simulationSpeed: 1
+  simulationSpeed: 1.7
   stopAction: 0
   cullingMode: 1
   ringBufferMode: 0
@@ -4791,7 +4791,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.5
-  maxLifetime: 3
+  maxLifetime: 2.1
+  maxWaitNormalizedTime: 0.7
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 11400000, guid: 3d382cd9f6103304cacda46ab9c85447, type: 2}
   triggerSound: {fileID: 0}
@@ -4838,7 +4839,7 @@ ParticleSystem:
   m_GameObject: {fileID: 1319865409307574}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 1.7
   stopAction: 0
   cullingMode: 3
   ringBufferMode: 0
@@ -9689,7 +9690,7 @@ ParticleSystem:
   m_GameObject: {fileID: 1486379397842580}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 1.7
   stopAction: 0
   cullingMode: 3
   ringBufferMode: 0

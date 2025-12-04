@@ -9,6 +9,7 @@ using Game.Repositories;
 using Game.VFX;
 using System.ComponentModel;
 using Unity.Collections;
+using Game;
 
 namespace Game.Components
 {
@@ -37,11 +38,18 @@ namespace Game.Components
         [Header("VFX 설정")]
         [SerializeField] private VFXData hitVfxData;
 
+        [Header("Audio 설정")]
+        [SerializeField] private SoundEventChannelSO soundEventChannel;
+        [SerializeField] private AudioData deathSoundData;
+        [SerializeField] private AudioData hitSoundData;
+
         [Header("Debug / Damage Display")]
         [SerializeField] private bool enableDamageDisplay = true;
 
         // ✅ 인터페이스 이벤트 구현 (Action으로 통일)
         public event Action<int> OnHealthChanged;
+        /// <summary>실제 피해가 적용된 피격 그리드 위치 알림 이벤트</summary>
+        public event Action<Vector2Int> OnHitGridPosition;
         public event Action<int, int> OnDamageTaken;
         public event Action<int, int> OnHealed;
         public event Action OnDeath;
@@ -91,7 +99,6 @@ namespace Game.Components
             // 초기 체력 설정
             currentHealth = startingHealth > 0 ? startingHealth : maxHealth;
             currentArmor = baseArmor;
-            
         }
 
         private void Start()
@@ -127,6 +134,17 @@ namespace Game.Components
         // ✅ 기본 체력 조작 메서드들
         public void TakeDamage(int damage)
         {
+            // 위치 정보를 모르는 기존 호출들은 hitGridPosition 없이 처리
+            TakeDamage(damage, null);
+        }
+
+        /// <summary>
+        /// 그리드 기반 피격 위치를 함께 전달하는 확장 오버로드
+        /// - hitGridPosition: 피격이 발생한 타일 좌표 (없으면 null)
+        /// 내부 처리(ProcessDamage)는 변경하지 않고, 현재는 위치 정보만 수집 용도로 받는다.
+        /// </summary>
+        public void TakeDamage(int damage, Vector2Int? hitGridPosition)
+        {
             if (damage <= 0)
             {
                 Debug.LogWarning($"[HealthComponent] {gameObject.name} received invalid damage: {damage}");
@@ -146,7 +164,9 @@ namespace Game.Components
             }
 
             var damageInfo = new DamageInfo(damage, DamageType.Physical, null);
-            ProcessDamage(damageInfo);
+
+            // 피격 위치 정보를 함께 내부 처리 메서드로 전달
+            ProcessDamage(damageInfo, hitGridPosition);
         }
 
         public void Heal(int amount)
@@ -328,7 +348,12 @@ namespace Game.Components
         }
 
         // ✅ 내부 처리 메서드들
-        private void ProcessDamage(DamageInfo damageInfo)
+        /// <summary>
+        /// 실제 피해 적용 로직
+        /// - damageInfo: 피해 정보
+        /// - hitGridPosition: 피해가 발생한 그리드 좌표 (없으면 null)
+        /// </summary>
+        private void ProcessDamage(DamageInfo damageInfo, Vector2Int? hitGridPosition = null)
         {
             int finalDamage = damageInfo.IgnoreArmor ? 
                 damageInfo.RawDamage : 
@@ -346,12 +371,24 @@ namespace Game.Components
             if (finalDamage > 0)
             {
                 currentHealth = Mathf.Max(0, currentHealth - finalDamage);
-                if (enableDamageDisplay)
+
+                // 피격 위치 이벤트 알림 (그리드 좌표가 있는 경우에만)
+                if (hitGridPosition.HasValue)
+                {
+                    OnHitGridPosition?.Invoke(hitGridPosition.Value);
+                }
+
+                // Base인 경우에는 enableDamageDisplay 설정과 상관없이 DamageDisplay 시스템을 사용
+                bool shouldDisplayDamage = enableDamageDisplay;
+                if (shouldDisplayDamage)
                 {
                     Debug.Log($"받은 데미지{finalDamage} | 남은 체력: {currentHealth}");
 
                     // 피격 VFX 재생
                     TryPlayHitVFX();
+
+                    // 피격 사운드 재생
+                    TryPlayHitSound();
 
                     // ✅ 데미지 표시 요청 (Repository를 통해 데이터 검증 및 EventChannel 발송)
                     damageDisplayRepository?.SendDamageDisplay(
@@ -377,6 +414,8 @@ namespace Game.Components
             enableRegeneration = false; // 사망 시 재생 중단
 
             Debug.Log($"[HealthComponent] {gameObject.name} has died! Health: {currentHealth}/{MaxHealth}");
+
+            PlayDeathSound();
 
             // 이벤트 기반 사망 처리 - 구독자(Unit, Base 등)가 각자 처리하도록 위임
             // Unit과 Base 모두 OnDeath 이벤트를 구독하여 각자의 방식으로 파괴 처리
@@ -455,6 +494,28 @@ namespace Game.Components
             {
                 vfxController.PlayHitVFX(hitVfxData);
             }
+        }
+
+        private void PlayDeathSound()
+        {
+            if (soundEventChannel == null || deathSoundData == null)
+            {
+                return;
+            }
+
+            var request = AudioPlayRequest.Create(deathSoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
+        }
+
+        private void TryPlayHitSound()
+        {
+            if (soundEventChannel == null || hitSoundData == null)
+            {
+                return;
+            }
+
+            var request = AudioPlayRequest.Create(hitSoundData, this);
+            soundEventChannel.RaiseSoundEvent(request);
         }
     }
 }
