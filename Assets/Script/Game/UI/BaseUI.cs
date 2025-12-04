@@ -132,7 +132,6 @@ namespace Game.UI
         /// </summary>
         private IEnumerator DamagePopupRoutine(int amount)
         {
-            Debug.LogError($"{amount} dssds");
             // 시작 상태 설정
             damageText.text = $"{amount}";
             damageText.gameObject.SetActive(true);
