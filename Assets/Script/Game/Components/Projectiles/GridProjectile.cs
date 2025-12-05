@@ -53,6 +53,10 @@ namespace Game.Components
         [Tooltip("MovingDelayed 모드에서 ValidTile에 도착했을 때 생성할 히트 VFX")]
         private ParticleSystem hitVfxPrefab;
 
+        [SerializeField]
+        [Tooltip("지연 타격이 모두 끝난 후, 투사체를 파괴하기 전에 추가로 유지할 시간(초)")]
+        private float lingerDurationAfterHit = 0.5f;
+
         // InstantLaser 모드에서 사용할 주 타겟 타일 (origin → mainTarget 경로를 기준으로 레이저 경로 계산)
         private Vector2Int? mainTargetGrid;
 
@@ -145,7 +149,15 @@ namespace Game.Components
             originWorld = transform.position;
             if (this.mainTargetGrid.HasValue && this.gridManager != null)
             {
-                targetWorld = this.gridManager.GridToWorldPosition(this.mainTargetGrid.Value);
+                // BallisticEqualTime 투사체는 목표 위치에 실제 지형 높이(베이스 높이)를 반영
+                if (executionType == ProjectileExecutionType.BallisticEqualTime)
+                {
+                    targetWorld = this.gridManager.CalculateWorldPositionWithHeight(this.mainTargetGrid.Value);
+                }
+                else
+                {
+                    targetWorld = this.gridManager.GridToWorldPosition(this.mainTargetGrid.Value);
+                }
                 hasTargetWorld = true;
             }
             else
@@ -168,6 +180,10 @@ namespace Game.Components
             {
                 StartCoroutine(ExecuteInstantLaserRoutine());
             }
+            else if (executionType == ProjectileExecutionType.BallisticEqualTime)
+            {
+                StartCoroutine(ExecuteBallisticDelayedHitRoutine());
+            }
 
             Debug.Log($"[GridProjectile] owner: {owner}, originGrid:{originGrid} -> lastGrid:{lastGridPos}, range{maxRange}");
         }
@@ -176,8 +192,7 @@ namespace Game.Components
         {
             // 이동형 투사체 계열만 처리
             if (executionType != ProjectileExecutionType.Moving &&
-                executionType != ProjectileExecutionType.MovingDelayed &&
-                executionType != ProjectileExecutionType.BallisticEqualTime)
+                executionType != ProjectileExecutionType.MovingDelayed)
                 return;
 
             if (gridManager == null || owner == null)
@@ -279,6 +294,63 @@ namespace Game.Components
             }
 
             FinishProjectile();
+        }
+
+        /// <summary>
+        /// BallisticEqualTime 모드에서, InstantLaser처럼 일정 시간(hitDelay) 후
+        /// targetTiles 전체에 대해 실제 데미지를 적용한 뒤,
+        /// 잠시 잔류(lingerDurationAfterHit) 후 파괴한다.
+        /// </summary>
+        private System.Collections.IEnumerator ExecuteBallisticDelayedHitRoutine()
+        {
+            if (gridManager == null || owner == null)
+            {
+                FinishProjectile();
+                yield break;
+            }
+
+            // BallisticEqualTime에서는 그리드 기반 DDA 충돌 대신,
+            // ActionResult.ValidTiles(= targetTiles)를 그대로 사용한다.
+
+            if (hitDelay > 0f)
+            {
+                yield return new WaitForSeconds(hitDelay);
+            }
+
+            if (targetTiles == null || targetTiles.Count == 0)
+            {
+                FinishWithLinger();
+                yield break;
+            }
+
+            var uniqueTargets = new HashSet<HealthComponent>();
+
+            foreach (var tilePos in targetTiles)
+            {
+                if (!gridManager.IsValidPosition(tilePos))
+                    continue;
+
+                var targetGO = gridManager.GetAttackableTargetAtPosition(tilePos);
+                if (targetGO == null)
+                    continue;
+
+                var targetTeam = targetGO.GetComponent<ITeamComponent>();
+                var health = targetGO.GetComponent<HealthComponent>();
+
+                if (targetTeam == null || health == null || !health.IsAlive)
+                    continue;
+
+                if (TeamRelationMatrix.GetRelation(ownerTeam, targetTeam.Team) != TeamRelation.Enemy)
+                    continue;
+
+                if (!uniqueTargets.Add(health))
+                    continue;
+
+                PlayHitSound();
+                OnHitTargetTile?.Invoke(this, health, tilePos);
+            }
+
+            FinishWithLinger();
         }
 
         private void EnqueuePendingTile(Vector2Int tilePos)
@@ -544,6 +616,30 @@ namespace Game.Components
         private void FinishProjectile()
         {
             OnFinished?.Invoke(this);
+            Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// BallisticEqualTime 등에서, 논리적인 공격 종료(OnFinished) 후
+        /// 약간의 잔류 시간을 가진 뒤 실제로 파괴한다.
+        /// </summary>
+        private void FinishWithLinger()
+        {
+            OnFinished?.Invoke(this);
+
+            if (lingerDurationAfterHit > 0f)
+            {
+                StartCoroutine(LingerAndDestroyRoutine());
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        private System.Collections.IEnumerator LingerAndDestroyRoutine()
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, lingerDurationAfterHit));
             Destroy(gameObject);
         }
     }
