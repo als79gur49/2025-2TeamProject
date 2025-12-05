@@ -16,6 +16,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.ActionBased;
+
         private readonly VFXData vfxOverride;
         private readonly Vector3 extraOffset;
         private readonly VFXAnchorType anchor;
@@ -48,8 +50,12 @@ namespace Game.Components.Abilities
             this.extraOffset = extraOffset;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            // 스턴은 유닛의 행동 턴(Action Turn)이 한 번 처리되었을 때를 기준으로 감소합니다.
+            if (context.Source != DurationTickSource.ActionEnd)
+                return;
+
             if (RemainingDuration > 0)
                 RemainingDuration--;
         }

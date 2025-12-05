@@ -16,6 +16,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly int damage;
         private readonly int radius;
         private readonly IGridManager gridManager;
@@ -34,8 +36,11 @@ namespace Game.Components.Abilities
             teamComponent = owner.GetComponent<ITeamComponent>();
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            if (context.Source != DurationTickSource.TurnEnd)
+                return;
+
             if (RemainingDuration > 0)
                 RemainingDuration--;
         }

@@ -83,11 +83,13 @@ namespace Game.Core.Effects
         }
 
         /// <summary>
-        /// 모든 Effect의 지속 턴을 1씩 감소시키고,
-        /// 남은 지속 턴이 0인 Effect를 제거합니다.
+        /// 전역 턴 종료(TurnEnd) 시점에서 DurationType이 TimeBased인 Effect들의
+        /// 지속 턴을 감소시키고, 만료된 Effect를 제거합니다.
         /// </summary>
-        public void TickDurationsAndCleanup()
+        public void TickDurationsOnTurnEnd()
         {
+            var context = new DurationTickContext(DurationTickSource.TurnEnd, owner, null);
+
             foreach (var kv in effectsByTrigger)
             {
                 var list = kv.Value;
@@ -100,7 +102,39 @@ namespace Game.Core.Effects
                         continue;
                     }
 
-                    effect.TickDuration();
+                    effect.TickDuration(context);
+
+                    if (effect.RemainingDuration == 0)
+                    {
+                        list.RemoveAt(i);
+                        OnEffectRemoved?.Invoke(effect);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 유닛의 행동 턴(Action Turn)이 종료되었을 때,
+        /// DurationType이 ActionBased인 Effect들의 지속 턴을 감소시키고,
+        /// 만료된 Effect를 제거합니다.
+        /// </summary>
+        public void TickDurationsOnActionEnd(ActionTurnOutcome actionOutcome)
+        {
+            var context = new DurationTickContext(DurationTickSource.ActionEnd, owner, actionOutcome);
+
+            foreach (var kv in effectsByTrigger)
+            {
+                var list = kv.Value;
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    var effect = list[i];
+                    if (effect == null)
+                    {
+                        list.RemoveAt(i);
+                        continue;
+                    }
+
+                    effect.TickDuration(context);
 
                     if (effect.RemainingDuration == 0)
                     {

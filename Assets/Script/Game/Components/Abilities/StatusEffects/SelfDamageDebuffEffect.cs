@@ -15,6 +15,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly int damagePerTurn;
 
         public SelfDamageDebuffEffect(Unit owner, int damagePerTurn, EffectTrigger trigger, int priority, int durationTurns)
@@ -26,8 +28,12 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            // 자해 디버프는 전역 턴 종료(TurnEnd)를 기준으로 지속 시간을 감소시킵니다.
+            if (context.Source != DurationTickSource.TurnEnd)
+                return;
+
             if (RemainingDuration > 0)
                 RemainingDuration--;
         }
@@ -47,4 +53,3 @@ namespace Game.Components.Abilities
         }
     }
 }
-

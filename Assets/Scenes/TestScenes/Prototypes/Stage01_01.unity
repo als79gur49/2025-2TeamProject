@@ -633,7 +633,7 @@ PrefabInstance:
     - target: {fileID: 5120932942352483211, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 134.93
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5120932942352483211, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -678,7 +678,7 @@ PrefabInstance:
     - target: {fileID: 6110386155033449568, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 275.48
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6110386155033449568, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -723,7 +723,7 @@ PrefabInstance:
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 8
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -753,13 +753,13 @@ PrefabInstance:
         type: 3}
       propertyPath: initialHandCards.Array.data[5]
       value: 
-      objectReference: {fileID: 11400000, guid: 1d2bf795fc0fdea46a8ae6aaa8d41d29,
+      objectReference: {fileID: 11400000, guid: d716ab2c1decb6a43ab4f8087ff5b442,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[6]
       value: 
-      objectReference: {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3,
+      objectReference: {fileID: 11400000, guid: d716ab2c1decb6a43ab4f8087ff5b442,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -840,7 +840,7 @@ PrefabInstance:
     - target: {fileID: 8855728727126768160, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 156.81
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8855728727126768160, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}

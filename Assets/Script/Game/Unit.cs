@@ -9,6 +9,7 @@ using Game.Interfaces;
 using Game.Services;
 using System.Collections.Generic;
 using UnityEngine;
+
 using static UnityEngine.UI.CanvasScaler;
 public class Unit : MonoBehaviour
 {
@@ -635,8 +636,8 @@ public class Unit : MonoBehaviour
         // Effect: OnTurnEnd 트리거
         TriggerEffects(EffectTrigger.OnTurnEnd, new EffectContext());
 
-        // 지속 턴 감소 및 정리
-        effectManager?.TickDurationsAndCleanup();
+        // 지속 턴 감소 및 정리 (TimeBased 효과)
+        effectManager?.TickDurationsOnTurnEnd();
 
         frenzyEligibleForNextAction = false;
 
@@ -1142,6 +1143,15 @@ public class Unit : MonoBehaviour
         if (IsStunned())
         {
             Debug.Log($"[Unit] {gameObject.name} is stunned and skips its turn");
+
+            // 스턴으로 인해 행동이 스킵되더라도, 이는 행동 턴 1회를 소비한 것으로 간주하여
+            // ActionBased Duration Tick을 수행합니다.
+            if (effectManager != null)
+            {
+                var skippedOutcome = new ActionTurnOutcome(ActionOutcomeType.Skipped, false, null);
+                effectManager.TickDurationsOnActionEnd(skippedOutcome);
+            }
+
             return;
         }
 
@@ -1240,10 +1250,19 @@ public class Unit : MonoBehaviour
     /// </summary>
     private void OnAllActionsCompleted()
     {
+        // 이번 행동 턴의 결과 요약
+        var outcome = BuildActionTurnOutcome();
+
         isExecutingAction = false;
         currentActionResult = null;
         currentActionContext = null;
         actionEvaluator.Reset();
+
+        // ActionBased Duration Tick 수행
+        if (effectManager != null)
+        {
+            effectManager.TickDurationsOnActionEnd(outcome);
+        }
 
         bool startedFrenzyExtraAction = false;
 
@@ -1264,6 +1283,49 @@ public class Unit : MonoBehaviour
         globalStateManager?.SetIdle(this, BusyType.GameFlowLock);
 
         Debug.Log($"[Unit] {gameObject.name} completed all actions and released GameFlowLock");
+    }
+
+    /// <summary>
+    /// 현재 유닛의 행동 턴이 어떤 결과로 종료되었는지 요약합니다.
+    /// </summary>
+    private ActionTurnOutcome BuildActionTurnOutcome()
+    {
+        if (!IsAlive)
+        {
+            return new ActionTurnOutcome(ActionOutcomeType.None, false, null);
+        }
+
+        if (IsStunned())
+        {
+            // ExecuteAITurn에서 이미 스킵 처리된 경우는 별도로 처리되지만,
+            // 안전하게 스턴 상태를 다시 한 번 반영합니다.
+            return new ActionTurnOutcome(ActionOutcomeType.Skipped, false, null);
+        }
+
+        if (currentActionResult == null)
+        {
+            return new ActionTurnOutcome(ActionOutcomeType.Idle, false, null);
+        }
+
+        var selectedModifier = currentActionResult.SelectedModifier;
+        if (selectedModifier == null)
+        {
+            return new ActionTurnOutcome(ActionOutcomeType.Idle, currentActionResult.IsSuccess, currentActionResult);
+        }
+
+        // UnitActionType 기반으로 결과 유형을 분류합니다.
+        var actionType = selectedModifier.ActionType;
+        switch (actionType)
+        {
+            case ActionType.Attack:
+                return new ActionTurnOutcome(ActionOutcomeType.Attack, currentActionResult.IsSuccess, currentActionResult);
+
+            case ActionType.Movement:
+                return new ActionTurnOutcome(ActionOutcomeType.Move, currentActionResult.IsSuccess, currentActionResult);
+
+            default:
+                return new ActionTurnOutcome(ActionOutcomeType.Idle, currentActionResult.IsSuccess, currentActionResult);
+        }
     }
 
     #endregion

@@ -12,6 +12,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly ITeamComponent teamComponent;
 
         public FrenzyOnKillEffect(Unit owner, EffectTrigger trigger, int priority, int durationTurns)
@@ -24,8 +26,11 @@ namespace Game.Components.Abilities
             teamComponent = owner != null ? owner.GetComponent<ITeamComponent>() : null;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            if (context.Source != DurationTickSource.TurnEnd)
+                return;
+
             if (RemainingDuration > 0)
                 RemainingDuration--;
         }

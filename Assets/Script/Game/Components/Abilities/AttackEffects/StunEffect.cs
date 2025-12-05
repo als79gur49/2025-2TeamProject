@@ -17,6 +17,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly int stunDuration;
 
         public StunEffect(Unit owner, int stunDuration, EffectTrigger trigger, int priority, int durationTurns)
@@ -28,8 +30,11 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            if (context.Source != DurationTickSource.TurnEnd)
+                return;
+
             if (RemainingDuration > 0)
                 RemainingDuration--;
         }

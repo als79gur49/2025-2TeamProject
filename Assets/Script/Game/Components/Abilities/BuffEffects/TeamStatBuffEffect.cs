@@ -20,6 +20,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.ActionBased;
+
         private readonly int healthDelta;
         private readonly int attackDelta;
         private readonly int movementDelta;
@@ -111,8 +113,14 @@ namespace Game.Components.Abilities
             Debug.Log($"[TeamStatBuffEffect] {Owner.name} stat buff applied: HP {healthDelta}, ATK {attackDelta}, MOVE {movementDelta}, Duration {RemainingDuration}");
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            // 스탯 버프는 유닛의 행동 턴(Action Turn)이 한 번 처리되었을 때를 기준으로 감소합니다.
+            if (context.Source != DurationTickSource.ActionEnd)
+            {
+                return;
+            }
+
             if (RemainingDuration > 0)
             {
                 RemainingDuration--;

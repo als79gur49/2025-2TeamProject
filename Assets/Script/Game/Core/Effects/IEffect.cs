@@ -19,9 +19,14 @@ namespace Game.Core.Effects
         int RemainingDuration { get; }
 
         /// <summary>
-        /// 턴 종료 시 한 번 호출되어 지속 턴을 감소시킵니다.
+        /// Effect의 지속시간이 어떤 시간축을 기준으로 감소하는지 나타냅니다.
         /// </summary>
-        void TickDuration();
+        DurationType DurationType { get; }
+
+        /// <summary>
+        /// Duration Tick 컨텍스트에 따라 지속 턴을 감소시킵니다.
+        /// </summary>
+        void TickDuration(DurationTickContext context);
 
         /// <summary>
         /// 현재 컨텍스트에서 Effect를 적용할 수 있는지 여부입니다.

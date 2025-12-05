@@ -15,6 +15,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.ActionBased;
+
         private readonly int healthBonus;
         private readonly int attackBonus;
 
@@ -28,8 +30,14 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            // 배치 보너스는 유닛의 행동 턴(Action Turn)을 기준으로 지속 턴을 감소시킵니다.
+            if (context.Source != DurationTickSource.ActionEnd)
+            {
+                return;
+            }
+
             if (RemainingDuration > 0)
             {
                 RemainingDuration--;

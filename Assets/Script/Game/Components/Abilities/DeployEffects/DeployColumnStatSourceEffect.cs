@@ -18,6 +18,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly int healthDelta;
         private readonly int attackDelta;
         private readonly int movementDelta;
@@ -54,8 +56,13 @@ namespace Game.Components.Abilities
             gridManager = ServiceLocator.Get<IGridManager>();
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            if (context.Source != DurationTickSource.TurnEnd)
+            {
+                return;
+            }
+
             if (RemainingDuration > 0)
             {
                 RemainingDuration--;

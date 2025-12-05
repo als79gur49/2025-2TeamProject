@@ -17,6 +17,8 @@ namespace Game.Components.Abilities
         public EffectTrigger Trigger { get; private set; }
         public int RemainingDuration { get; private set; }
 
+        public DurationType DurationType => DurationType.TimeBased;
+
         private readonly int drawCount;
         private readonly TeamRelation targetRelation;
 
@@ -36,8 +38,13 @@ namespace Game.Components.Abilities
             RemainingDuration = durationTurns;
         }
 
-        public void TickDuration()
+        public void TickDuration(DurationTickContext context)
         {
+            if (context.Source != DurationTickSource.TurnEnd)
+            {
+                return;
+            }
+
             if (RemainingDuration > 0)
             {
                 RemainingDuration--;
@@ -105,4 +112,3 @@ namespace Game.Components.Abilities
         }
     }
 }
-
