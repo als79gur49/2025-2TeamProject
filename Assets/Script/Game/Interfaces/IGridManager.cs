@@ -260,6 +260,17 @@ namespace Game.Interfaces
         // 팀 정보 조회
         TeamType GetUnitTeam(Vector2Int position);
 
+        /// <summary>
+        /// 특정 팀이 점유하고 있는 모든 유닛 위치 반환
+        /// </summary>
+        System.Collections.Generic.IReadOnlyCollection<Vector2Int> GetUnitPositionsForTeam(TeamType team);
+
+        /// <summary>
+        /// 기준 팀(relativeTo)을 기준으로 적군 팀 유닛 위치 반환
+        /// Enemy 기준: Player 유닛 위치들, Player 기준: Enemy 유닟 위치들
+        /// </summary>
+        System.Collections.Generic.IReadOnlyCollection<Vector2Int> GetEnemyUnitPositions(TeamType relativeTo);
+
         // Phase 3.15: 팀 기준점 위치 조회 (팀 쿼리의 핵심 기능)
         /// <summary>플레이어 팀의 기준점 위치 반환 (가장 왼쪽 유닛)</summary>
         Vector2Int GetPlayerBasePosition();

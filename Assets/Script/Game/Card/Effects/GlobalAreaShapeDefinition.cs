@@ -10,6 +10,11 @@ namespace Game.Card.Effects
     [CreateAssetMenu(menuName = "Game/Effects/Shapes/Global")]
     public class GlobalAreaShapeDefinition : AreaShapeDefinition
     {
+        /// <summary>
+        /// GlobalAreaShape는 중심 좌표와 무관하게 항상 맵 전체 타일을 반환합니다.
+        /// </summary>
+        public override bool IsCenterIndependent => true;
+
         public override IEnumerable<Tile> GetTiles(Vector2Int center, IGridController gridController)
         {
             var tiles = new List<Tile>();
@@ -58,4 +63,3 @@ namespace Game.Card.Effects
         }
     }
 }
-

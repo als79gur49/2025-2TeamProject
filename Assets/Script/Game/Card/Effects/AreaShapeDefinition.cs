@@ -35,6 +35,13 @@ namespace Game.Card.Effects
         }
 
         /// <summary>
+        /// 중심 좌표에 관계없이 항상 동일한 타일 집합을 반환하는지 여부
+        /// GlobalAreaShape 등에서 true로 오버라이드합니다.
+        /// 기본값은 false입니다.
+        /// </summary>
+        public virtual bool IsCenterIndependent => false;
+
+        /// <summary>
         /// UI/설명용 범위 텍스트를 반환합니다.
         /// 예: "해당 타일만", "주변 2칸", "열 방향 모든 타일" 등
         /// </summary>

@@ -36,6 +36,16 @@ namespace Game.Components
             new Dictionary<(Vector2Int, Vector2Int), PathfindingResult>();
         private readonly Dictionary<Vector2Int, List<Vector2Int>> rangeCache = 
             new Dictionary<Vector2Int, List<Vector2Int>>();
+
+        // 팀별 유닛 위치 인덱스 (Enemy/Player 유닛 분리 캐시)
+        private readonly Dictionary<TeamType, HashSet<Vector2Int>> teamUnitPositions =
+            new Dictionary<TeamType, HashSet<Vector2Int>>
+            {
+                { TeamType.Player, new HashSet<Vector2Int>() },
+                { TeamType.Enemy, new HashSet<Vector2Int>() },
+                { TeamType.Neutral, new HashSet<Vector2Int>() }
+            };
+
         private float lastCacheClearTime;
         private const float CACHE_CLEAR_INTERVAL = 30f; // 30초마다 캐시 정리
         private const int MAX_CACHE_SIZE = 1000; // 최대 캐시 크기
@@ -88,9 +98,64 @@ namespace Game.Components
         {
             if (gridState == null) return;
 
-            gridState.OnUnitMoved += (unit, oldPos, newPos) => OnUnitMoved?.Invoke(unit, oldPos, newPos);
-            gridState.OnUnitPlaced += (pos, unit) => OnUnitPlaced?.Invoke(pos, unit);
-            gridState.OnUnitRemoved += (pos, unit) => OnUnitRemoved?.Invoke(pos, unit);
+            gridState.OnUnitMoved += HandleUnitMoved;
+            gridState.OnUnitPlaced += HandleUnitPlaced;
+            gridState.OnUnitRemoved += HandleUnitRemoved;
+        }
+
+        /// <summary>
+        /// GridState에서 유닛이 새로 배치되었을 때 팀 인덱스를 갱신합니다.
+        /// </summary>
+        private void HandleUnitPlaced(Vector2Int position, GameObject unit)
+        {
+            if (unit == null) return;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            var team = teamComponent != null ? teamComponent.Team : TeamType.None;
+
+            if (teamUnitPositions.TryGetValue(team, out var positions))
+            {
+                positions.Add(position);
+            }
+
+            OnUnitPlaced?.Invoke(position, unit);
+        }
+
+        /// <summary>
+        /// GridState에서 유닛이 이동했을 때 팀 인덱스를 갱신합니다.
+        /// </summary>
+        private void HandleUnitMoved(GameObject unit, Vector2Int oldPosition, Vector2Int newPosition)
+        {
+            if (unit == null) return;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            var team = teamComponent != null ? teamComponent.Team : TeamType.None;
+
+            if (teamUnitPositions.TryGetValue(team, out var positions))
+            {
+                positions.Remove(oldPosition);
+                positions.Add(newPosition);
+            }
+
+            OnUnitMoved?.Invoke(unit, oldPosition, newPosition);
+        }
+
+        /// <summary>
+        /// GridState에서 유닛이 제거되었을 때 팀 인덱스를 갱신합니다.
+        /// </summary>
+        private void HandleUnitRemoved(Vector2Int position, GameObject unit)
+        {
+            if (unit == null) return;
+
+            var teamComponent = unit.GetComponent<ITeamComponent>();
+            var team = teamComponent != null ? teamComponent.Team : TeamType.None;
+
+            if (teamUnitPositions.TryGetValue(team, out var positions))
+            {
+                positions.Remove(position);
+            }
+
+            OnUnitRemoved?.Invoke(position, unit);
         }
 
         // ✅ 비즈니스 로직에서 필요한 GridState 접근 메서드들 (public 유지)
@@ -281,6 +346,44 @@ namespace Game.Components
 
             var teamComponent = unit.GetComponent<ITeamComponent>();
             return teamComponent?.Team ?? TeamType.None;
+        }
+
+        /// <summary>
+        /// 특정 팀이 점유하고 있는 모든 유닛 위치 반환 (읽기 전용 컬렉션)
+        /// </summary>
+        public IReadOnlyCollection<Vector2Int> GetUnitPositionsForTeam(TeamType team)
+        {
+            if (teamUnitPositions.TryGetValue(team, out var positions))
+            {
+                return positions;
+            }
+
+            return System.Array.Empty<Vector2Int>();
+        }
+
+        /// <summary>
+        /// 기준 팀을 기준으로 적군 유닛들의 위치 반환
+        /// Enemy 기준: Player 유닛 위치들, Player 기준: Enemy 유닟 위치들
+        /// </summary>
+        public IReadOnlyCollection<Vector2Int> GetEnemyUnitPositions(TeamType relativeTo)
+        {
+            TeamType enemyTeam = TeamType.None;
+
+            if (relativeTo == TeamType.Player)
+            {
+                enemyTeam = TeamType.Enemy;
+            }
+            else if (relativeTo == TeamType.Enemy)
+            {
+                enemyTeam = TeamType.Player;
+            }
+
+            if (enemyTeam == TeamType.None)
+            {
+                return System.Array.Empty<Vector2Int>();
+            }
+
+            return GetUnitPositionsForTeam(enemyTeam);
         }
 
         #endregion
