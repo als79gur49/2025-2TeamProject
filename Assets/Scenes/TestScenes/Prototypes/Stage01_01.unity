@@ -723,19 +723,49 @@ PrefabInstance:
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 7
+      value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[1]
+      value: 
+      objectReference: {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[2]
+      value: 
+      objectReference: {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[3]
+      value: 
+      objectReference: {fileID: 11400000, guid: 4191d471639347846b84ff3e88567a66,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[4]
+      value: 
+      objectReference: {fileID: 11400000, guid: 4d4682e173aad274fa651418979a27d8,
+        type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[5]
       value: 
-      objectReference: {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579,
+      objectReference: {fileID: 11400000, guid: 1d2bf795fc0fdea46a8ae6aaa8d41d29,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[6]
       value: 
-      objectReference: {fileID: 11400000, guid: 2ed2955374f6f3f4fa61295c64e01e6b,
+      objectReference: {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[7]
+      value: 
+      objectReference: {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f,
         type: 2}
     - target: {fileID: 7197732791546319263, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
