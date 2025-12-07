@@ -25,12 +25,22 @@ namespace Game.Card.UI.Refactored
             if (!CanStartDrag()) return;
 
             isDragging = true;
-            context.DragState.IsDragging = true;
+            var dragState = context.DragState;
+            if (dragState != null)
+            {
+                dragState.IsDragging = true;
+            }
 
             Debug.Log($"[BaseCardUIStrategy] ===== OnDragStart ===== Card: {context.CardData?.CardName}, Time: {Time.frameCount}");
 
             // 드래그 상태 저장
             CardUIAnimator.SaveDragState(context);
+
+            // 새 드래그가 시작되면 더 이상 복귀 중 상태가 아니다
+            if (dragState != null)
+            {
+                dragState.IsReturning = false;
+            }
 
             // 드래그 시각적 효과 적용
             CardUIAnimator.ApplyDragVisuals(context);
@@ -71,7 +81,10 @@ namespace Game.Card.UI.Refactored
             }
 
             isDragging = false;
-            context.DragState.IsDragging = false;
+            if (context.DragState != null)
+            {
+                context.DragState.IsDragging = false;
+            }
 
             // 시각적 피드백 복원
             CardUIAnimator.RestoreDragVisuals(context);
@@ -84,9 +97,14 @@ namespace Game.Card.UI.Refactored
             // 실패 시 원위치 복귀
             if (!dropSuccess && context.Settings.ReturnToOriginalPosition)
             {
+                if (context.DragState != null)
+                {
+                    context.DragState.IsReturning = true;
+                }
+
                 Debug.LogWarning($"[BaseCardUIStrategy] ⚠️ DROP FAILED - Starting ReturnToOriginalPosition animation!");
                 returnCoroutine = context.MonoBehaviour.StartCoroutine(
-                    CardUIAnimator.ReturnToOriginalPosition(context, OnReturnComplete)
+                    CardUIAnimator.ReturnToOriginalPosition(context, HandleReturnCompleteInternal)
                 );
             }
 
@@ -132,6 +150,25 @@ namespace Game.Card.UI.Refactored
             {
                 context.MonoBehaviour.StopCoroutine(returnCoroutine);
             }
+
+            if (context?.DragState != null)
+            {
+                context.DragState.IsReturning = false;
+            }
+
+            returnCoroutine = null;
+        }
+
+        private void HandleReturnCompleteInternal()
+        {
+            if (context?.DragState != null)
+            {
+                context.DragState.IsReturning = false;
+            }
+
+            returnCoroutine = null;
+
+            OnReturnComplete();
         }
 
         // Abstract methods for strategy-specific implementation

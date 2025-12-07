@@ -12,5 +12,6 @@ namespace Game.Card.UI.Refactored
         public Transform OriginalParent { get; set; }
         public int OriginalIndex { get; set; }
         public bool IsDragging { get; set; }
+        public bool IsReturning { get; set; }
     }
 }

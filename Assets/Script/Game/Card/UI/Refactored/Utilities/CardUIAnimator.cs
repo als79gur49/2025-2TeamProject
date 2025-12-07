@@ -50,6 +50,12 @@ namespace Game.Card.UI.Refactored
             var dragState = context.DragState;
             var transform = context.Transform;
 
+            // 복귀 애니메이션 중에는 홈 상태를 덮어쓰지 않는다
+            if (dragState != null && dragState.IsReturning)
+            {
+                return;
+            }
+
             dragState.OriginalPosition = transform.position;
             dragState.OriginalScale = transform.localScale;
             dragState.OriginalParent = transform.parent;
