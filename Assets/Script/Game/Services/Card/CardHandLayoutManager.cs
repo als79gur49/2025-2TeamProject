@@ -22,40 +22,24 @@ namespace Game.Services
         /// <param name="spacing">카드 간 간격 (픽셀)</param>
         public static void ArrangeVerticalCentered(List<CardUIRefactored> cards, float spacing)
         {
+            // 드래그 중이 아닌 카드만 정렬 대상
+            var nonDraggingCards = cards
+                .Where(c => c != null && !c.IsDragging)
+                .ToList();
 
-            // 드래그 중이지 않은 카드만 필터링
-            //var nonDraggingCards = cards.Where(c => c != null && !c.IsDragging).ToList();
-            //int cardCount = nonDraggingCards.Count;
-            //if (cardCount == 0) return;
-            //
-            //// 전체 높이 계산 및 중앙 기준 시작점 설정
-            //float totalHeight = (cardCount - 1) * spacing;
-            //float startY = totalHeight * 0.5f; // 중앙 기준 시작
-            //
-            //for (int i = 0; i < cardCount; i++)
-            //{
-            //    if (nonDraggingCards[i] == null) continue;
-            //    var rectTransform = nonDraggingCards[i].GetComponent<RectTransform>();
-            //    if (rectTransform != null)
-            //    {
-            //        // 수직 배치 (X는 중앙, Y는 중앙 기준 위아래)
-            //        rectTransform.anchoredPosition = new Vector2(0, startY - i * spacing);
-            //        rectTransform.rotation = Quaternion.identity;
-            //    }
-            //}
-
-            int cardCount = cards.Count;
+            int cardCount = nonDraggingCards.Count;
             if (cardCount == 0) return;
-            
+
             // 전체 높이 계산 및 중앙 기준 시작점 설정
             float totalHeight = (cardCount - 1) * spacing;
             float startY = totalHeight * 0.5f;  // 중앙 기준 시작
-            
+
             for (int i = 0; i < cardCount; i++)
             {
-                if (cards[i] == null) continue;
-            
-                var rectTransform = cards[i].GetComponent<RectTransform>();
+                var cardUI = nonDraggingCards[i];
+                if (cardUI == null) continue;
+
+                var rectTransform = cardUI.GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {
                     // 수직 배치 (X는 중앙, Y는 중앙 기준 위아래)
@@ -73,7 +57,12 @@ namespace Game.Services
         /// <param name="arcRadius">호의 반지름</param>
         public static void ArrangeInArc(List<CardUIRefactored> cards, float arcRadius)
         {
-            int cardCount = cards.Count;
+            // 드래그 중이 아닌 카드만 정렬 대상
+            var nonDraggingCards = cards
+                .Where(c => c != null && !c.IsDragging)
+                .ToList();
+
+            int cardCount = nonDraggingCards.Count;
             if (cardCount == 0) return;
 
             float totalAngle = Mathf.Min(60f, cardCount * 8f); // 최대 60도
@@ -82,7 +71,8 @@ namespace Game.Services
 
             for (int i = 0; i < cardCount; i++)
             {
-                if (cards[i] == null) continue;
+                var cardUI = nonDraggingCards[i];
+                if (cardUI == null) continue;
 
                 float angle = startAngle + angleStep * i;
                 float rad = angle * Mathf.Deg2Rad;
@@ -91,7 +81,7 @@ namespace Game.Services
                 float x = Mathf.Sin(rad) * arcRadius;
                 float y = -Mathf.Cos(rad) * arcRadius * 0.1f; // 살짝 아래로 구부림
 
-                var rectTransform = cards[i].GetComponent<RectTransform>();
+                var rectTransform = cardUI.GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {
                     rectTransform.anchoredPosition = new Vector2(x, y);
@@ -108,7 +98,12 @@ namespace Game.Services
         /// <param name="spacing">카드 간 간격 (픽셀)</param>
         public static void ArrangeInLine(List<CardUIRefactored> cards, float spacing)
         {
-            int cardCount = cards.Count;
+            // 드래그 중이 아닌 카드만 정렬 대상
+            var nonDraggingCards = cards
+                .Where(c => c != null && !c.IsDragging)
+                .ToList();
+
+            int cardCount = nonDraggingCards.Count;
             if (cardCount == 0) return;
 
             float totalWidth = (cardCount - 1) * spacing;
@@ -116,9 +111,10 @@ namespace Game.Services
 
             for (int i = 0; i < cardCount; i++)
             {
-                if (cards[i] == null) continue;
+                var cardUI = nonDraggingCards[i];
+                if (cardUI == null) continue;
 
-                var rectTransform = cards[i].GetComponent<RectTransform>();
+                var rectTransform = cardUI.GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {
                     rectTransform.anchoredPosition = new Vector2(startX + i * spacing, 0);

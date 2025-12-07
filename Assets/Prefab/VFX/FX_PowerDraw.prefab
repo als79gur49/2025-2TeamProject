@@ -44,7 +44,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1236643204216662}
   serializedVersion: 8
-  lengthInSec: 1.5
+  lengthInSec: 1
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 3
@@ -291,7 +291,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 3
       scalar: 0.1
-      minScalar: 0.02
+      minScalar: 0.03
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -873,7 +873,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 100
+      scalar: 180
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -5006,7 +5006,7 @@ ParticleSystem:
   startDelay:
     serializedVersion: 2
     minMaxState: 0
-    scalar: 1
+    scalar: 0.3
     minScalar: 0
     maxCurve:
       serializedVersion: 2
@@ -5748,7 +5748,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 17
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -5858,7 +5858,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 5
+        scalar: 2
         minScalar: 5
         maxCurve:
           serializedVersion: 2
@@ -10496,7 +10496,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 30
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -10606,7 +10606,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 1
+        scalar: 2
         minScalar: 5
         maxCurve:
           serializedVersion: 2

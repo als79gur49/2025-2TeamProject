@@ -165,8 +165,8 @@ namespace Game.Components.Abilities
         // IPersistentVFXEffect 구현
         public string GetPersistentVFXId()
         {
-            // 개별 이펙트에서 ID를 지정하지 않으면 공통 기본 VFX("StatBuff")를 사용합니다.
-            return string.IsNullOrEmpty(persistentVfxId) ? "StatBuff" : persistentVfxId;
+            // ID가 비어 있으면 VFX를 생성하지 않습니다.
+            return persistentVfxId;
         }
 
         public VFXData GetVFXOverrideOrNull() => vfxOverride;

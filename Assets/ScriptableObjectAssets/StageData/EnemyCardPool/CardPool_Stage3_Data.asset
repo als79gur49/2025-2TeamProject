@@ -10,10 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2e3b75ab25bd989459588b813b26a71c, type: 3}
-  m_Name: SO_DefaultEnemyCardPool
+  m_Name: CardPool_Stage3_Data
   m_EditorClassIdentifier: 
-  cards:
-  - {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1, type: 2}
+  cards: []
   initialHandSize: 3
   selectionType: 0
   rarityWeightSettings:
@@ -22,4 +21,4 @@ MonoBehaviour:
     rareWeight: 20
     epicWeight: 8
     legendaryWeight: 2
-  totalCardCount: 1
+  totalCardCount: 0

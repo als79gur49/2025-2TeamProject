@@ -511,14 +511,13 @@ namespace Game.Services
             var draggingCards = cardUIComponents.Where(c => c != null && c.IsDragging).ToList();
             if (draggingCards.Count > 0)
             {
-                Debug.LogError($"[CardHandManager] ⚠️⚠️⚠️ UpdateHandLayout called while {draggingCards.Count} card(s) are DRAGGING!");
+                // 이제 레이아웃 유틸리티가 드래그 중 카드를 제외하고 정렬하므로
+                // 이 상황은 버그가 아니라 정상적인 정보 로그로 취급한다.
+                Debug.Log($"[CardHandManager] UpdateHandLayout executing while {draggingCards.Count} card(s) are DRAGGING (dragged cards are excluded from layout).");
                 foreach (var card in draggingCards)
                 {
-                    Debug.LogError($"  - Dragging card: {card.GetCardData()?.CardName}");
+                    Debug.Log($"  - Dragging card: {card.GetCardData()?.CardName}");
                 }
-
-                // 드레그 중이기에 정렬 강제 종료
-                //return;
             }
 
             if (arrangeCardsInArc)

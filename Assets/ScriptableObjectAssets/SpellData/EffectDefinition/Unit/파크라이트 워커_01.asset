@@ -17,7 +17,7 @@ MonoBehaviour:
   targetScope: 0
   areaShape: {fileID: 11400000, guid: eed6c95e3082d1049a79719bed968a9a, type: 2}
   targetFilter: {fileID: 11400000, guid: 972bec2aa65f30640b3338c58c5d8c29, type: 2}
-  vfx: {fileID: 11400000, guid: 684f7da44da472f468085cc1da3e55cf, type: 2}
+  vfx: {fileID: 11400000, guid: 426d438563314b847841dcd9324fa6c3, type: 2}
   vfxPlacementMode: 0
   unitToSummon: {fileID: 11400000, guid: 53523876ca19e714fae50aa612e90187, type: 2}
   count: 1

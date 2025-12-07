@@ -502,6 +502,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
+      propertyPath: playerStartPositions.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
       propertyPath: enemyStartPositions.Array.data[0].y
       value: 1
       objectReference: {fileID: 0}
@@ -513,6 +518,26 @@ PrefabInstance:
     - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: enemyStartPositions.Array.data[1].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: playerStartPositions.Array.data[0].x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: playerStartPositions.Array.data[0].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: playerStartPositions.Array.data[1].x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3398846470283407470, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: playerStartPositions.Array.data[1].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3423146461936915231, guid: fc15a942cb732654fbb508af21667c55,
@@ -723,7 +748,7 @@ PrefabInstance:
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 7
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -735,37 +760,43 @@ PrefabInstance:
         type: 3}
       propertyPath: initialHandCards.Array.data[2]
       value: 
-      objectReference: {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7,
+      objectReference: {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[3]
       value: 
-      objectReference: {fileID: 11400000, guid: 4191d471639347846b84ff3e88567a66,
+      objectReference: {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[4]
       value: 
-      objectReference: {fileID: 11400000, guid: 4d4682e173aad274fa651418979a27d8,
+      objectReference: {fileID: 11400000, guid: 4655aa53d86240345a3a09f0d13748be,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[5]
       value: 
-      objectReference: {fileID: 11400000, guid: d716ab2c1decb6a43ab4f8087ff5b442,
+      objectReference: {fileID: 11400000, guid: 5eb48c2814394144fa4bfba76876296e,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[6]
       value: 
-      objectReference: {fileID: 11400000, guid: d716ab2c1decb6a43ab4f8087ff5b442,
+      objectReference: {fileID: 11400000, guid: 5eb48c2814394144fa4bfba76876296e,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[7]
       value: 
-      objectReference: {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f,
+      objectReference: {fileID: 11400000, guid: 5eb48c2814394144fa4bfba76876296e,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[8]
+      value: 
+      objectReference: {fileID: 11400000, guid: c9b76458a5ad72a41a0e58cb9b855e6d,
         type: 2}
     - target: {fileID: 7197732791546319263, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}

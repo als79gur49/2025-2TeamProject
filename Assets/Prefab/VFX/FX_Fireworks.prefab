@@ -9556,7 +9556,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1481965347600448}
   serializedVersion: 8
-  lengthInSec: 1
+  lengthInSec: 12
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 3
@@ -14458,8 +14458,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.7
-  maxLifetime: 3.7
-  maxWaitNormalizedTime: 0.82
+  maxLifetime: 5
+  maxWaitNormalizedTime: 0.4
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 0}
   triggerSound: {fileID: 11400000, guid: d66633d781a00524bb9de8b46ddffd98, type: 2}
@@ -14580,7 +14580,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 5
+      scalar: 3
       minScalar: 0.5
       maxCurve:
         serializedVersion: 2
@@ -28523,7 +28523,6 @@ GameObject:
   - component: {fileID: 8580953804536303113}
   - component: {fileID: 411026375538719645}
   - component: {fileID: 5324055707918912326}
-  - component: {fileID: 8458988733831516557}
   m_Layer: 0
   m_Name: FX_Fireworks
   m_TagString: Untagged
@@ -28571,7 +28570,7 @@ ParticleSystem:
   startDelay:
     serializedVersion: 2
     minMaxState: 0
-    scalar: 0.5
+    scalar: 0.55
     minScalar: 0
     maxCurve:
       serializedVersion: 2
@@ -33444,26 +33443,6 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
---- !u!114 &8458988733831516557
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1017328961104418530}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d9f3f59b0fa25034e8ae65918156a1b4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  triggerType: 1
-  triggerValue: 0.7
-  maxLifetime: 3
-  maxWaitNormalizedTime: 0.6
-  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  startSound: {fileID: 0}
-  triggerSound: {fileID: 11400000, guid: d66633d781a00524bb9de8b46ddffd98, type: 2}
-  logTriggerEvents: 1
 --- !u!1 &1703588328825045552
 GameObject:
   m_ObjectHideFlags: 0
@@ -47820,7 +47799,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 5
+      scalar: 3
       minScalar: 0.5
       maxCurve:
         serializedVersion: 2

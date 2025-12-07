@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e3b75ab25bd989459588b813b26a71c, type: 3}
+  m_Name: CardPool_Stage1_Data
+  m_EditorClassIdentifier: 
+  cards:
+  - {fileID: 11400000, guid: 8e8ab4c197867cd4e859bec1280b7cf9, type: 2}
+  - {fileID: 11400000, guid: 8e8ab4c197867cd4e859bec1280b7cf9, type: 2}
+  - {fileID: 11400000, guid: 8e8ab4c197867cd4e859bec1280b7cf9, type: 2}
+  - {fileID: 11400000, guid: 8e8ab4c197867cd4e859bec1280b7cf9, type: 2}
+  - {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3, type: 2}
+  - {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3, type: 2}
+  - {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3, type: 2}
+  - {fileID: 11400000, guid: 30465d6a71ed8f044b7e25711e3ba4c3, type: 2}
+  - {fileID: 11400000, guid: e53c032d2f32d00469cd7e6a06bbc33f, type: 2}
+  - {fileID: 11400000, guid: e53c032d2f32d00469cd7e6a06bbc33f, type: 2}
+  - {fileID: 11400000, guid: e53c032d2f32d00469cd7e6a06bbc33f, type: 2}
+  - {fileID: 11400000, guid: e53c032d2f32d00469cd7e6a06bbc33f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: f999d9e388ff0504ab8d9ab421289fce, type: 2}
+  - {fileID: 11400000, guid: f999d9e388ff0504ab8d9ab421289fce, type: 2}
+  - {fileID: 11400000, guid: f999d9e388ff0504ab8d9ab421289fce, type: 2}
+  - {fileID: 11400000, guid: f999d9e388ff0504ab8d9ab421289fce, type: 2}
+  - {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff, type: 2}
+  - {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff, type: 2}
+  - {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff, type: 2}
+  - {fileID: 11400000, guid: ae3b8e691b8498c42862d58361b393ff, type: 2}
+  - {fileID: 11400000, guid: 2e8769d9f2199594999a71a76939b50b, type: 2}
+  - {fileID: 11400000, guid: 2e8769d9f2199594999a71a76939b50b, type: 2}
+  - {fileID: 11400000, guid: 2e8769d9f2199594999a71a76939b50b, type: 2}
+  - {fileID: 11400000, guid: 2e8769d9f2199594999a71a76939b50b, type: 2}
+  - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
+  - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
+  - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
+  - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  initialHandSize: 3
+  selectionType: 0
+  rarityWeightSettings:
+    commonWeight: 40
+    uncommonWeight: 30
+    rareWeight: 20
+    epicWeight: 8
+    legendaryWeight: 2
+  totalCardCount: 36

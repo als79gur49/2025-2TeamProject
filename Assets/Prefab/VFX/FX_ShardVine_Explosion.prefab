@@ -9298,6 +9298,7 @@ GameObject:
   - component: {fileID: 4247746269813882}
   - component: {fileID: 198284884332722628}
   - component: {fileID: 199754533960883220}
+  - component: {fileID: 9003949749740751037}
   m_Layer: 0
   m_Name: FX_ShardVine_Explosion
   m_TagString: Untagged
@@ -9323,8 +9324,8 @@ Transform:
   - {fileID: 4167500623483038}
   - {fileID: 4968909629609150}
   - {fileID: 4832353643565934}
-  - {fileID: 4475964682043472}
   - {fileID: 4377451673716264}
+  - {fileID: 4475964682043472}
   - {fileID: 1693063353433125060}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -9336,7 +9337,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1187873550511094}
   serializedVersion: 8
-  lengthInSec: 4
+  lengthInSec: 6
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 3
@@ -9411,8 +9412,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 3.9
-      minScalar: 3.7
+      scalar: 2.2
+      minScalar: 2.2
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -9635,8 +9636,8 @@ ParticleSystem:
     startSizeY:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 10
-      minScalar: 3
+      scalar: 8
+      minScalar: 6
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -14232,6 +14233,26 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &9003949749740751037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1187873550511094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9f3f59b0fa25034e8ae65918156a1b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  triggerType: 1
+  triggerValue: 0.7
+  maxLifetime: 4.5
+  maxWaitNormalizedTime: 0.6
+  soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
+  startSound: {fileID: 11400000, guid: 5a1dbe0222d112e4fac7fb5bc849a8c5, type: 2}
+  triggerSound: {fileID: 0}
+  logTriggerEvents: 1
 --- !u!1 &1256732678468514
 GameObject:
   m_ObjectHideFlags: 0
@@ -14520,7 +14541,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 3
       scalar: 0.7
-      minScalar: 0.2
+      minScalar: 0.4
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -19959,7 +19980,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 15
+        scalar: 7
         minScalar: 15
         maxCurve:
           serializedVersion: 2
@@ -23905,8 +23926,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 2
-      minScalar: 1
+      scalar: 1.4
+      minScalar: 0.7
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -28554,7 +28575,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 3
       scalar: 2
-      minScalar: 1.6
+      minScalar: 1.3
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -28724,8 +28745,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.7
-      minScalar: 0.2
+      scalar: 2
+      minScalar: 1.5
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -29417,8 +29438,8 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 3
-        scalar: 3
-        minScalar: 2
+        scalar: 2
+        minScalar: 1
         maxCurve:
           serializedVersion: 2
           m_Curve:
@@ -43004,8 +43025,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 3.7
-      minScalar: 3.5
+      scalar: 2.1
+      minScalar: 1.8
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -43175,8 +43196,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 5
-      minScalar: 3
+      scalar: 6
+      minScalar: 4
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -43228,7 +43249,7 @@ ParticleSystem:
     startSizeY:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 7
+      scalar: 6
       minScalar: 4
       maxCurve:
         serializedVersion: 2
@@ -43281,8 +43302,8 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 5
-      minScalar: 3
+      scalar: 6
+      minScalar: 4
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -43560,7 +43581,7 @@ ParticleSystem:
     donutRadius: 0.2
     m_Position: {x: 0, y: -0.2, z: 0}
     m_Rotation: {x: -90, y: 0, z: 0}
-    m_Scale: {x: 1, y: 1, z: 0.2}
+    m_Scale: {x: 1.4, y: 1.4, z: 0.2}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -43868,7 +43889,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 10
+        scalar: 13
         minScalar: 10
         maxCurve:
           serializedVersion: 2

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d58a0e1340182145bdd80ddb2f96fac, type: 3}
   m_Name: New Card
   m_EditorClassIdentifier: 
-  cardID: 
+  cardID: New Card
   cardName: New Card
   description: New Description
   cardArt: {fileID: 0}
@@ -23,6 +23,8 @@ MonoBehaviour:
   targetRange: -1
   keywords: []
   effectDataList: []
+  effectDefinitions:
+  - {fileID: 0}
   maxCopiesInDeck: 3
   isPlayableFromHand: 1
   requiredTags: []

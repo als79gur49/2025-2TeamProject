@@ -23612,7 +23612,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 1.4
+      scalar: 1.35
       minScalar: 1.1
       maxCurve:
         serializedVersion: 2
@@ -24247,7 +24247,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 1
+      value: 1.5
       mode: 0
       spread: 0
       speed:
@@ -33205,7 +33205,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 1.6
+      scalar: 1.4
       minScalar: 1.4
       maxCurve:
         serializedVersion: 2
@@ -33754,7 +33754,7 @@ ParticleSystem:
     serializedVersion: 6
     enabled: 1
     type: 4
-    angle: 30
+    angle: 75
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
     radiusThickness: 1
@@ -38049,8 +38049,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   triggerType: 1
   triggerValue: 0.7
-  maxLifetime: 3
-  maxWaitNormalizedTime: 0.66
+  maxLifetime: 4
+  maxWaitNormalizedTime: 0.4
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 11400000, guid: 432f06b9009e75142a245f2a8888bd13, type: 2}
   triggerSound: {fileID: 0}
@@ -47980,7 +47980,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 2.5
+      scalar: 2
       minScalar: 0.3
       maxCurve:
         serializedVersion: 2

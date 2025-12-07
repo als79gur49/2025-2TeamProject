@@ -269,7 +269,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 6
+      scalar: 4
       minScalar: 3
       maxCurve:
         serializedVersion: 2
@@ -653,7 +653,7 @@ ParticleSystem:
     radiusThickness: 1
     donutRadius: 0.2
     m_Position: {x: 0, y: 2, z: 0}
-    m_Rotation: {x: 0, y: 0, z: 0}
+    m_Rotation: {x: 90, y: 0, z: 0}
     m_Scale: {x: 1, y: 1, z: 1}
     placementMode: 0
     m_MeshMaterialIndex: 0
@@ -1428,7 +1428,7 @@ ParticleSystem:
     flipU: 0
     flipV: 0
   VelocityModule:
-    enabled: 1
+    enabled: 0
     x:
       serializedVersion: 2
       minMaxState: 1
@@ -2782,7 +2782,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    separateAxes: 0
+    separateAxes: 1
     frequency: 0.5
     damping: 1
     octaves: 1
@@ -5452,7 +5452,7 @@ ParticleSystem:
     radiusThickness: 1
     donutRadius: 0.2
     m_Position: {x: 0, y: 0, z: 0}
-    m_Rotation: {x: -90, y: 0, z: 0}
+    m_Rotation: {x: -100, y: -90, z: 0}
     m_Scale: {x: 1, y: 1, z: 1}
     placementMode: 0
     m_MeshMaterialIndex: 0

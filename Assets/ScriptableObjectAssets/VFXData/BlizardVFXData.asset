@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: BlizardVFXData
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1828717585066262, guid: 914292b923c81434d8ce505ce6eda784, type: 3}
-  triggerNormalizedTime: 0.13
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
+  triggerNormalizedTime: 0.1
   playbackSpeed: 1
   positionOffset: {x: 0, y: 0, z: 0}

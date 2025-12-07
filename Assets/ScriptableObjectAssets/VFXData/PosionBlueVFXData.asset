@@ -14,8 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   vfxPrefab: {fileID: 1447051283816784, guid: 83f7c27bd2b0d13439886ff723359753, type: 3}
   triggerNormalizedTime: 0.6
-  useAutoDuration: 0
-  manualDuration: 2
-  isLooping: 0
   playbackSpeed: 1
-  positionOffset: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0.5, z: 0}

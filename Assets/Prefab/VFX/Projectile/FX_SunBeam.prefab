@@ -271,7 +271,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
+      scalar: 0.8
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -377,7 +377,7 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
+      scalar: 0.8
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -4841,6 +4841,7 @@ MonoBehaviour:
   executionType: 1
   hitDelay: 0.6
   hitVfxPrefab: {fileID: 0}
+  lingerDurationAfterHit: 0.5
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSoundData: {fileID: 11400000, guid: 3ab781e23ffc69d408aa7b7604cfda44, type: 2}
   hitSoundData: {fileID: 0}

@@ -4805,7 +4805,7 @@ MonoBehaviour:
   triggerType: 1
   triggerValue: 0.7
   maxLifetime: 4
-  maxWaitNormalizedTime: 0.76
+  maxWaitNormalizedTime: 0.65
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   startSound: {fileID: 11400000, guid: 1579ee7f7f3bd4b489d70ae7040d6800, type: 2}
   triggerSound: {fileID: 0}
