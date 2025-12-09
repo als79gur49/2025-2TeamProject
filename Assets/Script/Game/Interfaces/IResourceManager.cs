@@ -1,4 +1,5 @@
 using System;
+using Game.Services;
 
 namespace Game.Interfaces
 {
@@ -106,10 +107,10 @@ namespace Game.Interfaces
         #region 이벤트
 
         /// <summary>플레이어 자원 변경 이벤트 (마나, 행동력)</summary>
-        event System.Action<int> OnPlayerResourcesChanged;
+        event System.Action<ManaData> OnPlayerResourcesChanged;
 
         /// <summary>적군 자원 변경 이벤트 (마나, 행동력)</summary>
-        event System.Action<int> OnEnemyResourcesChanged;
+        event System.Action<ManaData> OnEnemyResourcesChanged;
 
         /// <summary>자원 부족 이벤트 (플레이어 여부, 필요한 마나, 필요한 행동력)</summary>
         event System.Action<bool, int> OnInsufficientResources;

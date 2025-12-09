@@ -7,6 +7,12 @@ using System;
 
 namespace Game.Services
 {
+    public struct ManaData
+    {
+        public int currentMana;
+        public int maxMana;
+    }
+
     /// <summary>
     /// 플레이어의 자원(Mana, ActionPoint) 관리 서비스
     /// Phase 2: 카드 소환 비용 검증 및 차감을 담당
@@ -16,6 +22,10 @@ namespace Game.Services
         [Header("자원 관리 설정")]
         [SerializeField] private bool enableLogging = true;
         [SerializeField] private bool enableDebugGUI = true;
+
+        [Header("마나 상한 설정")]
+        [SerializeField] private int playerMaxManaCap = 10;
+        [SerializeField] private int enemyMaxManaCap = 10;
 
         [Header("플레이어 자원")]
         [SerializeField] private int playerMana = 5;
@@ -54,10 +64,10 @@ namespace Game.Services
         #region 이벤트
 
         /// <summary>플레이어 자원 변경 이벤트 (마나, 행동력)</summary>
-        public event System.Action<int> OnPlayerResourcesChanged;
+        public event System.Action<ManaData> OnPlayerResourcesChanged;
 
         /// <summary>적군 자원 변경 이벤트 (마나, 행동력)</summary>
-        public event System.Action<int> OnEnemyResourcesChanged;
+        public event System.Action<ManaData> OnEnemyResourcesChanged;
 
         /// <summary>자원 부족 이벤트 (플레이어 여부, 필요한 마나, 필요한 행동력)</summary>
         public event System.Action<bool, int> OnInsufficientResources;
@@ -335,8 +345,8 @@ namespace Game.Services
         /// </summary>
         public void IncreaseTurnlyMana()
         {
-            // 플레이어 마나 최대치 및 현재 마나 1증가 (최대 10까지)
-            if (playerMaxMana < 10)
+            // 플레이어 마나 최대치 및 현재 마나 1증가 (설정된 상한까지)
+            if (playerMaxMana < playerMaxManaCap)
             {
                 playerMaxMana++;
                 Log($"💰 Player max mana increased to {playerMaxMana}");
@@ -346,7 +356,7 @@ namespace Game.Services
             playerMana = playerMaxMana;
             
             // 적군 마나도 동일하게 증가
-            if (enemyMaxMana < 10)
+            if (enemyMaxMana < enemyMaxManaCap)
             {
                 enemyMaxMana++;
                 Log($"💰 Enemy max mana increased to {enemyMaxMana}");
@@ -379,6 +389,11 @@ namespace Game.Services
         /// </summary>
         private void ValidateResourceLimits()
         {
+            // 최대 마나는 설정된 상한을 넘지 않도록 보정
+            playerMaxMana = Mathf.Clamp(playerMaxMana, 0, playerMaxManaCap);
+            enemyMaxMana = Mathf.Clamp(enemyMaxMana, 0, enemyMaxManaCap);
+
+            // 현재 마나는 각 최대 마나를 넘지 않도록 보정
             playerMana = Mathf.Clamp(playerMana, 0, playerMaxMana);
             enemyMana = Mathf.Clamp(enemyMana, 0, enemyMaxMana);
         }
@@ -391,11 +406,21 @@ namespace Game.Services
         {
             if (isPlayerTeam)
             {
-                OnPlayerResourcesChanged?.Invoke(playerMana);
+                var data = new ManaData
+                {
+                    currentMana = playerMana,
+                    maxMana = playerMaxMana
+                };
+                OnPlayerResourcesChanged?.Invoke(data);
             }
             else
             {
-                OnEnemyResourcesChanged?.Invoke(enemyMana);
+                var data = new ManaData
+                {
+                    currentMana = enemyMana,
+                    maxMana = enemyMaxMana
+                };
+                OnEnemyResourcesChanged?.Invoke(data);
             }
         }
 
