@@ -1666,7 +1666,7 @@ MonoBehaviour:
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
   meleeAttackSound: {fileID: 11400000, guid: 52081abc96409b5409c16733b05f9642, type: 2}
   rangedAttackSound: {fileID: 11400000, guid: 52081abc96409b5409c16733b05f9642, type: 2}
-  attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
+  attackSound: {fileID: 0}
   projectilePrefab: {fileID: 0}
 --- !u!114 &5663423671410054017
 MonoBehaviour:

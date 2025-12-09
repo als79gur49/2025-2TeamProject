@@ -12,7 +12,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e3b75ab25bd989459588b813b26a71c, type: 3}
   m_Name: CardPool_Stage4_Data
   m_EditorClassIdentifier: 
-  cards: []
+  cards:
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: e3c5252714169574d89efdc01684040f, type: 2}
+  - {fileID: 11400000, guid: 08e607487ec031f479122d9e9b5cdd15, type: 2}
+  - {fileID: 11400000, guid: 08e607487ec031f479122d9e9b5cdd15, type: 2}
+  - {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7, type: 2}
+  - {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7, type: 2}
+  - {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7, type: 2}
+  - {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07, type: 2}
+  - {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07, type: 2}
+  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
+  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
+  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
+  - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
+  - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
+  - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
+  - {fileID: 11400000, guid: e1defe23f766ee4448f3136fb8908007, type: 2}
+  - {fileID: 11400000, guid: e1defe23f766ee4448f3136fb8908007, type: 2}
+  - {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1, type: 2}
+  - {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1, type: 2}
+  - {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1, type: 2}
+  - {fileID: 11400000, guid: cb54e206cd936b243ba0846ebcabb490, type: 2}
+  - {fileID: 11400000, guid: cb54e206cd936b243ba0846ebcabb490, type: 2}
+  - {fileID: 11400000, guid: cb54e206cd936b243ba0846ebcabb490, type: 2}
+  - {fileID: 11400000, guid: cb54e206cd936b243ba0846ebcabb490, type: 2}
+  - {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f, type: 2}
+  - {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f, type: 2}
+  - {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f, type: 2}
+  - {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f, type: 2}
+  - {fileID: 11400000, guid: 4844aee1dc29c5845bb50b7247a98751, type: 2}
+  - {fileID: 11400000, guid: 4844aee1dc29c5845bb50b7247a98751, type: 2}
+  - {fileID: 11400000, guid: 4844aee1dc29c5845bb50b7247a98751, type: 2}
+  - {fileID: 11400000, guid: 4844aee1dc29c5845bb50b7247a98751, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  - {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b, type: 2}
+  - {fileID: 11400000, guid: fbe327f6e9a575d4c96b6e61fbe3b2f7, type: 2}
+  - {fileID: 11400000, guid: fbe327f6e9a575d4c96b6e61fbe3b2f7, type: 2}
+  - {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550, type: 2}
+  - {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550, type: 2}
+  - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
   initialHandSize: 3
   selectionType: 0
   rarityWeightSettings:
@@ -21,4 +61,4 @@ MonoBehaviour:
     rareWeight: 20
     epicWeight: 8
     legendaryWeight: 2
-  totalCardCount: 0
+  totalCardCount: 40

@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1ae6478cdb245478cc097e4e0a3921, type: 3}
-  m_Name: SO_Unit_Light_Attack_AudioData
+  m_Name: SO_Stunned_AudioData
   m_EditorClassIdentifier: 
   audioType: 1
   clips:
-  - {fileID: 8300000, guid: e61b873518ecab2438324658dbd8f246, type: 3}
-  volumeMin: 0.4
-  volumeMax: 0.4
-  pitchMin: 1.5
-  pitchMax: 1.5
+  - {fileID: 8300000, guid: 693e6cfe1b49be04fb8ff07531c11d89, type: 3}
+  volumeMin: 1
+  volumeMax: 1
+  pitchMin: 1
+  pitchMax: 1
   mixerGroup: {fileID: -6384595582647110726, guid: 2f1d1dab3c0469249beacc5176d6e544,
     type: 2}
   loop: 0

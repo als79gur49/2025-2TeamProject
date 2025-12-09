@@ -176,9 +176,9 @@ MonoBehaviour:
   specialAttackCooldown: 3
   specialAttackDamageMultiplier: 2
   soundEventChannel: {fileID: 11400000, guid: e58bfb304cf93f242a2099bf72732c00, type: 2}
-  meleeAttackSound: {fileID: 11400000, guid: 9cc937023f165c847ada064bfd0cdd0f, type: 2}
-  rangedAttackSound: {fileID: 11400000, guid: 9cc937023f165c847ada064bfd0cdd0f, type: 2}
-  attackSound: {fileID: 11400000, guid: 5b4369749d092694eb761fe25d9e0088, type: 2}
+  meleeAttackSound: {fileID: 11400000, guid: 048f2b2daa19d3444839513cb3fc9b64, type: 2}
+  rangedAttackSound: {fileID: 11400000, guid: 048f2b2daa19d3444839513cb3fc9b64, type: 2}
+  attackSound: {fileID: 0}
   projectilePrefab: {fileID: 1332098868578583648, guid: 4d8af68d1a7b86749b706edda37db8d0,
     type: 3}
 --- !u!114 &7269241420089255941
