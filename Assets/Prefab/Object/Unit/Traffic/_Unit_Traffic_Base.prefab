@@ -1558,8 +1558,8 @@ MonoBehaviour:
   attackSpeed: 1
   attackType: 0
   rangeType: 0
-  criticalChance: 0.1
-  criticalMultiplier: 2
+  criticalChance: 0
+  criticalMultiplier: 1
   armorPenetration: 0
   canCounterAttack: 0
   counterAttackChance: 0.2

@@ -77,10 +77,10 @@ namespace Game.VFX
             AttackSuccess = false; // Default: 실패 상태
         }
 
-        #endregion
-
-        #region Helper Methods
-
+	        #endregion
+	
+	        #region Helper Methods
+	
         /// <summary>
         /// 타일 기반 타겟 유효성 검증 성공 설정
         /// </summary>
@@ -92,15 +92,20 @@ namespace Game.VFX
             ValidationFailureReason = null;
         }
 
-        /// <summary>
-        /// 타일 기반 타겟 유효성 검증 실패 설정
-        /// </summary>
-        public void SetTileTargetInvalid(Vector3Int gridPos, string reason)
-        {
-            AttackSuccess = false;
-            TileGridPosition = gridPos;
-            ValidationFailureReason = reason;
-        }
+	        /// <summary>
+	        /// 타일 기반 타겟 유효성 검증 실패 설정
+	        /// </summary>
+	        public void SetTileTargetInvalid(Vector3Int gridPos, string reason)
+	        {
+	            AttackSuccess = false;
+	            TileGridPosition = gridPos;
+	            ValidationFailureReason = reason;
+	        }
+
+	        public bool HasValidTile()
+	        {
+	            return AttackSuccess;
+	        }
 
         /// <summary>커스텀 데이터 추가</summary>
         public void SetCustomData(string key, object value)
@@ -111,11 +116,11 @@ namespace Game.VFX
                 CustomData.Add(key, value);
         }
 
-        /// <summary>커스텀 데이터 조회</summary>
-        public T GetCustomData<T>(string key, T defaultValue = default)
-        {
-            if (CustomData.TryGetValue(key, out var value) && value is T typedValue)
-                return typedValue;
+	        /// <summary>커스텀 데이터 조회</summary>
+	        public T GetCustomData<T>(string key, T defaultValue = default)
+	        {
+	            if (CustomData.TryGetValue(key, out var value) && value is T typedValue)
+	                return typedValue;
             return defaultValue;
         }
 

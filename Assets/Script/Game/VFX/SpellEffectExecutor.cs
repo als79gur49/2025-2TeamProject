@@ -290,21 +290,15 @@ namespace Game.VFX
                 return filtered;
             }
 
-            foreach (var triggerData in triggerDataList)
-            {
-                if (!triggerData.AttackSuccess)
-                {
-                    Debug.Log($"[SpellEffectExecutor] Target validation failed: {triggerData.ValidationFailureReason}");
-                    continue;
-                }
+	            foreach (var triggerData in triggerDataList)
+	            {
+	                if (!triggerData.HasValidTile())
+	                {
+	                    Debug.Log($"[SpellEffectExecutor] Target validation failed: {triggerData.ValidationFailureReason}");
+	                    continue;
+	                }
 
-                if (triggerData.TileGridPosition == Vector3Int.zero && centerPos != Vector2Int.zero)
-                {
-                    Debug.LogError($"[SpellEffectExecutor] Invariant violation (EffectDefinition): AttackSuccess is true but TileGridPosition is invalid at {triggerData.TileWorldPosition}");
-                    continue;
-                }
-
-                Vector2Int tilePos2D = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
+	                Vector2Int tilePos2D = new Vector2Int(triggerData.TileGridPosition.x, triggerData.TileGridPosition.y);
 
                 // 1. AreaShape 범위 안인지 확인
                 if (!definition.AreaShape.IsInArea(centerPos, tilePos2D, context.GridController))
