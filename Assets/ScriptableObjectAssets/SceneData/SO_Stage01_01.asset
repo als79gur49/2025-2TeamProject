@@ -22,6 +22,6 @@ MonoBehaviour:
   - "\uC801\uC758 \uACF5\uACA9 \uD328\uD134\uC744 \uD30C\uC545\uD558\uACE0 \uB300\uC751\uD558\uC138\uC694"
   - "\uAC15\uB825\uD55C \uCE74\uB4DC \uC870\uD569\uC744 \uCC3E\uC544\uBCF4\uC138\uC694"
   - "\uC804\uB7B5\uC801\uC73C\uB85C \uCE74\uB4DC\uB97C \uBC30\uCE58\uD558\uC5EC \uC2B9\uB9AC\uD558\uC138\uC694"
-  bgMusic: {fileID: 11400000, guid: 90a116bd0474c7d4f841dc21e2c0981f, type: 2}
+  bgMusic: {fileID: 11400000, guid: 0bc0c1a2d54abda4dbb5e5b9b4da6b95, type: 2}
   description: "\uD504\uB85C\uD1A0\uD0C0\uC785 \uAC8C\uC784\uD50C\uB808\uC774 \uC52C
     (Card Battle Prototype)"

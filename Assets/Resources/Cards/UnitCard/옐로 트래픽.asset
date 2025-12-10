@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardID: "\uC610\uB85C \uD2B8\uB798\uD53D"
   cardName: "\uC610\uB85C \uD2B8\uB798\uD53D"
-  description: "\uC610\uB85C \uD2B8\uB798\uD53D \uC720\uB2DB\uC744 \uC18C\uD658\uD55C\uB2E4."
+  description: "\"\uC6D0\uAC70\uB9AC2\" \uD2B8\uB798\uD53D\uC758 \uBCC0\uD615\uC73C\uB85C
+    \uB9CE\uC740 \uACF5\uACA9\uB825\uC744 \uC9C0\uB154\uB2E4."
   cardArt: {fileID: 21300000, guid: 70c73259545ad574bbf32444bcb48046, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0

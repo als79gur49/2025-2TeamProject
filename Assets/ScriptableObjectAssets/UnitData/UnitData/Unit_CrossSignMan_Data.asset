@@ -16,7 +16,7 @@ MonoBehaviour:
   description: "\uD06C\uB85C\uC2A4 \uC2F8\uC778\uB9E8  \uC720\uB2DB\uC5D0 \uB300\uD55C
     \uC124\uBA85."
   icon: {fileID: 0}
-  prefab: {fileID: 5292211851203127451, guid: 20169846dee283e428b397705e59d527, type: 3}
+  prefab: {fileID: 5292211851203127451, guid: 3ea5c6833871bed4f932d350313edf87, type: 3}
   maxHealth: 5
   attackPower: 3
   movementRange: 2

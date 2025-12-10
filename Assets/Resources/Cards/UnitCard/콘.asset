@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardID: "\uCF58"
   cardName: "\uCF58"
-  description: "\uCF58 \uC720\uB2DB\uC744 \uC18C\uD658\uD55C\uB2E4."
+  description: "\uAC78\uC5B4\uB2E4\uB2C8\uB294 \uAF2C\uAE54\uAD34\uBB3C, \uC8FC\uB85C
+    \uBC24\uC5D0 \uC6C0\uC9C1\uC778\uB2E4."
   cardArt: {fileID: 21300000, guid: 93f624bce44efd44191ac85fe9b9744f, type: 3}
   iconSprite: {fileID: 0}
   rarity: 0

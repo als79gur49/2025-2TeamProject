@@ -32,4 +32,19 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TestScenes/Prototypes/Stage01_05.unity
     guid: 68ea4fa3c9d9cef449966c6cf766bf57
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage02_01.unity
+    guid: 684669656a1a0784c9bd01b7eaaa8e5d
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage02_02.unity
+    guid: f8aac1c69fce4ec42b63084eb4048af4
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage02_03.unity
+    guid: 2efb38e605a2c104a92b3bdb71fd9d93
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage02_04.unity
+    guid: 7935d9a6f5edc114fb2b020e96f87dd9
+  - enabled: 1
+    path: Assets/Scenes/TestScenes/Prototypes/Stage02_05.unity
+    guid: c74342d9a17155a4c9678eb933ca26b2
   m_configObjects: {}

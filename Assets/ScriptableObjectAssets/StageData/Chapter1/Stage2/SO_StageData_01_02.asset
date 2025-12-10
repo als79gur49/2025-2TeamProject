@@ -20,7 +20,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   thumbnail: {fileID: 0}
   sceneData: {fileID: 11400000, guid: 7406f453f45cfaf4790416624e00aad6, type: 2}
-  enemyCardPool: {fileID: 11400000, guid: 54f1c5a75e2e679439b3f6561dff2fe6, type: 2}
+  enemyCardPool: {fileID: 11400000, guid: 9479ea95ebdce7346a3a55e64ad5ff9c, type: 2}
   stageType: 1
   difficulty: 1
   isHidden: 0
