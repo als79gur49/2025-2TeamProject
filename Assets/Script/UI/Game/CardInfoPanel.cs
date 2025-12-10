@@ -34,11 +34,9 @@ public class CardInfoPanel : UIPanel, IDualClosePanel
     public Button SecondaryCloseButton => secondaryCloseButton;
 
     [Header("UI Elements")]
-
-    /// <summary>
     [SerializeField] private TextMeshProUGUI nameText;
+    [SerializeField] private TextMeshProUGUI manaCostText;
     [SerializeField] private TextMeshProUGUI descriptionText;
-    [SerializeField] private TextMeshProUGUI effectText;
 
     #region Initialization
     /// 의존성 없는 초기화 (Awake에서 호출됨)
@@ -185,59 +183,22 @@ public class CardInfoPanel : UIPanel, IDualClosePanel
             return;
         }
 
-        // 1. 필수 정보 (카드 이름, TargetType, TargetRange)
+        // 카드 이름
         if (nameText != null)
         {
-            string essentialInfo = $" {cardData.CardName}\n" +
-                                  $"Target: {cardData.Target} / Range: {FormatTargetRange(cardData.TargetRange)}";
-            nameText.text = essentialInfo;
+            nameText.text = cardData.CardName;
         }
 
-        // 2. 설명 텍스트
+        // 마나 코스트
+        if (manaCostText != null)
+        {
+            manaCostText.text = cardData.ManaCost.ToString();
+        }
+
+        // 설명 텍스트
         if (descriptionText != null)
         {
             descriptionText.text = cardData.Description;
-        }
-
-        // 3. 효과 정보 (EffectDefinition 기반)
-        if (effectText != null)
-        {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-
-            if (cardData.EffectDefinitions == null || cardData.EffectDefinitions.Count == 0)
-            {
-                sb.AppendLine(" (No effects)");
-            }
-            else
-            {
-                int index = 1;
-                foreach (var def in cardData.EffectDefinitions)
-                {
-                    if (def == null) continue;
-
-                    sb.AppendLine($" [Effect {index}]");
-                    sb.AppendLine($"Type: {def.EffectType}");
-                    sb.AppendLine($"Scope: {def.TargetScope}");
-
-                    switch (def)
-                    {
-                        case Game.Card.Effects.DamageEffectDefinition dmg:
-                            sb.AppendLine($"Value: {dmg.DamageAmount}");
-                            break;
-                        case Game.Card.Effects.HealEffectDefinition heal:
-                            sb.AppendLine($"Value: {heal.HealAmount}");
-                            break;
-                        case Game.Card.Effects.SummonEffectDefinition summon when summon.UnitToSummon != null:
-                            sb.AppendLine($"Summon: {summon.UnitToSummon.UnitName} x{summon.Count}");
-                            break;
-                    }
-
-                    index++;
-                    sb.AppendLine("");
-                }
-            }
-
-            effectText.text = sb.ToString();
         }
 
         // Show the panel
@@ -254,16 +215,6 @@ public class CardInfoPanel : UIPanel, IDualClosePanel
     {
         OnHide();
         Debug.Log("[CardInfoPanel] Hidden");
-    }
-
-    /// <summary>
-    /// TargetRange 값을 표시 문자열로 변환
-    /// </summary>
-    /// <param name="targetRange">-1: 거리 무관, 0+: 해당 거리까지</param>
-    /// <returns>포맷된 문자열</returns>
-    private string FormatTargetRange(int targetRange)
-    {
-        return targetRange == -1 ? "무제한" : targetRange.ToString();
     }
 
     #endregion

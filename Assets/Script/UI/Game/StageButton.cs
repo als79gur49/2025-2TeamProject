@@ -20,7 +20,7 @@ namespace Game.UI
     /// 스테이지 버튼 UI 컴포넌트 V3
     /// DOTween 기반 애니메이션 시스템
     /// </summary>
-    public class StageButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public class StageButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         [Header("Stage Configuration")]
         [SerializeField]
@@ -93,6 +93,13 @@ namespace Game.UI
         [SerializeField]
         private AnimationSettings animationSettings = new AnimationSettings();
 
+        [Header("Info Panel")]
+        [SerializeField]
+        private Button infoButton;
+
+        [SerializeField]
+        private StageInfoEventChannelSO stageInfoEventChannel;
+
         [Header("Events")]
         [SerializeField]
         private UnityEvent<string> onStageSelected = new UnityEvent<string>();
@@ -102,6 +109,10 @@ namespace Game.UI
         
         [SerializeField]
         private UnityEvent<List<string>> onShowUnlockRequirements = new UnityEvent<List<string>>();
+
+        [SerializeField]
+        [Tooltip("스테이지 단일 클릭 시 적 유닛 프리뷰 등을 위해 StageDataSO를 전달하는 이벤트")]
+        private UnityEvent<StageDataSO> onStagePreviewRequested = new UnityEvent<StageDataSO>();
 
         // Runtime State
         private IStageProgressManager progressManager;
@@ -184,7 +195,14 @@ namespace Game.UI
             if (button != null)
             {
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(OnButtonClick);
+                // 클릭 동작은 IPointerClickHandler.OnPointerClick에서 처리합니다.
+            }
+
+            // Setup info button (opens StageDetailInfoPanel via event channel)
+            if (infoButton != null)
+            {
+                infoButton.onClick.RemoveAllListeners();
+                infoButton.onClick.AddListener(OnInfoButtonClicked);
             }
 
             // Initial update
@@ -439,6 +457,88 @@ namespace Game.UI
 
         #region Interaction
 
+        /// <summary>
+        /// Unity UI 이벤트 시스템을 통한 클릭 처리
+        /// clickCount를 사용해 단일/더블 클릭을 구분합니다.
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            var stageData = GetStageData();
+            if (stageData == null) return;
+
+            // 좌클릭만 처리
+            if (eventData.button != PointerEventData.InputButton.Left)
+                return;
+
+            // 잠긴 스테이지는 잠금 해제 조건만 표시
+            if (currentStageInfo.state == StageState.Locked)
+            {
+                ShowUnlockRequirements();
+                return;
+            }
+
+            if (eventData.clickCount == 1)
+            {
+                HandleSingleClick(stageData);
+            }
+            else if (eventData.clickCount == 2)
+            {
+                HandleDoubleClick();
+            }
+        }
+
+        /// <summary>
+        /// Info 버튼 클릭 시 스테이지 상세 정보 패널을 요청합니다.
+        /// 잠긴 스테이지라도 정보는 항상 표시합니다.
+        /// </summary>
+        private void OnInfoButtonClicked()
+        {
+            var stageData = GetStageData();
+            if (stageData == null)
+            {
+                Debug.LogWarning("[StageButton] Cannot show stage info - StageData is null");
+                return;
+            }
+
+            if (stageInfoEventChannel == null)
+            {
+                Debug.LogError("[StageButton] StageInfoEventChannelSO is not assigned");
+                return;
+            }
+
+            stageInfoEventChannel.ShowStageInfo(stageData);
+            Debug.Log($"[StageButton] Info button clicked for stage: {stageData.StageId}");
+        }
+
+        /// <summary>
+        /// 단일 클릭: 스테이지 선택 및 적 유닛 프리뷰를 위한 이벤트만 발생시킵니다.
+        /// 씬 전환은 수행하지 않습니다.
+        /// </summary>
+        private void HandleSingleClick(StageDataSO stageData)
+        {
+            // 선택/정보 이벤트
+            onStageSelected?.Invoke(stageData.StageId);
+            onStageInfoRequested?.Invoke(currentStageInfo);
+
+            // 프리뷰 이벤트 (적 유닛 카드 아이콘 표시 등)
+            onStagePreviewRequested?.Invoke(stageData);
+
+            // Play animation
+            PlaySelectAnimation();
+        }
+
+        /// <summary>
+        /// 더블 클릭: 기존 OnButtonClick 흐름(덱 검증 및 씬 전환)을 실행합니다.
+        /// </summary>
+        private void HandleDoubleClick()
+        {
+            OnButtonClick();
+        }
+
+        /// <summary>
+        /// 스테이지 입장 전 덱/카드 검증 후 씬 전환을 수행합니다.
+        /// (기존 버튼 onClick에서 호출되던 로직)
+        /// </summary>
         private void OnButtonClick()
         {
             if (GetStageData() == null) return;
@@ -456,7 +556,7 @@ namespace Game.UI
                 return;
             }
 
-            // 검증 통과 - 스테이지 선택
+            // 검증 통과 - 스테이지 선택 및 씬 전환
             SelectStage();
         }
 
