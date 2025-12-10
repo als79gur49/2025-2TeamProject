@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9561aab1c20a142ae407b2c246a562, type: 3}
+  m_Name: SO_StageData_01_05
+  m_EditorClassIdentifier: 
+  stageId: chapter2_stage5
+  chapterId: chapter2
+  stageNumber: 5
+  displayName: Stage 5
+  description: "\uCC55\uD1302\uC758 5\uB2E8\uACC4 \uC2A4\uD14C\uC774\uC9C0"
+  icon: {fileID: 0}
+  thumbnail: {fileID: 0}
+  sceneData: {fileID: 11400000, guid: 411bed10d5f50434091dcdc0b1f77c0d, type: 2}
+  enemyCardPool: {fileID: 11400000, guid: b7b359ce702f963459387087ec5c68b7, type: 2}
+  stageType: 1
+  difficulty: 1
+  isHidden: 0
+  unlockConditions:
+  - {fileID: 11400000, guid: 28b41ab4493f493479665515e70eaa3e, type: 2}
+  bonusUnlockConditions: []
+  scoringSettings:
+    maxScore: 10000
+    starThresholds: b80b00007017000028230000
+    useRankSystem: 1
+    sRankScore: 9500
+    aRankScore: 8000
+    bRankScore: 6000
+    cRankScore: 4000
+    turnBonusTiers:
+    - turnCount: 20
+      bonusScore: 6000
+    - turnCount: 30
+      bonusScore: 4500
+    - turnCount: 40
+      bonusScore: 2000
+    healthBonusTiers:
+    - healthPercent: 100
+      bonusScore: 3000
+    - healthPercent: 70
+      bonusScore: 1500
+    - healthPercent: 40
+      bonusScore: 1000
+    comboMultiplier: 1.2
+  rewards:
+    baseCoin: 50
+    starBonusCoins: 14000000280000003c000000
+    firstClearBonus: 0
+  tags: []
+  themeColor: {r: 1, g: 1, b: 1, a: 1}
