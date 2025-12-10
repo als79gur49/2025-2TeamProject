@@ -91,10 +91,19 @@ namespace Game.UI.Panels
                     continue;
 
                 var go = Object.Instantiate(enemyCardIconPrefab, contentRoot);
-                var image = go.GetComponentInChildren<Image>();
-                if (image != null)
+                var iconUI = go.GetComponent<EnemyCardIconUI>();
+                if (iconUI != null)
                 {
-                    image.sprite = card.IconSprite;
+                    iconUI.SetIcon(card.IconSprite);
+                }
+                else
+                {
+                    // Fallback: 기존 방식 유지 (예전 프리팹 호환용)
+                    var image = go.GetComponentInChildren<Image>();
+                    if (image != null)
+                    {
+                        image.sprite = card.IconSprite;
+                    }
                 }
 
                 count++;

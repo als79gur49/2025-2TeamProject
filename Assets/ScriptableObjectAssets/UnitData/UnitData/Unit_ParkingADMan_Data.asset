@@ -15,7 +15,7 @@ MonoBehaviour:
   unitName: "\uD30C\uD0B9 \uC5D0\uB4DC\uB9E8"
   description: "\uD30C\uD0B9 \uC5D0\uB4DC\uB9E8 \uC720\uB2DB\uC5D0 \uB300\uD55C \uC124\uBA85."
   icon: {fileID: 0}
-  prefab: {fileID: 7841681796363796508, guid: 7393f9240c2c0fc4bae762b617af9a97, type: 3}
+  prefab: {fileID: 2033325659756824658, guid: 9b55d179cec8d3242a2021222ebc2eca, type: 3}
   maxHealth: 4
   attackPower: 2
   movementRange: 1

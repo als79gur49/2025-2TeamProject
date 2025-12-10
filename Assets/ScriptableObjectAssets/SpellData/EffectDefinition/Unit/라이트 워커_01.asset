@@ -19,5 +19,5 @@ MonoBehaviour:
   targetFilter: {fileID: 11400000, guid: 972bec2aa65f30640b3338c58c5d8c29, type: 2}
   vfx: {fileID: 11400000, guid: 426d438563314b847841dcd9324fa6c3, type: 2}
   vfxPlacementMode: 0
-  unitToSummon: {fileID: 11400000, guid: bd90a6270b7fb31498a6bc5da694b269, type: 2}
+  unitToSummon: {fileID: 11400000, guid: fa355fc3d45cfa240b3ef634067e3c8f, type: 2}
   count: 1
