@@ -4,6 +4,7 @@ using Game.UI.Panels;
 using Game.UI.Coordinators;
 using Game.Managers;
 using Game.SaveSystem;
+using Game.UI.Components;
 
 namespace Game.Core
 {
@@ -31,6 +32,12 @@ namespace Game.Core
         [Header("Scene Managers")]
         [SerializeField] private ShopManager shopManager;
 
+        [Header("TitleScene 전용 DeckSwitcher")]
+        [SerializeField] private DeckSwitcher deckSwitcher;
+
+        [Header("Debug Options")]
+        [SerializeField] private bool showDebugInfo = false;
+
         #region Scene Manager Registration
 
         /// <summary>
@@ -40,6 +47,9 @@ namespace Game.Core
         protected override void RegisterLocalServices()
         {
             base.RegisterLocalServices();
+
+            // ServiceBootstrap에서 등록된 글로벌 서비스 상세 검증
+            ValidateBootstrapServices();
 
             Log("[Phase 2.5] Registering Scene Managers...");
 
@@ -79,6 +89,52 @@ namespace Game.Core
             }
 
             Log("✅ Scene Managers registered successfully");
+        }
+
+        #endregion
+
+        #region Bootstrap Service Validation
+
+        /// <summary>
+        /// ServiceBootstrap에서 등록된 글로벌 서비스 확인
+        /// </summary>
+        private void ValidateBootstrapServices()
+        {
+            Log("Validating Bootstrap services...");
+
+            // SaveDataAdapter 확인 (DeckSwitcher 및 상점 등에 필요)
+            if (!ServiceLocator.IsRegistered<ISaveDataAdapter>())
+            {
+                LogError("❌ Critical: ISaveDataAdapter not registered!");
+                LogError("   Ensure ServiceBootstrap scene is loaded first.");
+            }
+            else
+            {
+                Log("✅ ISaveDataAdapter available from Bootstrap");
+            }
+
+            // PlayerDataManager 확인
+            if (!ServiceLocator.IsRegistered<IPlayerDataManager>())
+            {
+                LogError("❌ Critical: IPlayerDataManager not registered!");
+                LogError("   Ensure ServiceBootstrap scene is loaded first.");
+            }
+            else
+            {
+                Log("✅ IPlayerDataManager available from Bootstrap");
+            }
+
+            // StageProgressManager 확인
+            if (!ServiceLocator.IsRegistered<IStageProgressManager>())
+            {
+                LogWarning("⚠️ Warning: IStageProgressManager not registered");
+            }
+            else
+            {
+                Log("✅ IStageProgressManager available from Bootstrap");
+            }
+
+            Log("Bootstrap services validation completed");
         }
 
         #endregion
@@ -138,6 +194,33 @@ namespace Game.Core
             shop.Initialize();
 
             Log("✅ TitleScene UI Panels initialized successfully");
+
+            // DeckSwitcher 초기화 (선택적)
+            InitializeDeckSwitcher();
+        }
+
+        /// <summary>
+        /// DeckSwitcher 컴포넌트 초기화
+        /// </summary>
+        private void InitializeDeckSwitcher()
+        {
+            Log("   Initializing DeckSwitcher...");
+
+            if (deckSwitcher == null)
+            {
+                // Inspector에 할당되지 않은 경우 씬에서 찾기
+                deckSwitcher = FindObjectOfType<DeckSwitcher>();
+            }
+
+            if (deckSwitcher == null)
+            {
+                LogWarning("   ⚠️ DeckSwitcher not found in scene - Deck switching feature not available");
+                return;
+            }
+
+            // DeckSwitcher는 UIPanel을 상속하므로 자동으로 OnInitializeWithDependencies() 호출됨
+            // 여기서는 추가 설정이 필요한 경우만 처리
+            Log("   ✅ DeckSwitcher initialized successfully");
         }
 
         /// <summary>
@@ -253,6 +336,41 @@ namespace Game.Core
 
         #endregion
 
+        #region Public API
+
+        /// <summary>
+        /// 런타임에서 DeckSwitcher의 덱 목록을 새로고침
+        /// (덱이 외부에서 추가/삭제된 경우 호출)
+        /// </summary>
+        public void RefreshDeckSwitcher()
+        {
+            if (deckSwitcher != null)
+            {
+                deckSwitcher.RefreshDeckList();
+                Log("DeckSwitcher deck list refreshed");
+            }
+            else
+            {
+                LogWarning("Cannot refresh DeckSwitcher - component not found");
+            }
+        }
+
+        /// <summary>
+        /// 현재 선택된 덱 이름 가져오기
+        /// </summary>
+        public string GetCurrentSelectedDeck()
+        {
+            if (deckSwitcher != null)
+            {
+                return deckSwitcher.GetSelectedDeckName();
+            }
+
+            LogWarning("Cannot get selected deck - DeckSwitcher not found");
+            return string.Empty;
+        }
+
+        #endregion
+
         #region Editor Utilities
 
 #if UNITY_EDITOR
@@ -287,6 +405,82 @@ namespace Game.Core
             Debug.Log($"CollectionManager: {(collection != null ? "✅ Available" : "❌ Not Available")}");
 
             Debug.Log("================================");
+        }
+
+        private void OnGUI()
+        {
+            if (!showDebugInfo || !Application.isPlaying) return;
+
+            GUILayout.BeginArea(new Rect(10, 220, 300, 150));
+            GUILayout.Box("Title Scene Debug");
+
+            if (ServiceLocator.IsInitialized)
+            {
+                GUILayout.Label("✅ ServiceLocator Initialized");
+            }
+            else
+            {
+                GUILayout.Label("❌ ServiceLocator Not Initialized");
+            }
+
+            // DeckSwitcher 상태
+            if (deckSwitcher != null)
+            {
+                GUILayout.Label("DeckSwitcher: Active");
+                string currentDeck = deckSwitcher.GetSelectedDeckName();
+                if (!string.IsNullOrEmpty(currentDeck))
+                {
+                    GUILayout.Label($"  Current Deck: {currentDeck}");
+                }
+            }
+            else
+            {
+                GUILayout.Label("DeckSwitcher: Not Found");
+            }
+
+            if (GUILayout.Button("Refresh DeckSwitcher"))
+            {
+                RefreshDeckSwitcher();
+            }
+
+            GUILayout.EndArea();
+        }
+
+        [UnityEditor.MenuItem("Game/Title/Refresh Deck Switcher")]
+        private static void RefreshDeckSwitcherMenuItem()
+        {
+            var initializer = Object.FindObjectOfType<TitleSceneInitializer>();
+            if (initializer != null)
+            {
+                initializer.RefreshDeckSwitcher();
+                Debug.Log("TitleScene DeckSwitcher refreshed via menu");
+            }
+            else
+            {
+                Debug.LogWarning("TitleSceneInitializer not found in scene");
+            }
+        }
+
+        [UnityEditor.MenuItem("Game/Title/Get Current Deck")]
+        private static void GetCurrentDeckMenuItem()
+        {
+            var initializer = Object.FindObjectOfType<TitleSceneInitializer>();
+            if (initializer != null)
+            {
+                string currentDeck = initializer.GetCurrentSelectedDeck();
+                if (!string.IsNullOrEmpty(currentDeck))
+                {
+                    Debug.Log($"Current selected deck: {currentDeck}");
+                }
+                else
+                {
+                    Debug.Log("No deck selected");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("TitleSceneInitializer not found in scene");
+            }
         }
 #endif
 
