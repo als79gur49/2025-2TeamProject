@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using Game.Data;
 using Game.Card.Effects;
 
@@ -23,7 +24,10 @@ namespace Game.UI.Panels
         private Transform contentRoot;
 
         [SerializeField]
-        private GameObject enemyCardIconPrefab;
+        private EnemyCardIconUI enemyCardIconPrefab;
+
+        [SerializeField]
+        private TextMeshProUGUI stageNameText;
 
         [Header("Sorting Options")]
         [SerializeField]
@@ -80,6 +84,15 @@ namespace Game.UI.Panels
                 return;
             }
 
+            if (stageNameText != null)
+            {
+                stageNameText.text = stageData.DisplayName;
+            }
+            else
+            {
+                Debug.LogWarning("[StageEnemyPreviewPanel] Stage name text is not assigned");
+            }
+
             ClearIcons();
 
             var cards = GetEnemyUnitSummonCards(stageData);
@@ -87,29 +100,19 @@ namespace Game.UI.Panels
 
             foreach (var card in cards)
             {
-                if (card == null || card.IconSprite == null)
+                if (card == null || card.CardArt == null)
                     continue;
 
-                var go = Object.Instantiate(enemyCardIconPrefab, contentRoot);
-                var iconUI = go.GetComponent<EnemyCardIconUI>();
+                var iconUI = Object.Instantiate(enemyCardIconPrefab, contentRoot);
                 if (iconUI != null)
                 {
-                    iconUI.SetIcon(card.IconSprite);
-                }
-                else
-                {
-                    // Fallback: 기존 방식 유지 (예전 프리팹 호환용)
-                    var image = go.GetComponentInChildren<Image>();
-                    if (image != null)
-                    {
-                        image.sprite = card.IconSprite;
-                    }
+                    iconUI.SetIcon(card.CardArt);
                 }
 
                 count++;
             }
 
-            Debug.Log($"[StageEnemyPreviewPanel] Previewing {count} enemy summon cards for stage: {stageData.StageId}");
+            Debug.Log($"[StageEnemyPreviewPanel] Previewing {count} enemy summon cards for stage: {stageData.StageId}, Name: {stageData.DisplayName}");
 
             OnShow();
         }
@@ -151,13 +154,18 @@ namespace Game.UI.Panels
                 return Enumerable.Empty<CardData>();
             }
 
+            var query2 = cards
+                .Where(card => card != null &&
+                                card.EffectDefinitions != null &&
+                                card.EffectDefinitions.Count > 0);
+            Debug.LogWarning($"[StageEnemyPreviewPanel] EnemyCardPool is null for stage: {query2.ToList().Count}");
             // 1) 유닛 소환 카드 필터링
             var query = cards
                 .Where(card => card != null &&
                                 card.EffectDefinitions != null &&
                                 card.EffectDefinitions.Count > 0 &&
                                 card.EffectDefinitions.Any(d => d is SummonEffectDefinition s && s.UnitToSummon != null));
-
+            Debug.LogWarning($"[StageEnemyPreviewPanel] EnemyCardP is null for stage: {query.ToList().Count}");
             // 2) 중복 제거 (CardID 기준)
             if (removeDuplicateCards)
             {
