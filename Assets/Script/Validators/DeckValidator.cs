@@ -12,11 +12,11 @@ namespace Game.Validators
     public static class DeckValidator
     {
         // 덱 크기 제약
-        public const int MIN_DECK_SIZE = 30;
-        public const int MAX_DECK_SIZE = 60;
+        public const int MIN_DECK_SIZE = 40;
+        public const int MAX_DECK_SIZE = 40;
 
         // 카드 복사본 제약
-        public const int MAX_COPIES_PER_CARD = 3;
+        public const int MAX_COPIES_PER_CARD = 4;
         public const int MAX_LEGENDARY_COPIES = 1; // 전설 카드는 1장 제한
 
         /// <summary>

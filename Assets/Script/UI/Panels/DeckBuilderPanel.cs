@@ -36,8 +36,8 @@ namespace Game.UI.Panels
 
         [Header("Deck Validation")]
         [SerializeField] private int minDeckSize = 30;
-        [SerializeField] private int maxDeckSize = 30;
-        [SerializeField] private int maxCopiesPerCard = 3;
+        [SerializeField] private int maxDeckSize = 40;
+        [SerializeField] private int maxCopiesPerCard = 4;
 
         [Header("Visual Feedback")]
         [SerializeField] private Image dropZoneHighlight;

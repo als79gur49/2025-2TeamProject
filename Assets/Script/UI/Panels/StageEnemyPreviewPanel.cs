@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using Game.Data;
 using Game.Card.Effects;
+using Game.UI;
 
 namespace Game.UI.Panels
 {
@@ -39,6 +40,9 @@ namespace Game.UI.Panels
         [SerializeField]
         private bool removeDuplicateCards = true;
 
+        // StageButton 단일 클릭 프리뷰 이벤트 구독용
+        private readonly List<StageButton> subscribedStageButtons = new List<StageButton>();
+
         private void OnEnable()
         {
             SubscribeToEvents();
@@ -56,6 +60,8 @@ namespace Game.UI.Panels
                 stageInfoEventChannel.Subscribe(ShowStagePreview);
                 Debug.Log("[StageEnemyPreviewPanel] Subscribed to stage info events");
             }
+
+            SubscribeToStageButtons();
         }
 
         private void UnsubscribeFromEvents()
@@ -65,6 +71,44 @@ namespace Game.UI.Panels
                 stageInfoEventChannel.Unsubscribe(ShowStagePreview);
                 Debug.Log("[StageEnemyPreviewPanel] Unsubscribed from stage info events");
             }
+
+            UnsubscribeFromStageButtons();
+        }
+
+        /// <summary>
+        /// 현재 씬의 모든 StageButton에 단일 클릭 프리뷰 리스너를 등록합니다.
+        /// </summary>
+        private void SubscribeToStageButtons()
+        {
+            subscribedStageButtons.Clear();
+
+            var stageButtons = Object.FindObjectsOfType<StageButton>();
+            foreach (var stageButton in stageButtons)
+            {
+                if (stageButton == null)
+                    continue;
+
+                stageButton.RegisterStagePreviewListener(ShowStagePreview);
+                subscribedStageButtons.Add(stageButton);
+            }
+
+            Debug.Log($"[StageEnemyPreviewPanel] Subscribed to {subscribedStageButtons.Count} StageButton preview events");
+        }
+
+        /// <summary>
+        /// 등록되어 있던 모든 StageButton에서 프리뷰 리스너를 제거합니다.
+        /// </summary>
+        private void UnsubscribeFromStageButtons()
+        {
+            foreach (var stageButton in subscribedStageButtons)
+            {
+                if (stageButton == null)
+                    continue;
+
+                stageButton.UnregisterStagePreviewListener(ShowStagePreview);
+            }
+
+            subscribedStageButtons.Clear();
         }
 
         /// <summary>

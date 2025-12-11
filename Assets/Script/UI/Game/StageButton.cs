@@ -114,6 +114,27 @@ namespace Game.UI
         [Tooltip("스테이지 단일 클릭 시 적 유닛 프리뷰 등을 위해 StageDataSO를 전달하는 이벤트")]
         private UnityEvent<StageDataSO> onStagePreviewRequested = new UnityEvent<StageDataSO>();
 
+        /// <summary>
+        /// 스테이지 단일 클릭 프리뷰 리스너 등록용 퍼블릭 API
+        /// (예: StageEnemyPreviewPanel에서 사용)
+        /// </summary>
+        /// <param name="listener">StageDataSO를 인자로 받는 콜백</param>
+        public void RegisterStagePreviewListener(UnityAction<StageDataSO> listener)
+        {
+            if (listener == null) return;
+            onStagePreviewRequested.AddListener(listener);
+        }
+
+        /// <summary>
+        /// 스테이지 단일 클릭 프리뷰 리스너 해제용 퍼블릭 API
+        /// </summary>
+        /// <param name="listener">등록 해제할 콜백</param>
+        public void UnregisterStagePreviewListener(UnityAction<StageDataSO> listener)
+        {
+            if (listener == null) return;
+            onStagePreviewRequested.RemoveListener(listener);
+        }
+
         // Runtime State
         private IStageProgressManager progressManager;
         private StageInfo currentStageInfo;

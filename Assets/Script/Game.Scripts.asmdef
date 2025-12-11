@@ -4,7 +4,8 @@
     "references": [
         "Unity.InputSystem",
         "Unity.TextMeshPro",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
