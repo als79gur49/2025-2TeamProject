@@ -56,6 +56,12 @@ namespace Game.Managers
         string GetCurrentStageId();
 
         /// <summary>
+        /// 현재 준비된 스테이지 ID 초기화
+        /// (예: 타이틀 씬 진입 시 세션 컨텍스트를 비울 때 사용)
+        /// </summary>
+        void ClearCurrentStage();
+
+        /// <summary>
         /// 스테이지 완료 기록
         /// </summary>
         /// <param name="stageId">완료한 스테이지 ID</param>

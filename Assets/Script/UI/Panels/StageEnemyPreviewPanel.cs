@@ -202,14 +202,14 @@ namespace Game.UI.Panels
                 .Where(card => card != null &&
                                 card.EffectDefinitions != null &&
                                 card.EffectDefinitions.Count > 0);
-            Debug.LogWarning($"[StageEnemyPreviewPanel] EnemyCardPool is null for stage: {query2.ToList().Count}");
+
             // 1) 유닛 소환 카드 필터링
             var query = cards
                 .Where(card => card != null &&
                                 card.EffectDefinitions != null &&
                                 card.EffectDefinitions.Count > 0 &&
                                 card.EffectDefinitions.Any(d => d is SummonEffectDefinition s && s.UnitToSummon != null));
-            Debug.LogWarning($"[StageEnemyPreviewPanel] EnemyCardP is null for stage: {query.ToList().Count}");
+
             // 2) 중복 제거 (CardID 기준)
             if (removeDuplicateCards)
             {

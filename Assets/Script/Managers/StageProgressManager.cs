@@ -130,6 +130,33 @@ namespace Game.Managers
         }
 
         /// <summary>
+        /// 현재 준비된 스테이지 ID 초기화
+        /// (예: 타이틀 씬 진입 시 세션 컨텍스트를 비울 때 사용)
+        /// </summary>
+        public void ClearCurrentStage()
+        {
+            if (progressData == null)
+            {
+                progressData = new StageProgressData();
+            }
+
+            if (!string.IsNullOrEmpty(progressData.currentStageId))
+            {
+                if (debugMode)
+                {
+                    Debug.Log($"[StageProgressManager] Clearing current stage id: {progressData.currentStageId}");
+                }
+
+                progressData.currentStageId = "";
+                OnProgressUpdated?.Invoke(progressData);
+            }
+            else if (debugMode)
+            {
+                Debug.Log("[StageProgressManager] ClearCurrentStage called but currentStageId was already empty");
+            }
+        }
+
+        /// <summary>
         /// 스테이지 완료 기록 (외부에서 최종 데이터 받음)
         /// </summary>
         /// <param name="stageId">완료한 스테이지 ID</param>

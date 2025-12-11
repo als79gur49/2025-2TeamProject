@@ -316,7 +316,18 @@ namespace Game.Core
             Log("[Phase 5] Initializing TitleScene specifics...");
 
             // 예: 덱 빌더 필터 설정, 정렬 옵션 로드 등
-            // 현재는 추가 설정 없음
+
+            // TitleScene 진입 시 현재 진행 중인 스테이지 컨텍스트 초기화
+            if (ServiceLocator.IsRegistered<IStageProgressManager>())
+            {
+                var progressManager = ServiceLocator.Get<IStageProgressManager>();
+                progressManager.ClearCurrentStage();
+                Log("   ✓ Cleared currentStageId in StageProgressManager for TitleScene");
+            }
+            else
+            {
+                LogWarning("   ⚠️ IStageProgressManager not registered - cannot clear currentStageId for TitleScene");
+            }
 
             Log("✅ TitleScene specifics initialized (none)");
         }
