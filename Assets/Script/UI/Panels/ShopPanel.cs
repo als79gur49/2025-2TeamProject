@@ -16,7 +16,8 @@ public class ShopPanel : UIPanel, IOpenablePanel
 {
     [Header("UI References")]
     [SerializeField] private GameObject shopItemPrefab;
-    [SerializeField] private Transform shopItemContainer;
+    [SerializeField] private Transform cardItemContainer;
+    [SerializeField] private Transform packItemContainer;
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button openButton;
     [SerializeField] private Button closeButton;
@@ -180,43 +181,81 @@ public class ShopPanel : UIPanel, IOpenablePanel
         int currentGold = playerDataManager != null ? playerDataManager.CurrentGold : 0;
         List<ShopItemViewModel> viewModels = shopManager.GetAllViewModels(currentGold);
 
-        // UI 생성
-        foreach (var viewModel in viewModels)
+        // 카드 / 카드팩 ViewModel 분리
+        var cardViewModels = viewModels.Where(vm => !vm.IsCardPack).ToList();
+        var packViewModels = viewModels.Where(vm => vm.IsCardPack).ToList();
+
+        // 카드 아이템 UI 생성
+        foreach (var viewModel in cardViewModels)
         {
-            if (shopItemPrefab == null || shopItemContainer == null)
+            if (shopItemPrefab == null || cardItemContainer == null)
             {
-                Debug.LogError("[ShopPanel] shopItemPrefab or shopItemContainer is null");
+                Debug.LogError("[ShopPanel] shopItemPrefab or cardItemContainer is null");
                 break;
             }
 
-            // 장바구니 수량 반영
             if (shoppingCart.ContainsKey(viewModel.ItemID))
             {
                 viewModel.QuantityInCart = shoppingCart[viewModel.ItemID].quantity;
             }
 
-            GameObject itemUI = Instantiate(shopItemPrefab, shopItemContainer);
+            GameObject itemUI = Instantiate(shopItemPrefab, cardItemContainer);
             ShopItemUI component = itemUI.GetComponent<ShopItemUI>();
 
             if (component != null)
             {
-                // 좌클릭: 장바구니 추가, 우클릭: 장바구니 제거
                 component.Initialize(viewModel, OnLeftClickItem, OnRightClickItem);
                 itemUICache[viewModel.ItemID] = component;
             }
             else
             {
-                Debug.LogError("[ShopPanel] ShopItemUI component not found on prefab");
+                Debug.LogError("[ShopPanel] ShopItemUI component not found on prefab (card section)");
             }
 
             currentItemUIs.Add(itemUI);
         }
 
-        // Layout 강제 갱신 (ScrollRect 드래그 문제 해결)
-        if (shopItemContainer != null)
+        // 카드팩 아이템 UI 생성
+        foreach (var viewModel in packViewModels)
         {
-            Canvas.ForceUpdateCanvases();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(shopItemContainer as RectTransform);
+            if (shopItemPrefab == null || packItemContainer == null)
+            {
+                Debug.LogError("[ShopPanel] shopItemPrefab or packItemContainer is null");
+                break;
+            }
+
+            if (shoppingCart.ContainsKey(viewModel.ItemID))
+            {
+                viewModel.QuantityInCart = shoppingCart[viewModel.ItemID].quantity;
+            }
+
+            GameObject itemUI = Instantiate(shopItemPrefab, packItemContainer);
+            ShopItemUI component = itemUI.GetComponent<ShopItemUI>();
+
+            if (component != null)
+            {
+                component.Initialize(viewModel, OnLeftClickItem, OnRightClickItem);
+                itemUICache[viewModel.ItemID] = component;
+            }
+            else
+            {
+                Debug.LogError("[ShopPanel] ShopItemUI component not found on prefab (pack section)");
+            }
+
+            currentItemUIs.Add(itemUI);
+        }
+
+        // Layout 강제 갱신
+        Canvas.ForceUpdateCanvases();
+
+        if (cardItemContainer != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(cardItemContainer as RectTransform);
+        }
+
+        if (packItemContainer != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(packItemContainer as RectTransform);
         }
 
         Debug.Log($"[ShopPanel] Rebuilt UI with {currentItemUIs.Count} items");

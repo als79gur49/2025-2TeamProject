@@ -30,13 +30,15 @@ public interface IShopManager
     /// <param name="pricing">가격 책정 전략 (선택적)</param>
     /// <param name="discount">할인 전략 (선택적)</param>
     /// <param name="selection">카드 선택 전략 (선택적)</param>
+    /// <param name="packSelection">카드팩 선택 전략 (선택적)</param>
     void Initialize(
         IPlayerDataManager playerData,
         ICardCollection collection,
         ISaveDataAdapter saveAdapter,
         IPricingStrategy pricing = null,
         IDiscountStrategy discount = null,
-        ICardSelectionStrategy selection = null);
+        ICardSelectionStrategy selection = null,
+        IPackSelectionStrategy packSelection = null);
 
     /// <summary>
     /// 상점 새로고침 (새 아이템 진열)

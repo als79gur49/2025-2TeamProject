@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 226f0254c55150c449a9ba6f4ca69cdf, type: 3}
+  m_Name: Pack_PackagePack_Data
+  m_EditorClassIdentifier: 
+  packId: "\uD328\uD0A4\uC9C0"
+  displayName: "\uD328\uD0A4\uC9C0"
+  icon: {fileID: 21300000, guid: b79788039b62b684ea000daead52a7d0, type: 3}
+  description: "\uC77C\uBC18, \uD76C\uADC0, \uC601\uC6C5 \uCE74\uB4DC\uB97C 1\uC7A5\uC529
+    \uD655\uC815\n"
+  basePrice: 190
+  poolSet: {fileID: 11400000, guid: cabb2a6ae289f0145b8880a9121d2ff4, type: 2}
+  rarityTableOverride: {fileID: 11400000, guid: cde82ca62eae66d48a1012d876837ddd,
+    type: 2}
+  drawCount: 3
+  rarityGuarantees:
+  - rarity: 0
+    minCount: 1
+  - rarity: 1
+    minCount: 1
+  - rarity: 2
+    minCount: 1

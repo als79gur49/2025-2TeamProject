@@ -14,9 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shopItemCount: 6
   defaultStock: 3
-  commonPrice: 100
-  uncommonPrice: 250
-  rarePrice: 500
+  packSlotCount: 3
+  availableCardPacks:
+  - {fileID: 11400000, guid: 9497042d120971b48aaafd51fd35ee59, type: 2}
+  - {fileID: 11400000, guid: 9bbe7b69f4b1ce847a6e5346ddca2c20, type: 2}
+  - {fileID: 11400000, guid: a3ce41bda136c1846ae290b313a9ffe5, type: 2}
+  - {fileID: 11400000, guid: bbeb3d601867b4c479b6396913520c2e, type: 2}
+  - {fileID: 11400000, guid: ba4c33ca627362b4b98f9da7fe81a687, type: 2}
+  defaultPackRarityTable: {fileID: 11400000, guid: cde82ca62eae66d48a1012d876837ddd,
+    type: 2}
+  commonPrice: 30
+  uncommonPrice: 60
+  rarePrice: 100
   epicPrice: 1000
   legendaryPrice: 2000
   discountChance: 0.3

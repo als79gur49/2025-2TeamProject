@@ -22,6 +22,12 @@ public class ShopData
 [Serializable]
 public class ShopItemData
 {
+    /// <summary>아이템 타입 (카드 단품, 카드팩 등)</summary>
+    public ShopItemType itemType = ShopItemType.CardSingle;
+
+    /// <summary>아이템 고유 ID (CardData의 cardID, CardPackDefinition의 packId 등)</summary>
+    public string itemId;
+
     /// <summary>아이템 ID (CardData의 cardID)</summary>
     public string cardID;
 
@@ -33,4 +39,13 @@ public class ShopItemData
 
     /// <summary>할인율 (0.0 ~ 1.0)</summary>
     public float discountPercentage;
+}
+
+/// <summary>
+/// 상점 아이템 타입
+/// </summary>
+public enum ShopItemType
+{
+    CardSingle = 0,
+    CardPack = 1
 }

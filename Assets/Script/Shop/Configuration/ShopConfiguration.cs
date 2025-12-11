@@ -1,4 +1,5 @@
 using UnityEngine;
+using Game.Data;
 
 /// <summary>
 /// 상점 설정 데이터 (순수 데이터 저장소, 로직 없음)
@@ -10,6 +11,11 @@ public class ShopConfiguration : ScriptableObject
     [Header("Shop Settings")]
     [SerializeField] private int shopItemCount = 6;
     [SerializeField] private int defaultStock = 3;
+
+    [Header("Card Pack Settings")]
+    [SerializeField] private int packSlotCount = 0;
+    [SerializeField] private CardPackDefinition[] availableCardPacks;
+    [SerializeField] private CardRarityTable defaultPackRarityTable;
 
     [Header("Pricing by Rarity")]
     [SerializeField] private int commonPrice = 100;
@@ -26,6 +32,9 @@ public class ShopConfiguration : ScriptableObject
     // Read-only properties (Immutability)
     public int ShopItemCount => shopItemCount;
     public int DefaultStock => defaultStock;
+    public int PackSlotCount => packSlotCount;
+    public CardRarityTable DefaultPackRarityTable => defaultPackRarityTable;
+    public CardPackDefinition[] AvailableCardPacks => availableCardPacks;
     public int CommonPrice => commonPrice;
     public int UncommonPrice => uncommonPrice;
     public int RarePrice => rarePrice;

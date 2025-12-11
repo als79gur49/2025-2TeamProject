@@ -20,6 +20,7 @@ public class ShopManager : MonoBehaviour, IShopManager
     private IPricingStrategy pricingStrategy;
     private IDiscountStrategy discountStrategy;
     private ICardSelectionStrategy selectionStrategy;
+    private IPackSelectionStrategy packSelectionStrategy;
 
     // 매니저들
     private IPlayerDataManager playerDataManager;
@@ -50,7 +51,8 @@ public class ShopManager : MonoBehaviour, IShopManager
         ISaveDataAdapter saveAdapter,
         IPricingStrategy pricing = null,
         IDiscountStrategy discount = null,
-        ICardSelectionStrategy selection = null)
+        ICardSelectionStrategy selection = null,
+        IPackSelectionStrategy packSelection = null)
     {
         // 필수 의존성 검증
         playerDataManager = playerData ?? throw new ArgumentNullException(nameof(playerData));
@@ -61,6 +63,7 @@ public class ShopManager : MonoBehaviour, IShopManager
         pricingStrategy = pricing ?? new RarityBasedPricing();
         discountStrategy = discount ?? new RandomDiscountStrategy();
         selectionStrategy = selection ?? new RandomSelectionStrategy();
+        packSelectionStrategy = packSelection ?? new RandomPackSelectionStrategy();
 
         // PurchaseContext 생성
         purchaseContext = new PurchaseContext(playerDataManager, collectionManager);
@@ -92,7 +95,7 @@ public class ShopManager : MonoBehaviour, IShopManager
 
         List<CardData> availableCards = cardRegistry.GetAllCards().ToList();
 
-        // 2. SelectionStrategy로 카드 선택
+        // 2. SelectionStrategy로 카드 선택 (단일 카드 슬롯)
         List<CardData> selectedCards = selectionStrategy.SelectCards(
             availableCards,
             config.ShopItemCount
@@ -125,7 +128,48 @@ public class ShopManager : MonoBehaviour, IShopManager
             currentShopItems.Add(shopItem);
         }
 
-        // 4. 저장 및 이벤트 발생
+        // 4. 카드팩 슬롯 처리
+        if (config.PackSlotCount > 0 && packSelectionStrategy != null)
+        {
+            var availablePacks = new List<CardPackDefinition>();
+            if (config.AvailableCardPacks != null)
+            {
+                foreach (var pack in config.AvailableCardPacks)
+                {
+                    if (pack != null)
+                    {
+                        availablePacks.Add(pack);
+                    }
+                }
+            }
+
+            if (availablePacks.Count == 0)
+            {
+                Debug.LogWarning("[ShopManager] No available card packs configured in ShopConfiguration.");
+            }
+            else
+            {
+                var selectedPacks = packSelectionStrategy.SelectPacks(availablePacks, config.PackSlotCount);
+
+                foreach (var packDef in selectedPacks)
+                {
+                    if (packDef == null)
+                        continue;
+
+                    int price = packDef.BasePrice;
+                    var packItem = new CardPackShopItem(packDef, price, config.DefaultPackRarityTable);
+
+                    float discount = discountStrategy.ShouldApplyDiscount(config)
+                        ? discountStrategy.GetDiscountAmount(config)
+                        : 0f;
+
+                    ShopItem shopItem = new ShopItem(packItem, config.DefaultStock, discount);
+                    currentShopItems.Add(shopItem);
+                }
+            }
+        }
+
+        // 5. 저장 및 이벤트 발생
         SaveShopData();
         OnShopRefreshed?.Invoke();
 
@@ -219,12 +263,28 @@ public class ShopManager : MonoBehaviour, IShopManager
     {
         ShopData shopData = new ShopData
         {
-            items = currentShopItems.Select(item => new ShopItemData
+            items = currentShopItems.Select(item =>
             {
-                cardID = item.purchasableItem.ItemID,
-                basePrice = item.purchasableItem.BasePrice,
-                stockAmount = item.stockAmount,
-                discountPercentage = item.discountPercentage
+                var purchasable = item.purchasableItem;
+                var data = new ShopItemData
+                {
+                    itemId = purchasable.ItemID,
+                    cardID = purchasable.ItemID,
+                    basePrice = purchasable.BasePrice,
+                    stockAmount = item.stockAmount,
+                    discountPercentage = item.discountPercentage
+                };
+
+                if (purchasable is CardPackShopItem)
+                {
+                    data.itemType = ShopItemType.CardPack;
+                }
+                else
+                {
+                    data.itemType = ShopItemType.CardSingle;
+                }
+
+                return data;
             }).ToList()
         };
 
@@ -264,22 +324,64 @@ public class ShopManager : MonoBehaviour, IShopManager
         // ShopItemData를 ShopItem으로 복원
         foreach (var itemData in shopData.items)
         {
-            CardData card = cardRegistry.GetCardByID(itemData.cardID);
-            if (card == null)
-            {
-                Debug.LogWarning($"Card not found: {itemData.cardID}");
+            if (itemData == null)
                 continue;
+
+            if (itemData.itemType == ShopItemType.CardPack)
+            {
+                string packId = !string.IsNullOrEmpty(itemData.itemId)
+                    ? itemData.itemId
+                    : itemData.cardID;
+
+                var packDef = FindCardPackDefinition(packId);
+                if (packDef == null)
+                {
+                    Debug.LogWarning($"[ShopManager] CardPackDefinition not found for id: {packId}");
+                    continue;
+                }
+
+                var packItem = new CardPackShopItem(packDef, itemData.basePrice, config.DefaultPackRarityTable);
+                ShopItem shopItem = new ShopItem(packItem, itemData.stockAmount, itemData.discountPercentage);
+                currentShopItems.Add(shopItem);
             }
+            else
+            {
+                // 레거시 데이터 호환: cardID 우선, 없으면 itemId 사용
+                string cardId = !string.IsNullOrEmpty(itemData.cardID)
+                    ? itemData.cardID
+                    : itemData.itemId;
 
-            // CardShopItem 생성 (저장된 basePrice 사용)
-            var item = new CardShopItem(card, itemData.basePrice);
+                CardData card = cardRegistry.GetCardByID(cardId);
+                if (card == null)
+                {
+                    Debug.LogWarning($"Card not found: {cardId}");
+                    continue;
+                }
 
-            // ShopItem 생성 (저장된 재고 및 할인율 복원)
-            ShopItem shopItem = new ShopItem(item, itemData.stockAmount, itemData.discountPercentage);
-            currentShopItems.Add(shopItem);
+                // CardShopItem 생성 (저장된 basePrice 사용)
+                var item = new CardShopItem(card, itemData.basePrice);
+
+                // ShopItem 생성 (저장된 재고 및 할인율 복원)
+                ShopItem shopItem = new ShopItem(item, itemData.stockAmount, itemData.discountPercentage);
+                currentShopItems.Add(shopItem);
+            }
         }
 
         Debug.Log($"Shop loaded: {currentShopItems.Count} items restored");
+    }
+
+    private CardPackDefinition FindCardPackDefinition(string packId)
+    {
+        if (string.IsNullOrEmpty(packId) || config == null || config.AvailableCardPacks == null)
+            return null;
+
+        foreach (var pack in config.AvailableCardPacks)
+        {
+            if (pack != null && pack.PackId == packId)
+                return pack;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -289,18 +391,25 @@ public class ShopManager : MonoBehaviour, IShopManager
     /// <returns>ShopItemViewModel 목록</returns>
     public List<ShopItemViewModel> GetAllViewModels(int currentGold)
     {
-        return currentShopItems.Select(item => new ShopItemViewModel
+        return currentShopItems.Select(item =>
         {
-            ItemID = item.purchasableItem.ItemID,
-            DisplayName = item.purchasableItem.DisplayName,
-            Icon = item.purchasableItem.DisplayIcon,
-            OriginalPrice = item.purchasableItem.BasePrice,
-            FinalPrice = item.FinalPrice,
-            Stock = item.stockAmount,
-            HasDiscount = item.HasDiscount,
-            IsAvailable = item.IsAvailable,
-            CanAfford = currentGold >= item.FinalPrice,
-            CardData = (item.purchasableItem as CardShopItem)?.GetCardData() // 카드 아이템인 경우 원본 CardData 설정
+            var purchasable = item.purchasableItem;
+            bool isPack = purchasable is CardPackShopItem;
+
+            return new ShopItemViewModel
+            {
+                ItemID = purchasable.ItemID,
+                DisplayName = purchasable.DisplayName,
+                Icon = purchasable.DisplayIcon,
+                OriginalPrice = purchasable.BasePrice,
+                FinalPrice = item.FinalPrice,
+                Stock = item.stockAmount,
+                HasDiscount = item.HasDiscount,
+                IsAvailable = item.IsAvailable,
+                CanAfford = currentGold >= item.FinalPrice,
+                CardData = (purchasable as CardShopItem)?.GetCardData(), // 카드 아이템인 경우 원본 CardData 설정
+                IsCardPack = isPack
+            };
         }).ToList();
     }
 }
