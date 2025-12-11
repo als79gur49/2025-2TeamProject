@@ -793,7 +793,7 @@ PrefabInstance:
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 8
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -847,7 +847,7 @@ PrefabInstance:
         type: 3}
       propertyPath: initialHandCards.Array.data[8]
       value: 
-      objectReference: {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7,
+      objectReference: {fileID: 11400000, guid: f7a28d448dce09842adc77cc967e7805,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}

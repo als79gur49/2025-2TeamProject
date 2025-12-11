@@ -27,6 +27,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Validate Services**: Unity Menu → Game → Validate Services
 - **Test Unit Systems**: Select Unit in Hierarchy → Inspector → Right-click component → Context menu options
 - **Create Assets**: Right-click in Project → Create → Game/[Asset Type]
+- **Debug Resources**: Unity Menu → Tools → Resource Manager (Play Mode only)
+
+### Resource Manager Editor (Debugging)
+
+**Access**: `Tools → Resource Manager` (Play Mode only)
+
+**Purpose**: Real-time resource manipulation and testing for ResourceManager service
+
+**Features**:
+- **Current State**: Live display of player/enemy mana with progress bars
+- **Quick Operations**:
+  - +1 Mana buttons for quick adjustments
+  - Custom amount input for precise control
+  - Refill buttons to set resources to maximum
+  - Set to Zero buttons for testing resource starvation
+- **Advanced Operations**:
+  - Reset All: Restore default resource values
+  - Increase Turnly Mana: Simulate turn-based mana growth
+- **Test Presets**:
+  - Early Game (3/5, 3/5): Low resource scenario
+  - Mid Game (7/10, 7/10): Standard gameplay state
+  - Late Game (10/10, 10/10): Maximum resources
+  - Player Advantage (10/10, 3/10): Test player-favored situations
+  - Enemy Advantage (3/10, 10/10): Test enemy-favored situations
+  - Resource Starvation (1/5, 1/5): Test low-resource pressure
+- **Operation History**: Tracks recent resource changes with timestamps
+
+**Usage Pattern**:
+1. Enter Play Mode
+2. Open `Tools → Resource Manager`
+3. Apply presets or manual adjustments to test game balance
+4. Observe real-time UI updates and event notifications
+
+**Note**: All changes are immediate and trigger `OnPlayerResourcesChanged`/`OnEnemyResourcesChanged` events
 
 ## Architecture
 

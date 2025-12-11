@@ -21,7 +21,6 @@ namespace Game.Services
     {
         [Header("자원 관리 설정")]
         [SerializeField] private bool enableLogging = true;
-        [SerializeField] private bool enableDebugGUI = true;
 
         [Header("마나 상한 설정")]
         [SerializeField] private int playerMaxManaCap = 10;
@@ -471,69 +470,5 @@ namespace Game.Services
 
         #endregion
 
-        #region 에디터용 디버깅
-
-#if UNITY_EDITOR
-        [Header("에디터 도구")]
-        [SerializeField] private bool showDebugInfo = true;
-
-        private void OnGUI()
-        {
-            if (!showDebugInfo || !Application.isPlaying || !enableDebugGUI) return;
-
-            GUILayout.BeginArea(new Rect(650, 10, 250, 300));
-            GUILayout.Box("Resource Manager Debug");
-
-            if (isInitialized)
-            {
-                GUILayout.Label("✅ ResourceManager Initialized");
-            }
-            else
-            {
-                GUILayout.Label("❌ ResourceManager Not Initialized");
-            }
-
-            GUILayout.Space(10);
-
-            // 플레이어 자원
-            GUILayout.Label($"🔵 Player Resources:");
-            GUILayout.Label($"  Mana: {playerMana}/{playerMaxMana}");
-
-            if (GUILayout.Button("Player +1M"))
-            {
-                RestorePlayerResources(1);
-            }
-            if (GUILayout.Button("Player Refill"))
-            {
-                RefillPlayerResources();
-            }
-
-            GUILayout.Space(10);
-
-            // 적군 자원
-            GUILayout.Label($"🔴 Enemy Resources:");
-            GUILayout.Label($"  Mana: {enemyMana}/{enemyMaxMana}");
-
-            if (GUILayout.Button("Enemy +1M"))
-            {
-                RestoreEnemyResources(1);
-            }
-            if (GUILayout.Button("Enemy Refill"))
-            {
-                RefillEnemyResources();
-            }
-
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("Reset All Resources"))
-            {
-                ResetResources();
-            }
-
-            GUILayout.EndArea();
-        }
-#endif
-
-        #endregion
     }
 }

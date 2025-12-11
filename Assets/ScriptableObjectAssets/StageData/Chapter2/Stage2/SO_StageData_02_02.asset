@@ -25,7 +25,7 @@ MonoBehaviour:
   difficulty: 1
   isHidden: 0
   unlockConditions:
-  - {fileID: 11400000, guid: 1db0e51387d713540a0dc6ac2484ee88, type: 2}
+  - {fileID: 11400000, guid: c8c3c71fa28c499439aa5c24f281b494, type: 2}
   bonusUnlockConditions: []
   scoringSettings:
     maxScore: 10000

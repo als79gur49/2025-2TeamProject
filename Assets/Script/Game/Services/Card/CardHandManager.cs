@@ -860,35 +860,5 @@ namespace Game.Services
         }
 
         #endregion
-
-        #region 에디터용 디버깅
-
-#if UNITY_EDITOR
-        [Header("에디터 디버깅 도구")]
-        [SerializeField] private bool showHandDebugInfo = false;
-        [SerializeField] private CardData testCardData;
-
-        private void OnGUI()
-        {
-            if (!showHandDebugInfo || !Application.isPlaying) return;
-
-            var rect = new Rect(Screen.width - 350, 200, 330, 300);
-            GUILayout.BeginArea(rect);
-            GUILayout.Box("CardHandManager Debug");
-
-            GUILayout.Label($"Initialized: {(isInitialized ? "✅" : "❌")}");
-            GUILayout.Label($"Hand Size: {handCards.Count}/{maxHandSize}");
-            GUILayout.Label($"Summon Mode: {(isPlayerSummonMode ? "🟢" : "🔴")}");
-            GUILayout.Label($"Player Interaction: {(enablePlayerInteraction ? "✅" : "❌")}");
-
-            GUILayout.Space(10);
-
-
-            GUILayout.EndArea();
-        }
-     
-#endif
-
-        #endregion
     }
 }

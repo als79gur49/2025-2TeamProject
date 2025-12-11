@@ -17,6 +17,16 @@ namespace Game.UI.Menu
     public class MainMenuCameraController : MonoBehaviour
     {
         [Serializable]
+        public class CanvasGroupState
+        {
+            public CanvasGroup canvasGroup;
+
+            [Range(0f, 1f)]
+            public float alpha = 1f;
+            public bool blocksRaycasts = true;
+        }
+
+        [Serializable]
         public class CameraPointConfig
         {
             public CameraPointId id;
@@ -31,6 +41,10 @@ namespace Game.UI.Menu
             /// (CinemachineVirtualCamera.LookAt 에 연결됩니다)
             /// </summary>
             public Transform lookAtTarget;
+
+            [Header("UI Canvas Groups")]
+            public CanvasGroupState canvasGroup1;
+            public CanvasGroupState canvasGroup2;
         }
 
         public enum CameraPointId
@@ -39,6 +53,13 @@ namespace Game.UI.Menu
             B,
             C
         }
+
+        [Header("Initial Point")]
+        [SerializeField]
+        private bool useExplicitInitialPoint;
+
+        [SerializeField]
+        private CameraPointId explicitInitialPointId = CameraPointId.A;
 
         [Header("Cinemachine")]
         [SerializeField]
@@ -155,6 +176,9 @@ namespace Game.UI.Menu
                 virtualCamera.LookAt = config.lookAtTarget;
             }
 
+            // 이 포인트에서 표시할 UI 상태 적용
+            ApplyUIForPoint(config);
+
             float currentPos = currentPathPosition;
             float destPos = config.pathPosition;
 
@@ -224,40 +248,52 @@ namespace Game.UI.Menu
                 return;
             }
 
-            // 현재 카메라 위치와 가장 가까운 포인트를 초기 포인트로 설정
-            var cameraPosition = virtualCamera != null ? virtualCamera.transform.position : Vector3.zero;
+            CameraPointConfig initialConfig = null;
 
-            CameraPointId nearestId = pointMap.Keys.First();
-            float nearestPathPos = pointMap[nearestId].pathPosition;
-            float nearestDistance = float.MaxValue;
-
-            foreach (var kvp in pointMap)
+            // 1) 인스펙터에서 명시적으로 시작 포인트를 지정한 경우 우선 사용
+            if (useExplicitInitialPoint && pointMap.TryGetValue(explicitInitialPointId, out var explicitConfig))
             {
-                Vector3 pointPos = trackedDolly.EvaluatePosition(kvp.Value.pathPosition);
-                float distance = (pointPos - cameraPosition).sqrMagnitude;
+                initialConfig = explicitConfig;
+            }
+            else
+            {
+                // 2) 그렇지 않다면 기존 로직 유지:
+                //    현재 카메라 위치와 가장 가까운 포인트를 초기 포인트로 설정
+                var cameraPosition = virtualCamera != null ? virtualCamera.transform.position : Vector3.zero;
+                float nearestDistance = float.MaxValue;
 
-                if (distance < nearestDistance)
+                foreach (var kvp in pointMap)
                 {
-                    nearestDistance = distance;
-                    nearestId = kvp.Key;
-                    nearestPathPos = kvp.Value.pathPosition;
+                    var config = kvp.Value;
+                    Vector3 pointPos = trackedDolly.EvaluatePosition(config.pathPosition);
+                    float distance = (pointPos - cameraPosition).sqrMagnitude;
+
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        initialConfig = config;
+                    }
                 }
             }
 
-            currentPointId = nearestId;
-            currentPathPosition = nearestPathPos;
+            if (initialConfig == null)
+            {
+                return;
+            }
+
+            currentPointId = initialConfig.id;
+            currentPathPosition = initialConfig.pathPosition;
             targetPathPosition = currentPathPosition;
 
             // 초기 포인트의 LookAt 타겟을 설정
             if (virtualCamera != null &&
-                pointMap.TryGetValue(currentPointId, out var initialConfig) &&
-                initialConfig != null &&
                 initialConfig.lookAtTarget != null)
             {
                 virtualCamera.LookAt = initialConfig.lookAtTarget;
             }
 
             ApplyCameraTransformAt(currentPathPosition);
+            ApplyUIForPoint(initialConfig);
         }
 
         private void ApplyCameraTransformAt(float pathPosition)
@@ -272,6 +308,62 @@ namespace Game.UI.Menu
 
             virtualCamera.transform.position = position;
             virtualCamera.transform.rotation = rotation;
+        }
+
+        /// <summary>
+        /// 지정한 포인트에 맞춰 UI CanvasGroup 들의 alpha/blockRaycasts를 설정합니다.
+        /// - 모든 포인트에 연결된 CanvasGroup을 기본값(숨김)으로 리셋한 뒤
+        /// - 활성 포인트의 CanvasGroupState 설정을 적용합니다.
+        /// </summary>
+        private void ApplyUIForPoint(CameraPointConfig activeConfig)
+        {
+            if (pointConfigs == null)
+            {
+                return;
+            }
+
+            // 모든 포인트의 CanvasGroup을 비활성 상태로 리셋
+            foreach (var config in pointConfigs)
+            {
+                if (config == null)
+                {
+                    continue;
+                }
+
+                ResetCanvasGroupState(config.canvasGroup1);
+                ResetCanvasGroupState(config.canvasGroup2);
+            }
+
+            if (activeConfig == null)
+            {
+                return;
+            }
+
+            // 활성 포인트 설정 적용
+            ApplyCanvasGroupState(activeConfig.canvasGroup1);
+            ApplyCanvasGroupState(activeConfig.canvasGroup2);
+        }
+
+        private void ResetCanvasGroupState(CanvasGroupState state)
+        {
+            if (state == null || state.canvasGroup == null)
+            {
+                return;
+            }
+
+            state.canvasGroup.alpha = 0f;
+            state.canvasGroup.blocksRaycasts = false;
+        }
+
+        private void ApplyCanvasGroupState(CanvasGroupState state)
+        {
+            if (state == null || state.canvasGroup == null)
+            {
+                return;
+            }
+
+            state.canvasGroup.alpha = state.alpha;
+            state.canvasGroup.blocksRaycasts = state.blocksRaycasts;
         }
     }
 }

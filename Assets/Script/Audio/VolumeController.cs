@@ -46,14 +46,18 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// Unity AudioMixer.SetFloat와 연동
     /// </summary>
     public float MasterVolume 
-    { 
+    {
         get => currentMasterVolume;
         set
         {
             float oldValue = currentMasterVolume;
             currentMasterVolume = Mathf.Clamp(value, -80f, 20f);
             
-            if (!isMasterMuted)
+            if (isMasterMuted)
+            {
+                masterVolumeBeforeMute = currentMasterVolume;
+            }
+            else
             {
                 ApplyVolumeToMixer(MASTER_VOLUME_PARAM, currentMasterVolume);
             }
@@ -74,7 +78,11 @@ public class VolumeController : MonoBehaviour, IVolumeController
             float oldValue = currentBGMVolume;
             currentBGMVolume = Mathf.Clamp(value, -80f, 20f);
             
-            if (!isBGMMuted)
+            if (isBGMMuted)
+            {
+                bgmVolumeBeforeMute = currentBGMVolume;
+            }
+            else
             {
                 ApplyVolumeToMixer(BGM_VOLUME_PARAM, currentBGMVolume);
             }
@@ -95,7 +103,11 @@ public class VolumeController : MonoBehaviour, IVolumeController
             float oldValue = currentEffectVolume;
             currentEffectVolume = Mathf.Clamp(value, -80f, 20f);
             
-            if (!isEffectMuted)
+            if (isEffectMuted)
+            {
+                effectVolumeBeforeMute = currentEffectVolume;
+            }
+            else
             {
                 ApplyVolumeToMixer(EFFECT_VOLUME_PARAM, currentEffectVolume);
             }
@@ -479,14 +491,60 @@ public class VolumeController : MonoBehaviour, IVolumeController
     /// </summary>
     public void ApplySettings(VolumeSettings settings)
     {
-        MasterVolume = settings.masterVolume;
-        BGMVolume = settings.bgmVolume;
-        EffectVolume = settings.effectVolume;
-        
-        IsMasterMuted = settings.masterMuted;
-        IsBGMMuted = settings.bgmMuted;
-        IsEffectMuted = settings.effectMuted;
-        
+        float oldMasterVolume = currentMasterVolume;
+        float oldBGMVolume = currentBGMVolume;
+        float oldEffectVolume = currentEffectVolume;
+        bool oldMasterMuted = isMasterMuted;
+        bool oldBGMMuted = isBGMMuted;
+        bool oldEffectMuted = isEffectMuted;
+
+        currentMasterVolume = Mathf.Clamp(settings.masterVolume, -80f, 20f);
+        currentBGMVolume = Mathf.Clamp(settings.bgmVolume, -80f, 20f);
+        currentEffectVolume = Mathf.Clamp(settings.effectVolume, -80f, 20f);
+
+        isMasterMuted = settings.masterMuted;
+        isBGMMuted = settings.bgmMuted;
+        isEffectMuted = settings.effectMuted;
+
+        masterVolumeBeforeMute = currentMasterVolume;
+        bgmVolumeBeforeMute = currentBGMVolume;
+        effectVolumeBeforeMute = currentEffectVolume;
+
+        ApplyAllVolumesToMixer();
+
+        if (!Mathf.Approximately(oldMasterVolume, currentMasterVolume))
+        {
+            OnVolumeChanged?.Invoke(VolumeType.Master, currentMasterVolume);
+            AudioServiceEvents.NotifyGlobalVolumeChanged(VolumeType.Master, oldMasterVolume, currentMasterVolume);
+        }
+
+        if (!Mathf.Approximately(oldBGMVolume, currentBGMVolume))
+        {
+            OnVolumeChanged?.Invoke(VolumeType.BGM, currentBGMVolume);
+            AudioServiceEvents.NotifyGlobalVolumeChanged(VolumeType.BGM, oldBGMVolume, currentBGMVolume);
+        }
+
+        if (!Mathf.Approximately(oldEffectVolume, currentEffectVolume))
+        {
+            OnVolumeChanged?.Invoke(VolumeType.Effect, currentEffectVolume);
+            AudioServiceEvents.NotifyGlobalVolumeChanged(VolumeType.Effect, oldEffectVolume, currentEffectVolume);
+        }
+
+        if (oldMasterMuted != isMasterMuted)
+        {
+            OnMuteChanged?.Invoke(VolumeType.Master, isMasterMuted);
+        }
+
+        if (oldBGMMuted != isBGMMuted)
+        {
+            OnMuteChanged?.Invoke(VolumeType.BGM, isBGMMuted);
+        }
+
+        if (oldEffectMuted != isEffectMuted)
+        {
+            OnMuteChanged?.Invoke(VolumeType.Effect, isEffectMuted);
+        }
+
         Debug.Log("볼륨 설정 일괄 적용 완료");
     }
     

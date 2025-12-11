@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6f9561aab1c20a142ae407b2c246a562, type: 3}
-  m_Name: SO_StageData_01_05
+  m_Name: SO_StageData_02_05
   m_EditorClassIdentifier: 
   stageId: chapter2_stage5
   chapterId: chapter2
@@ -25,7 +25,7 @@ MonoBehaviour:
   difficulty: 1
   isHidden: 0
   unlockConditions:
-  - {fileID: 11400000, guid: 28b41ab4493f493479665515e70eaa3e, type: 2}
+  - {fileID: 11400000, guid: f89942d5b12ef3d4195b03b7cbef2afe, type: 2}
   bonusUnlockConditions: []
   scoringSettings:
     maxScore: 10000
