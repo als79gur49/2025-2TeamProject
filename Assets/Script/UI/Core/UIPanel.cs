@@ -1,5 +1,16 @@
 using System;
 using UnityEngine;
+using DG.Tweening;
+
+/// <summary>
+/// UIPanel 공용 애니메이션 타입
+/// </summary>
+public enum UIPanelAnimationType
+{
+    None,
+    Fade,
+    ScaleSlideFromTop
+}
 
 /// <summary>
 /// UI 패널의 추상 베이스 클래스
@@ -11,6 +22,20 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
     [SerializeField] protected UIPanelPriority priority = UIPanelPriority.Normal;
     [SerializeField] protected bool initializeOnAwake = true;
     [SerializeField] protected bool hideOnStart = true;
+
+    [Header("Animation Settings")]
+    [SerializeField] protected UIPanelAnimationType showAnimation = UIPanelAnimationType.None;
+    [SerializeField] protected UIPanelAnimationType hideAnimation = UIPanelAnimationType.None;
+    [SerializeField] protected float showDuration = 0.25f;
+    [SerializeField] protected float hideDuration = 0.2f;
+    [SerializeField] protected Ease showEase = Ease.OutQuad;
+    [SerializeField] protected Ease hideEase = Ease.InQuad;
+
+    [Header("Animation Targets")]
+    [SerializeField] protected CanvasGroup animationCanvasGroup;
+    [SerializeField] protected RectTransform animationRectTransform;
+    [SerializeField] protected float slideOffsetY = 400f;
+    [SerializeField] protected float scaleFrom = 0.8f;
 
     // --- 프로퍼티 ---
     public bool IsActive => gameObject.activeInHierarchy;
@@ -27,6 +52,11 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
     // --- 초기화 상태 ---
     protected bool isInitialized = false;
 
+    // --- 애니메이션 상태 ---
+    protected Vector2 originalAnchoredPos;
+    protected Vector3 originalScale = Vector3.one;
+    protected Tween currentTween;
+
     #region Unity Lifecycle
 
     protected virtual void Awake()
@@ -34,6 +64,22 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
         // ✅ Awake()에서는 자기 자신에게만 종속적인 초기화만 수행
         // Instantiate 직후에도 작동해야 하는 초기화 수행
         // ServiceLocator.Get() 등 외부 의존성이 필요한 초기화는 Start()에서 수행
+
+        // 애니메이션 타겟 컴포넌트 설정
+        if (animationRectTransform == null)
+        {
+            animationRectTransform = GetComponent<RectTransform>();
+        }
+        if (animationCanvasGroup == null)
+        {
+            animationCanvasGroup = GetComponent<CanvasGroup>();
+        }
+
+        if (animationRectTransform != null)
+        {
+            originalAnchoredPos = animationRectTransform.anchoredPosition;
+            originalScale = animationRectTransform.localScale;
+        }
 
         if (initializeOnAwake && !isInitialized)
         {
@@ -66,6 +112,10 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
 
     protected virtual void OnDestroy()
     {
+        // DOTween 애니메이션 정리
+        currentTween?.Kill();
+        currentTween = null;
+
         Cleanup();
     }
 
@@ -94,28 +144,22 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
 
     public virtual void OnShow()
     {
-        if (currentState == UIPanelState.Active) return;
+        if (currentState == UIPanelState.Active || currentState == UIPanelState.Showing) return;
 
         currentState = UIPanelState.Showing;
         gameObject.SetActive(true);
-        OnShowPanel();
-        currentState = UIPanelState.Active;
-        OnPanelShown?.Invoke(this);
 
-        Debug.Log($"UI Panel Shown: {GetType().Name}");
+        OnShowPanel();
+        PlayShowAnimation();
     }
 
     public virtual void OnHide()
     {
-        if (currentState == UIPanelState.Inactive) return;
+        if (currentState == UIPanelState.Inactive || currentState == UIPanelState.Hiding) return;
 
         currentState = UIPanelState.Hiding;
         OnHidePanel();
-        gameObject.SetActive(false);
-        currentState = UIPanelState.Inactive;
-        OnPanelHidden?.Invoke(this);
-
-        Debug.Log($"UI Panel Hidden: {GetType().Name}");
+        PlayHideAnimation();
     }
 
     public virtual void Cleanup()
@@ -171,6 +215,181 @@ public abstract class UIPanel : MonoBehaviour, IUIPanel
     /// 파생 클래스가 애니메이션 완료 후 OnPanelHidden 이벤트를 발생시킬 수 있도록 지원
     /// </summary>
     protected void RaiseOnPanelHidden() => OnPanelHidden?.Invoke(this);
+
+    #endregion
+
+    #region Animation Helpers
+
+    /// <summary>
+    /// 패널 표시 애니메이션 실행
+    /// </summary>
+    protected virtual void PlayShowAnimation()
+    {
+        currentTween?.Kill();
+
+        switch (showAnimation)
+        {
+            case UIPanelAnimationType.None:
+                OnShowAnimationComplete();
+                break;
+            case UIPanelAnimationType.Fade:
+                PlayFadeIn();
+                break;
+            case UIPanelAnimationType.ScaleSlideFromTop:
+                PlayScaleSlideIn();
+                break;
+            default:
+                OnShowAnimationComplete();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 패널 숨김 애니메이션 실행
+    /// </summary>
+    protected virtual void PlayHideAnimation()
+    {
+        currentTween?.Kill();
+
+        switch (hideAnimation)
+        {
+            case UIPanelAnimationType.None:
+                OnHideAnimationComplete();
+                break;
+            case UIPanelAnimationType.Fade:
+                PlayFadeOut();
+                break;
+            case UIPanelAnimationType.ScaleSlideFromTop:
+                PlayScaleSlideOut();
+                break;
+            default:
+                OnHideAnimationComplete();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 표시 애니메이션 완료 시 공통 처리
+    /// </summary>
+    protected virtual void OnShowAnimationComplete()
+    {
+        currentTween = null;
+        currentState = UIPanelState.Active;
+        RaiseOnPanelShown();
+
+        Debug.Log($"UI Panel Shown: {GetType().Name}");
+    }
+
+    /// <summary>
+    /// 숨김 애니메이션 완료 시 공통 처리
+    /// </summary>
+    protected virtual void OnHideAnimationComplete()
+    {
+        currentTween = null;
+        gameObject.SetActive(false);
+        currentState = UIPanelState.Inactive;
+        RaiseOnPanelHidden();
+
+        Debug.Log($"UI Panel Hidden: {GetType().Name}");
+    }
+
+    /// <summary>
+    /// 페이드 인 애니메이션
+    /// </summary>
+    protected virtual void PlayFadeIn()
+    {
+        if (animationCanvasGroup == null)
+        {
+            OnShowAnimationComplete();
+            return;
+        }
+
+        animationCanvasGroup.alpha = 0f;
+        animationCanvasGroup.interactable = false;
+
+        currentTween = animationCanvasGroup
+            .DOFade(1f, showDuration)
+            .SetEase(showEase)
+            .OnComplete(() =>
+            {
+                animationCanvasGroup.interactable = true;
+                OnShowAnimationComplete();
+            });
+    }
+
+    /// <summary>
+    /// 페이드 아웃 애니메이션
+    /// </summary>
+    protected virtual void PlayFadeOut()
+    {
+        if (animationCanvasGroup == null)
+        {
+            OnHideAnimationComplete();
+            return;
+        }
+
+        animationCanvasGroup.interactable = false;
+
+        currentTween = animationCanvasGroup
+            .DOFade(0f, hideDuration)
+            .SetEase(hideEase)
+            .OnComplete(OnHideAnimationComplete);
+    }
+
+    /// <summary>
+    /// 위에서 내려오며 스케일 인
+    /// </summary>
+    protected virtual void PlayScaleSlideIn()
+    {
+        if (animationRectTransform == null)
+        {
+            OnShowAnimationComplete();
+            return;
+        }
+
+        animationRectTransform.anchoredPosition = originalAnchoredPos + new Vector2(0f, slideOffsetY);
+        animationRectTransform.localScale = originalScale * scaleFrom;
+
+        var sequence = DOTween.Sequence();
+        currentTween = sequence;
+
+        sequence.Append(animationRectTransform
+            .DOAnchorPos(originalAnchoredPos, showDuration)
+            .SetEase(showEase));
+
+        sequence.Join(animationRectTransform
+            .DOScale(originalScale, showDuration)
+            .SetEase(showEase));
+
+        sequence.OnComplete(OnShowAnimationComplete);
+    }
+
+    /// <summary>
+    /// 위로 올라가며 스케일 아웃
+    /// </summary>
+    protected virtual void PlayScaleSlideOut()
+    {
+        if (animationRectTransform == null)
+        {
+            OnHideAnimationComplete();
+            return;
+        }
+
+        var targetPos = originalAnchoredPos + new Vector2(0f, slideOffsetY);
+
+        var sequence = DOTween.Sequence();
+        currentTween = sequence;
+
+        sequence.Append(animationRectTransform
+            .DOAnchorPos(targetPos, hideDuration)
+            .SetEase(hideEase));
+
+        sequence.Join(animationRectTransform
+            .DOScale(originalScale * scaleFrom, hideDuration)
+            .SetEase(hideEase));
+
+        sequence.OnComplete(OnHideAnimationComplete);
+    }
 
     #endregion
 
