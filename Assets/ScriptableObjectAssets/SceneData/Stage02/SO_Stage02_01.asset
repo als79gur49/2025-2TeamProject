@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74de729903789ae4a8715e9cb1ceedd8, type: 3}
+  m_Name: SO_Stage02_01
+  m_EditorClassIdentifier: 
+  sceneName: Stage02_01
+  category: 2
+  loadingBackground: {fileID: 21300000, guid: 5acbbec193243484b90fe6917a830b55, type: 3}
+  loadingTips:
+  - "\uCC55\uD1302-1 \uC52C\uC744 \uB85C\uB529\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4..."
+  - "\uCE74\uB4DC\uB97C \uC18C\uD658\uD558\uC5EC \uC804\uD22C\uB97C \uC2DC\uC791\uD558\uC138\uC694!"
+  - "\uB9C8\uB098\uB97C \uD6A8\uC728\uC801\uC73C\uB85C \uC0AC\uC6A9\uD558\uC138\uC694"
+  - "\uC801\uC758 \uACF5\uACA9 \uD328\uD134\uC744 \uD30C\uC545\uD558\uACE0 \uB300\uC751\uD558\uC138\uC694"
+  - "\uAC15\uB825\uD55C \uCE74\uB4DC \uC870\uD569\uC744 \uCC3E\uC544\uBCF4\uC138\uC694"
+  - "\uC804\uB7B5\uC801\uC73C\uB85C \uCE74\uB4DC\uB97C \uBC30\uCE58\uD558\uC5EC \uC2B9\uB9AC\uD558\uC138\uC694"
+  bgMusic: {fileID: 11400000, guid: 0bc0c1a2d54abda4dbb5e5b9b4da6b95, type: 2}
+  description: "\uD504\uB85C\uD1A0\uD0C0\uC785 \uAC8C\uC784\uD50C\uB808\uC774 \uC52C
+    (Card Battle Prototype)"

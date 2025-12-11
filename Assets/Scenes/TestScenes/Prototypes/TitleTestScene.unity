@@ -24914,7 +24914,7 @@ MonoBehaviour:
   contentRoot: {fileID: 2142576222}
   enemyCardIconPrefab: {fileID: 7742206378479942413, guid: 54321fac619fe5b4e8356421aeebd295,
     type: 3}
-  stageNameText: {fileID: 0}
+  stageNameText: {fileID: 716107280}
   sortByRarity: 1
   sortByManaCost: 1
   removeDuplicateCards: 1
@@ -27074,7 +27074,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 243441740}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.84
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -28899,7 +28899,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 226183471}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.84
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

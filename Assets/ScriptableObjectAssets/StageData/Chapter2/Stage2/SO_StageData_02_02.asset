@@ -19,7 +19,7 @@ MonoBehaviour:
   description: "\uCC55\uD1301\uC758 2\uB2E8\uACC4 \uC2A4\uD14C\uC774\uC9C0"
   icon: {fileID: 0}
   thumbnail: {fileID: 0}
-  sceneData: {fileID: 11400000, guid: 7406f453f45cfaf4790416624e00aad6, type: 2}
+  sceneData: {fileID: 11400000, guid: bb50c7ade2574c74e9cd44dd91bc155e, type: 2}
   enemyCardPool: {fileID: 11400000, guid: 9479ea95ebdce7346a3a55e64ad5ff9c, type: 2}
   stageType: 1
   difficulty: 1
