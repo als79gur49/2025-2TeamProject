@@ -16,6 +16,9 @@ public class ShopManager : MonoBehaviour, IShopManager
     [Header("Configuration")]
     [SerializeField] private ShopConfiguration config;
 
+    [Header("Reward Events")]
+    [SerializeField] private CardPackRewardEventChannelSO cardPackRewardEventChannel;
+
     // Strategy 패턴
     private IPricingStrategy pricingStrategy;
     private IDiscountStrategy discountStrategy;
@@ -157,7 +160,11 @@ public class ShopManager : MonoBehaviour, IShopManager
                         continue;
 
                     int price = packDef.BasePrice;
-                    var packItem = new CardPackShopItem(packDef, price, config.DefaultPackRarityTable);
+                    var packItem = new CardPackShopItem(
+                        packDef,
+                        price,
+                        config.DefaultPackRarityTable,
+                        cardPackRewardEventChannel);
 
                     float discount = discountStrategy.ShouldApplyDiscount(config)
                         ? discountStrategy.GetDiscountAmount(config)
@@ -340,7 +347,11 @@ public class ShopManager : MonoBehaviour, IShopManager
                     continue;
                 }
 
-                var packItem = new CardPackShopItem(packDef, itemData.basePrice, config.DefaultPackRarityTable);
+                var packItem = new CardPackShopItem(
+                    packDef,
+                    itemData.basePrice,
+                    config.DefaultPackRarityTable,
+                    cardPackRewardEventChannel);
                 ShopItem shopItem = new ShopItem(packItem, itemData.stockAmount, itemData.discountPercentage);
                 currentShopItems.Add(shopItem);
             }
@@ -394,7 +405,9 @@ public class ShopManager : MonoBehaviour, IShopManager
         return currentShopItems.Select(item =>
         {
             var purchasable = item.purchasableItem;
-            bool isPack = purchasable is CardPackShopItem;
+            var cardShopItem = purchasable as CardShopItem;
+            var packShopItem = purchasable as CardPackShopItem;
+            bool isPack = packShopItem != null;
 
             return new ShopItemViewModel
             {
@@ -407,8 +420,9 @@ public class ShopManager : MonoBehaviour, IShopManager
                 HasDiscount = item.HasDiscount,
                 IsAvailable = item.IsAvailable,
                 CanAfford = currentGold >= item.FinalPrice,
-                CardData = (purchasable as CardShopItem)?.GetCardData(), // 카드 아이템인 경우 원본 CardData 설정
-                IsCardPack = isPack
+                CardData = cardShopItem?.GetCardData(), // 카드 아이템인 경우 원본 CardData 설정
+                IsCardPack = isPack,
+                PackDefinition = packShopItem?.Definition // 카드팩 아이템인 경우 원본 카드팩 정의 설정
             };
         }).ToList();
     }

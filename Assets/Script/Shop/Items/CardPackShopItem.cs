@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using Game.Data;
 using Game.Managers;
-using Game.Core;
 
 /// <summary>
 /// 카드팩 상점 아이템
@@ -14,13 +13,25 @@ public class CardPackShopItem : IPurchasableItem
     private readonly CardPackDefinition definition;
     private readonly int calculatedPrice;
     private readonly CardRarityTable defaultRarityTable;
+    private readonly CardPackRewardEventChannelSO rewardEventChannel;
 
-    public CardPackShopItem(CardPackDefinition definition, int price, CardRarityTable defaultRarityTable = null)
+    public CardPackShopItem(
+        CardPackDefinition definition,
+        int price,
+        CardRarityTable defaultRarityTable = null,
+        CardPackRewardEventChannelSO rewardEventChannel = null)
     {
         this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
         this.calculatedPrice = price;
         this.defaultRarityTable = defaultRarityTable;
+        this.rewardEventChannel = rewardEventChannel;
     }
+
+    /// <summary>
+    /// 카드팩의 원본 정의 데이터
+    /// UI 등에서 카드팩 메타 정보를 표시할 때 사용됩니다.
+    /// </summary>
+    public CardPackDefinition Definition => definition;
 
     public string ItemID => definition.PackId;
     public string DisplayName => definition.DisplayName;
@@ -55,15 +66,16 @@ public class CardPackShopItem : IPurchasableItem
         // 카드팩 개봉 및 컬렉션 반영
         var result = CardPackOpener.Open(definition, collection, defaultRarityTable);
 
-        // 연출/보상 큐에 결과 전달 (등록된 경우에만)
-        if (ServiceLocator.TryGet<IRewardPresentationQueue>(out var queue) && queue != null)
+        // ScriptableObject 이벤트 채널을 통한 보상 발생 알림
+        if (rewardEventChannel != null)
         {
-            queue.EnqueueCardPackReward(result);
-        }
-        else
-        {
-            Debug.Log("[CardPackShopItem] RewardPresentationQueue not registered. Skipping visual reward enqueue.");
+            var presentationData = new CardPackPresentationData
+            {
+                result = result,
+                packSprite = definition.Icon
+            };
+
+            rewardEventChannel.RaiseEvent(presentationData);
         }
     }
 }
-

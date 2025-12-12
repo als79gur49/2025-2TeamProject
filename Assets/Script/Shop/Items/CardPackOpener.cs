@@ -147,11 +147,9 @@ public static class CardPackOpener
             }
         }
 
-        // 3. 컬렉션에 반영
-        foreach (var entry in entries)
-        {
-            collection.AddCard(entry.Card, 1);
-        }
+        // 3. 컬렉션에 반영 (배치 처리)
+        var cardsToAdd = entries.Select(e => e.Card).ToList();
+        collection.AddCards(cardsToAdd);
 
         // 4. 결과 생성
         return new CardPackOpenResult(entries);
@@ -292,4 +290,3 @@ public static class CardPackOpener
         return result;
     }
 }
-

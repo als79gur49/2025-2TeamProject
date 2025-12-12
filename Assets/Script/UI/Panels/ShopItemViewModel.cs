@@ -50,6 +50,12 @@ public class ShopItemViewModel
     public bool IsCardPack { get; set; }
 
     /// <summary>
+    /// 카드팩 아이템인 경우 원본 카드팩 정의
+    /// (단일 카드 아이템인 경우 null)
+    /// </summary>
+    public CardPackDefinition PackDefinition { get; set; }
+
+    /// <summary>
     /// 남은 재고 (전체 재고 - 장바구니 수량)
     /// </summary>
     public int RemainingStock => Stock - QuantityInCart;

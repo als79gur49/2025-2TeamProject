@@ -28,6 +28,13 @@ namespace Game.Managers
         void AddCard(CardData card, int quantity = 1);
 
         /// <summary>
+        /// 여러 카드를 한 번에 추가
+        /// 카드팩 보상 등 배치 처리 시 사용
+        /// </summary>
+        /// <param name="cards">추가할 카드 목록</param>
+        void AddCards(IEnumerable<CardData> cards);
+
+        /// <summary>
         /// 컬렉션 로드 (저장 데이터 반영)
         /// </summary>
         void LoadCollection();

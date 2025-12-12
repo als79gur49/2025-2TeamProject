@@ -802,6 +802,8 @@ MonoBehaviour:
   infoButton: {fileID: 4735220790699107213}
   cardInfoEventChannel: {fileID: 11400000, guid: f40c24bbed81ca441b585950f6328067,
     type: 2}
+  cardPackInfoEventChannel: {fileID: 11400000, guid: 1a04f3c8b99e832449c6826fbf21e0c4,
+    type: 2}
 --- !u!222 &7877466603396862114
 CanvasRenderer:
   m_ObjectHideFlags: 0

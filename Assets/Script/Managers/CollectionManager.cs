@@ -54,14 +54,20 @@ namespace Game.Managers
         #region Card Management
 
         /// <summary>
-        /// 컬렉션에 카드 추가
+        /// 내부용 카드 추가 헬퍼 (저장/이벤트 없음)
         /// </summary>
-        public void AddCardToCollection(CardData card, int count = 1)
+        private bool AddCardInternal(CardData card, int count)
         {
             if (card == null)
             {
                 Debug.LogWarning("[CollectionManager] Attempted to add null card");
-                return;
+                return false;
+            }
+
+            if (count <= 0)
+            {
+                Debug.LogWarning($"[CollectionManager] Attempted to add non-positive count: {count}");
+                return false;
             }
 
             if (ownedCards.ContainsKey(card))
@@ -72,6 +78,17 @@ namespace Game.Managers
             {
                 ownedCards[card] = count;
             }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 컬렉션에 카드 추가
+        /// </summary>
+        public void AddCardToCollection(CardData card, int count = 1)
+        {
+            if (!AddCardInternal(card, count))
+                return;
 
             OnCollectionChanged?.Invoke();
             SaveCollection();
@@ -85,6 +102,33 @@ namespace Game.Managers
         public void AddCard(CardData card, int quantity = 1)
         {
             AddCardToCollection(card, quantity);
+        }
+
+        /// <summary>
+        /// 여러 카드를 한 번에 컬렉션에 추가 (배치 처리)
+        /// </summary>
+        public void AddCards(IEnumerable<CardData> cards)
+        {
+            if (cards == null)
+                return;
+
+            bool anyAdded = false;
+
+            foreach (var card in cards)
+            {
+                if (AddCardInternal(card, 1))
+                {
+                    anyAdded = true;
+                }
+            }
+
+            if (!anyAdded)
+                return;
+
+            OnCollectionChanged?.Invoke();
+            SaveCollection();
+
+            Debug.Log($"[CollectionManager] Batch added cards: {GetUniqueCardCount()} unique cards, {GetTotalCardCount()} total");
         }
 
         /// <summary>

@@ -338,6 +338,56 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_MaxRayIntersections: 0
+--- !u!1 &1704091401
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1704091403}
+  - component: {fileID: 1704091402}
+  m_Layer: 0
+  m_Name: RewardQueueService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1704091402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1704091401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5902e689d52d75549b68e354a1d769b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardPackRewardChannel: {fileID: 11400000, guid: e7b2c795bd81a0444969bae3a21f4982,
+    type: 2}
+  cardPackPresentationRequestChannel: {fileID: 11400000, guid: 5be41f86c85437f41ac0918d9cea9acd,
+    type: 2}
+  cardPackPresentationFinishedChannel: {fileID: 11400000, guid: 76c17662967c9904e9d5df4ce8e86510,
+    type: 2}
+--- !u!4 &1704091403
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1704091401}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.4395678, y: 1.0684328, z: -0.7814431}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1786083557
 GameObject:
   m_ObjectHideFlags: 0
@@ -463,3 +513,4 @@ SceneRoots:
   - {fileID: 1666481987}
   - {fileID: 1786083559}
   - {fileID: 680541935}
+  - {fileID: 1704091403}

@@ -24,6 +24,7 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
     [Header("Info Panel")]
     [SerializeField] private Button infoButton; // Info 버튼
     [SerializeField] private CardInfoEventChannelSO cardInfoEventChannel; // CardInfoPanel 표시 이벤트 채널
+    [SerializeField] private CardPackInfoEventChannelSO cardPackInfoEventChannel; // CardPackInfoPanel 표시 이벤트 채널
 
     // ViewModel
     private ShopItemViewModel viewModel;
@@ -156,6 +157,27 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
             return;
         }
 
+        // 카드팩 아이템인 경우: 카드팩 정보 패널로 라우팅
+        if (viewModel.IsCardPack)
+        {
+            if (viewModel.PackDefinition == null)
+            {
+                Debug.LogWarning("[ShopItemUI] PackDefinition is null for card pack item");
+                return;
+            }
+
+            if (cardPackInfoEventChannel == null)
+            {
+                Debug.LogError("[ShopItemUI] CardPackInfoEventChannel is not assigned");
+                return;
+            }
+
+            cardPackInfoEventChannel.ShowPackInfo(viewModel.PackDefinition);
+            Debug.Log($"[ShopItemUI] Info button clicked for card pack: {viewModel.DisplayName}");
+            return;
+        }
+
+        // 단일 카드 아이템인 경우: 기존 카드 정보 패널로 라우팅
         if (viewModel.CardData == null)
         {
             Debug.LogWarning("[ShopItemUI] CardData is null - this item may not be a card type");
@@ -169,8 +191,8 @@ public class ShopItemUI : MonoBehaviour, IPointerClickHandler
         }
 
         // CardInfoPanel 표시 이벤트 발생
-        cardInfoEventChannel.RaiseEvent(viewModel.CardData);
-        Debug.Log($"[ShopItemUI] Info button clicked for {viewModel.DisplayName}");
+        cardInfoEventChannel.ShowCardInfo(viewModel.CardData);
+        Debug.Log($"[ShopItemUI] Info button clicked for card: {viewModel.DisplayName}");
     }
 
     #region Animations
