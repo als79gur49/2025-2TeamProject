@@ -662,7 +662,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c37f3f0183e01894983d807a4608ba7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHandSize: 14
+  maxHandSize: 7
   enableLogging: 1
   handUIParent: {fileID: 4113456147281707861}
   cardUIPrefab: {fileID: 3307020442703334768, guid: 7b003a152a650514bade2d671a552e93,
@@ -671,20 +671,10 @@ MonoBehaviour:
   arrangeCardsInArc: 0
   arcRadius: 800
   arrangeVertically: 1
-  availableCards:
-  - {fileID: 11400000, guid: caf30435544a4ab4a96a1eaab2fb2038, type: 2}
-  - {fileID: 11400000, guid: 3cabebd7d3435dd4e9b3013299a570c8, type: 2}
-  - {fileID: 11400000, guid: 6c4353a67e070a24ba45c2d2dc577084, type: 2}
-  - {fileID: 11400000, guid: ed2612cd6a657fc4cbea0d9aff0c7424, type: 2}
-  initialHandCards:
-  - {fileID: 11400000, guid: 5f2bbd2ebda38164d88e6ea38d0392b1, type: 2}
-  - {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7, type: 2}
-  - {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07, type: 2}
-  - {fileID: 11400000, guid: 55c4834f1f994f6489d63ad9aeff1a75, type: 2}
-  - {fileID: 11400000, guid: 4191d471639347846b84ff3e88567a66, type: 2}
+  availableCards: []
+  initialHandCards: []
+  defaultInitialHandSizeFromDeck: 2
   enablePlayerInteraction: 1
-  showHandDebugInfo: 1
-  testCardData: {fileID: 0}
 --- !u!114 &1646127324714418971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -725,7 +715,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardPool: {fileID: 11400000, guid: 54f1c5a75e2e679439b3f6561dff2fe6, type: 2}
   enableLogging: 1
-  showDebugGUI: 1
 --- !u!1 &383590305287578082
 GameObject:
   m_ObjectHideFlags: 0
@@ -6765,14 +6754,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableLogging: 1
-  enableDebugGUI: 1
   playerMaxManaCap: 10
   enemyMaxManaCap: 10
   playerMana: 5
-  playerMaxMana: 10
+  playerMaxMana: 0
   enemyMana: 5
-  enemyMaxMana: 10
-  showDebugInfo: 1
+  enemyMaxMana: 0
 --- !u!1 &3718415179776361381
 GameObject:
   m_ObjectHideFlags: 0
@@ -10692,6 +10679,16 @@ MonoBehaviour:
   priority: 0
   initializeOnAwake: 1
   hideOnStart: 0
+  showAnimation: 0
+  hideAnimation: 0
+  showDuration: 0.25
+  hideDuration: 0.2
+  showEase: 6
+  hideEase: 5
+  animationCanvasGroup: {fileID: 0}
+  animationRectTransform: {fileID: 0}
+  slideOffsetY: 400
+  scaleFrom: 0.8
   cardDragStartChannel: {fileID: 11400000, guid: f40c24bbed81ca441b585950f6328067,
     type: 2}
   cardDragEndChannel: {fileID: 11400000, guid: a863f2c09661e6140bdb98b1503fc316, type: 2}
@@ -13873,7 +13870,6 @@ MonoBehaviour:
   damagePopupPrefab: {fileID: 5711241224786816405, guid: 1e678a7b361fb114ba4ce9f720c06f40,
     type: 3}
   unitPlacementCoordinator: {fileID: 9080279651252266369}
-  showDebugInfo: 1
 --- !u!114 &4409829259162656335
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17325,6 +17321,16 @@ MonoBehaviour:
   priority: 0
   initializeOnAwake: 1
   hideOnStart: 1
+  showAnimation: 0
+  hideAnimation: 0
+  showDuration: 0.25
+  hideDuration: 0.2
+  showEase: 6
+  hideEase: 5
+  animationCanvasGroup: {fileID: 0}
+  animationRectTransform: {fileID: 0}
+  slideOffsetY: 400
+  scaleFrom: 0.8
   openButton: {fileID: 1659156391283827984}
   closeButton: {fileID: 794041348916043490}
   masterVolumeSlider: {fileID: 7796959736790628174}
@@ -17364,6 +17370,16 @@ MonoBehaviour:
   priority: 10
   initializeOnAwake: 1
   hideOnStart: 1
+  showAnimation: 0
+  hideAnimation: 0
+  showDuration: 0.25
+  hideDuration: 0.2
+  showEase: 6
+  hideEase: 5
+  animationCanvasGroup: {fileID: 0}
+  animationRectTransform: {fileID: 0}
+  slideOffsetY: 400
+  scaleFrom: 0.8
   openButton: {fileID: 1659156391283827984}
   closeButton: {fileID: 794041348916043490}
   masterVolumeSlider: {fileID: 7796959736790628174}

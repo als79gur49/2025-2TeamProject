@@ -28,8 +28,8 @@ namespace Game.Components
         [SerializeField] private Vector3 unitOffset = Vector3.up * 0.0f;
 
         [Header("높이 설정 (Base/Ground 높이 차이)")]
-        [SerializeField] private float baseHeight = 1.85f;    // Base 위치 높이
-        [SerializeField] private float groundHeight = 0f;  // Ground 기본 높이
+        [SerializeField] private float baseHeight = 1.9f;    // Base 위치 높이
+        [SerializeField] private float groundHeight = 0.2f;  // Ground 기본 높이
 
         // Phase 3: 성능 최적화 - 개선된 캐싱 시스템
         private readonly Dictionary<(Vector2Int, Vector2Int), PathfindingResult> pathCache = 
