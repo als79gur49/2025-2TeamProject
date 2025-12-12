@@ -32,6 +32,9 @@ namespace Game.Services
         [SerializeField] private List<CardData> availableCards = new List<CardData>();
         [SerializeField] private List<CardData> initialHandCards = new List<CardData>();
 
+        [Header("덱 기반 초기 핸드 설정")]
+        [SerializeField] private int defaultInitialHandSizeFromDeck = 3;
+
         [Header("상호작용 설정")]
         [SerializeField] private bool enablePlayerInteraction = false;
 
@@ -110,8 +113,8 @@ namespace Game.Services
             isInitialized = true;
             Log("✅ CardHandManager initialization completed");
 
-            // 초기 핸드 설정 (테스트용)
-            SetupInitialHand();
+            // 초기 핸드 설정 (테스트용 / 덱 미사용 씬)
+            SetupInitialHandFromConfig();
         }
 
         /// <summary>
@@ -182,8 +185,9 @@ namespace Game.Services
 
         /// <summary>
         /// 초기 핸드 설정 (initialHandCards를 핸드에 추가)
+        /// 덱이 없는 튜토리얼/테스트용 씬에서 사용
         /// </summary>
-        private void SetupInitialHand()
+        private void SetupInitialHandFromConfig()
         {
             if (initialHandCards == null || initialHandCards.Count == 0)
             {
@@ -219,6 +223,71 @@ namespace Game.Services
             }
 
             Log($"✅ Initial hand setup completed: {handCards.Count}/{maxHandSize} cards");
+        }
+
+        /// <summary>
+        /// 덱에서 초기 핸드를 드로우하여 설정
+        /// PlayerData 기반 덱 전투에서 사용
+        /// </summary>
+        /// <param name="initialHandSize">초기 손패로 뽑을 카드 수</param>
+        public void SetupInitialHandFromDeck(int initialHandSize)
+        {
+            if (!isInitialized)
+            {
+                LogError("Cannot setup initial hand from deck - CardHandManager not initialized");
+                return;
+            }
+
+            if (!IsDeckLoaded())
+            {
+                Log("⚠️ Deck is not loaded or empty - cannot setup initial hand from deck");
+                return;
+            }
+
+            if (initialHandSize <= 0)
+            {
+                Log("⚠️ Requested initial hand size from deck is zero or negative - skipping initial draw");
+                return;
+            }
+
+            Log($"🎴 Setting up initial hand FROM DECK with requested size {initialHandSize}");
+
+            // 기존 핸드 제거 (Config 기반 초기 핸드 포함)
+            if (handCards.Count > 0)
+            {
+                ClearHand();
+            }
+
+            int drawnCount = 0;
+
+            for (int i = 0; i < initialHandSize; i++)
+            {
+                if (IsHandFull())
+                {
+                    Log("⚠️ Hand is full while setting up initial hand from deck");
+                    break;
+                }
+
+                // 덱에서 직접 카드 가져오기 (fallback 없이 순수 덱 기반)
+                CardData nextCard = GetNextCardFromDeck();
+                if (nextCard == null)
+                {
+                    Log("⚠️ Deck became empty while setting up initial hand from deck");
+                    break;
+                }
+
+                bool success = AddCardToHand(nextCard);
+                if (success)
+                {
+                    drawnCount++;
+                }
+                else
+                {
+                    LogError($"Failed to add initial deck card: {nextCard.CardName}");
+                }
+            }
+
+            Log($"✅ Initial hand from deck setup completed: {drawnCount} cards drawn ({handCards.Count}/{maxHandSize})");
         }
 
         /// <summary>
@@ -822,6 +891,29 @@ namespace Game.Services
         public List<CardData> GetHandCards()
         {
             return new List<CardData>(handCards);
+        }
+
+        /// <summary>
+        /// 설정된 초기 핸드 카드 개수 반환 (Config 기반)
+        /// 덱 기반 초기 드로우 시 기본 개수로 사용
+        /// </summary>
+        public int GetConfiguredInitialHandSize()
+        {
+            // 1순위: 씬/프리팹에서 설정된 initialHandCards 개수
+            int configuredSize = initialHandCards != null ? initialHandCards.Count : 0;
+            if (configuredSize > 0)
+            {
+                return configuredSize;
+            }
+
+            // 2순위: 인스펙터에서 설정 가능한 기본 덱 기반 초기 핸드 크기
+            if (defaultInitialHandSizeFromDeck > 0)
+            {
+                return defaultInitialHandSizeFromDeck;
+            }
+
+            // 3순위: 잘못된 설정(0 이하)일 경우, 안전한 기본값 3 사용
+            return 3;
         }
 
         /// <summary>

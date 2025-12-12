@@ -279,6 +279,18 @@ namespace Game.Services
                 // CardHandManager에 덱 설정
                 cardHandManager.LoadDeck(deckData);
                 Log($"🎉 Deck successfully loaded into CardHandManager");
+
+                // 덱 기반 초기 손패 구성
+                int initialHandSize = cardHandManager.GetConfiguredInitialHandSize();
+                if (initialHandSize <= 0)
+                {
+                    Log("⚠️ Initial hand size from deck is zero or negative - skipping initial draw");
+                }
+                else
+                {
+                    cardHandManager.SetupInitialHandFromDeck(initialHandSize);
+                    Log($"📇 Initial player hand drawn from deck (requested: {initialHandSize}, actual: {cardHandManager.HandSize})");
+                }
             }
             catch (System.Exception ex)
             {

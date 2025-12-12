@@ -898,6 +898,9 @@ namespace Game.AI
                     case Game.Card.Effects.DamageBaseEffectDefinition dmgBaseDef:
                         totalValue += CalculateDamageBaseValue(card, dmgBaseDef);
                         break;
+                    case Game.Card.Effects.ReturnUnitsToHandEffectDefinition returnDef:
+                        totalValue += CalculateReturnToHandValue(card, returnDef, position);
+                        break;
                 }
             }
 
@@ -911,6 +914,105 @@ namespace Game.AI
                 return 0;
 
             return unit.MaxHealth + unit.AttackPower + unit.MovementRange;
+        }
+
+        /// <summary>
+        /// ReturnToHand 계열 효과의 가치를 계산합니다.
+        /// - 적 유닛(Player 팀)을 손패로 되돌리면 양수 가치
+        /// - 아군 유닛(Enemy 팀)을 손패로 되돌리면 음수 가치
+        /// </summary>
+        private int CalculateReturnToHandValue(CardData card, Game.Card.Effects.ReturnUnitsToHandEffectDefinition def, Vector2Int position)
+        {
+            if (gridController == null || def.AreaShape == null)
+                return 0;
+
+            var tiles = def.AreaShape.GetTiles(position, gridController);
+            if (tiles == null)
+                return 0;
+
+            // 한 유닛만 되돌리는 카드가 대부분이지만,
+            // 범용성을 위해 가치가 높은 유닛부터 maxUnitsToReturn까지 합산하는 구조로 계산
+            var unitValues = new List<int>();
+
+            foreach (var tile in tiles)
+            {
+                if (tile == null || tile.OccupyingUnit == null)
+                    continue;
+
+                var unit = tile.OccupyingUnit;
+                var teamComponent = unit.GetComponent<ITeamComponent>();
+                if (teamComponent == null)
+                    continue;
+
+                bool isEnemyUnit = teamComponent.Team == TeamType.Player; // Enemy AI 입장에서 Player = 적군
+                bool isAllyUnit = teamComponent.Team == TeamType.Enemy;
+
+                // 기본 유닛 가치 추정: 체력 + 공격력*2 + 이동력
+                int unitValue = 0;
+
+                var healthComponent = unit.GetComponent<IHealthComponent>();
+                if (healthComponent != null)
+                {
+                    unitValue += healthComponent.MaxHealth;
+                }
+
+                var combatComponent = unit.GetComponent<ICombatSystem>();
+                if (combatComponent != null)
+                {
+                    // ICombatSystem에서 직접 공격력을 노출하지 않으므로,
+                    // 유닛 컴포넌트에서 AttackPower를 읽는 방식을 시도
+                    var unitComponent = unit.GetComponent<Unit>();
+                    if (unitComponent != null)
+                    {
+                        unitValue += unitComponent.AttackPower * 2;
+                        unitValue += unitComponent.MovementRange;
+                    }
+                }
+                else
+                {
+                    // 컴포넌트 시스템을 사용하지 않는 유닛에 대해서도 최소한의 추정 시도
+                    var unitComponent = unit.GetComponent<Unit>();
+                    if (unitComponent != null)
+                    {
+                        unitValue += unitComponent.MaxHealth;
+                        unitValue += unitComponent.AttackPower * 2;
+                        unitValue += unitComponent.MovementRange;
+                    }
+                }
+
+                // 유닛 컴포넌트를 찾지 못한 경우에는 고정 최소 가치
+                if (unitValue == 0)
+                {
+                    unitValue = 5;
+                }
+
+                // 적 유닛을 바운스하면 양수, 아군 유닛을 바운스하면 음수로 처리
+                if (isEnemyUnit)
+                {
+                    unitValues.Add(unitValue);
+                }
+                else if (isAllyUnit)
+                {
+                    unitValues.Add(-unitValue);
+                }
+            }
+
+            if (unitValues.Count == 0)
+                return 0;
+
+            // 가치가 높은 유닛부터 선택
+            unitValues.Sort((a, b) => b.CompareTo(a));
+
+            int maxCount = def.MaxUnitsToReturn <= 0 ? unitValues.Count : Mathf.Min(def.MaxUnitsToReturn, unitValues.Count);
+            int total = 0;
+
+            for (int i = 0; i < maxCount; i++)
+            {
+                total += unitValues[i];
+            }
+
+            // 음수 값은 이 위치에서 사용하지 않는 것이 낫다는 뜻이므로 0으로 클램프
+            return Mathf.Max(0, total);
         }
 
         private int CalculateDamageValue(CardData card, DamageEffectDefinition def, Vector2Int position)
