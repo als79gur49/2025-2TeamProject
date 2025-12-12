@@ -23,9 +23,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9e13348751f92b042bf5d01f8ca4b2a7, type: 2}
   - {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07, type: 2}
   - {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07, type: 2}
-  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
-  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
-  - {fileID: 11400000, guid: 11f4f5ad8ce882049b3aabf6476b9579, type: 2}
   - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
   - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
   - {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f, type: 2}
@@ -53,7 +50,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550, type: 2}
   - {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550, type: 2}
   - {fileID: 11400000, guid: d10463c5540400346b39362228151d6c, type: 2}
-  initialHandSize: 3
+  initialHandSize: 2
   selectionType: 0
   rarityWeightSettings:
     commonWeight: 40
@@ -61,4 +58,4 @@ MonoBehaviour:
     rareWeight: 20
     epicWeight: 8
     legendaryWeight: 2
-  totalCardCount: 40
+  totalCardCount: 37

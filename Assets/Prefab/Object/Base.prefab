@@ -80,7 +80,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   baseSize: {x: 30, y: 5}
-  maxHealth: 25
+  maxHealth: 20
   basePrefab: {fileID: 0}
 --- !u!114 &5109964249920703519
 MonoBehaviour:
@@ -104,6 +104,9 @@ MonoBehaviour:
   regenerationAmount: 1
   regenerationInterval: 1
   hitVfxData: {fileID: 0}
+  soundEventChannel: {fileID: 0}
+  deathSoundData: {fileID: 0}
+  hitSoundData: {fileID: 0}
   enableDamageDisplay: 0
 --- !u!114 &5178849677372147376
 MonoBehaviour:

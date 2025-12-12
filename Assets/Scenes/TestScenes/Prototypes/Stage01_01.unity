@@ -792,8 +792,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
+      propertyPath: maxHandSize
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: availableCards.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
       propertyPath: initialHandCards.Array.size
-      value: 9
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: defaultInitialHandSizeFromDeck
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -811,67 +826,73 @@ PrefabInstance:
         type: 3}
       propertyPath: initialHandCards.Array.data[2]
       value: 
-      objectReference: {fileID: 11400000, guid: 1d6d4e66eec0c8f498d51355d314d07d,
+      objectReference: {fileID: 11400000, guid: 4d4682e173aad274fa651418979a27d8,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[3]
       value: 
-      objectReference: {fileID: 11400000, guid: 4d4682e173aad274fa651418979a27d8,
+      objectReference: {fileID: 11400000, guid: 08e607487ec031f479122d9e9b5cdd15,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[4]
       value: 
-      objectReference: {fileID: 11400000, guid: 08e607487ec031f479122d9e9b5cdd15,
+      objectReference: {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[5]
       value: 
-      objectReference: {fileID: 11400000, guid: a22148dc2f347c943bfcf456624a475f,
+      objectReference: {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[6]
       value: 
-      objectReference: {fileID: 11400000, guid: ad6474e6411adcb4fbaa59916bc1d62f,
+      objectReference: {fileID: 11400000, guid: f7a28d448dce09842adc77cc967e7805,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[7]
       value: 
-      objectReference: {fileID: 11400000, guid: fb5c4edf6d33f734f987828c63914550,
+      objectReference: {fileID: 11400000, guid: 4655aa53d86240345a3a09f0d13748be,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[8]
       value: 
-      objectReference: {fileID: 11400000, guid: f7a28d448dce09842adc77cc967e7805,
+      objectReference: {fileID: 11400000, guid: 87a1547cfea127b4aa60c491831df337,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[9]
       value: 
-      objectReference: {fileID: 11400000, guid: 55c4834f1f994f6489d63ad9aeff1a75,
+      objectReference: {fileID: 11400000, guid: 0ab8ecfa53a9bd647ba7d2e73b0a4d5e,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[10]
       value: 
-      objectReference: {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07,
+      objectReference: {fileID: 11400000, guid: c7568b323eec28e4bae1338bb67b531e,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[11]
       value: 
-      objectReference: {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07,
+      objectReference: {fileID: 11400000, guid: 9da35f0d5986db641b8ed44ff7887c9b,
         type: 2}
     - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: initialHandCards.Array.data[12]
       value: 
-      objectReference: {fileID: 11400000, guid: 3ae73d32756dd4540b1274a6ee8f7c07,
+      objectReference: {fileID: 11400000, guid: c7568b323eec28e4bae1338bb67b531e,
+        type: 2}
+    - target: {fileID: 6855073702224406120, guid: fc15a942cb732654fbb508af21667c55,
+        type: 3}
+      propertyPath: initialHandCards.Array.data[13]
+      value: 
+      objectReference: {fileID: 11400000, guid: c7568b323eec28e4bae1338bb67b531e,
         type: 2}
     - target: {fileID: 7197732791546319263, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
@@ -896,12 +917,12 @@ PrefabInstance:
     - target: {fileID: 7695418667763153568, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: enemyMaxMana
-      value: 9
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7695418667763153568, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}
       propertyPath: playerMaxMana
-      value: 9
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7840599438527861119, guid: fc15a942cb732654fbb508af21667c55,
         type: 3}

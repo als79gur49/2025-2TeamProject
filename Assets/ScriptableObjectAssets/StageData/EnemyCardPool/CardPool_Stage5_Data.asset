@@ -55,7 +55,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 58066ea01f91bec409e1e6d63ea2f4ac, type: 2}
   - {fileID: 11400000, guid: 58066ea01f91bec409e1e6d63ea2f4ac, type: 2}
   - {fileID: 11400000, guid: c7568b323eec28e4bae1338bb67b531e, type: 2}
-  initialHandSize: 3
+  initialHandSize: 2
   selectionType: 0
   rarityWeightSettings:
     commonWeight: 40

@@ -15,7 +15,7 @@ MonoBehaviour:
   stageId: chapter1_stage3
   chapterId: chapter1
   stageNumber: 3
-  displayName: Stage 3
+  displayName: "\uC2A4\uD14C\uC774\uC9C01-3"
   description: "\uCC55\uD1301\uC758 3\uB2E8\uACC4 \uC2A4\uD14C\uC774\uC9C0"
   icon: {fileID: 0}
   thumbnail: {fileID: 0}
