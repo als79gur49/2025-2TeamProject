@@ -132,14 +132,12 @@ namespace Game.UI.Coordinators
         /// </summary>
         private void OnCardAddedToDeck(CardData card)
         {
-            // 사용 가능한 개수 계산 및 인벤토리 UI 업데이트
+            // 인벤토리 UI 업데이트 (덱 편성과 무관하게 컬렉션 소유 개수만 사용)
             if (inventoryPanel != null && deckPanel != null && cardCollection != null)
             {
                 int ownedCount = cardCollection.GetOwnedCount(card);
-                int inDeckCount = deckPanel.GetDeckCardCount(card);
-                int availableCount = ownedCount - inDeckCount;
 
-                inventoryPanel.UpdateCardAvailability(card, availableCount);
+                inventoryPanel.UpdateCardAvailability(card, ownedCount);
                 inventoryPanel.RefreshTotalCardsDisplay();
             }
 
@@ -157,14 +155,12 @@ namespace Game.UI.Coordinators
         /// </summary>
         private void OnCardRemovedFromDeck(CardData card)
         {
-            // 사용 가능한 개수 계산 및 인벤토리 UI 업데이트
+            // 인벤토리 UI 업데이트 (덱 편성과 무관하게 컬렉션 소유 개수만 사용)
             if (inventoryPanel != null && deckPanel != null && cardCollection != null)
             {
                 int ownedCount = cardCollection.GetOwnedCount(card);
-                int inDeckCount = deckPanel.GetDeckCardCount(card);
-                int availableCount = ownedCount - inDeckCount;
 
-                inventoryPanel.UpdateCardAvailability(card, availableCount);
+                inventoryPanel.UpdateCardAvailability(card, ownedCount);
                 inventoryPanel.RefreshTotalCardsDisplay();
             }
 

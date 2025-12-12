@@ -246,16 +246,16 @@ namespace Game.UI.Panels
             {
                 int ownedCount = collectionManager != null ? collectionManager.GetOwnedCount(card) : 0;
 
-                // 덱에 들어있는 개수를 빼서 가용성 계산 (Coordinator를 통해)
-                int inDeckCount = coordinator != null ? coordinator.GetDeckCardCount(card) : 0;
-                int availableCount = ownedCount - inDeckCount;
+                // 덱 편성과 무관하게, 인벤토리에서는 "소유 개수"만 표시/사용
+                // 덱으로 몇 장을 보냈는지에 따라 인벤토리 카운트가 줄어들지 않도록 한다.
+                int displayCount = ownedCount;
 
                 // SetupForInventory를 사용하여 일관성 있는 초기화 (Coordinator 참조 전달)
-                cardUI.SetupForInventory(card, availableCount, coordinator);
+                cardUI.SetupForInventory(card, displayCount, coordinator);
 
                 cardSlots[card] = cardUI;
 
-                Debug.Log($"[InventoryPanel] Created CardUI for {card.CardName}: owned={ownedCount}, inDeck={inDeckCount}, available={availableCount}");
+                Debug.Log($"[InventoryPanel] Created CardUI for {card.CardName}: owned={ownedCount}, display={displayCount}");
             }
         }
 
@@ -311,7 +311,7 @@ namespace Game.UI.Panels
                 rarityFilter.ClearOptions();
                 rarityFilter.AddOptions(new List<string>
                 {
-                    "전체", "일반", "희귀", "전설", "영웅", "신화"
+                    "전체", "일반", "희귀", "영웅", "전설", "신화"
                 });
                 rarityFilter.onValueChanged.AddListener(OnRarityFilterChanged);
             }
